@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/uvm-laundry-link/static/css/main.c84e3914.css",
+    "main.js": "/uvm-laundry-link/static/js/main.a128336f.js",
+    "static/js/453.a88208c7.chunk.js": "/uvm-laundry-link/static/js/453.a88208c7.chunk.js",
+    "index.html": "/uvm-laundry-link/index.html",
+    "main.c84e3914.css.map": "/uvm-laundry-link/static/css/main.c84e3914.css.map",
+    "main.a128336f.js.map": "/uvm-laundry-link/static/js/main.a128336f.js.map",
+    "453.a88208c7.chunk.js.map": "/uvm-laundry-link/static/js/453.a88208c7.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.c84e3914.css",
+    "static/js/main.a128336f.js"
+  ]
+}
