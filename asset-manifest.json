@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/uvm-laundry-link/static/css/main.fe1f1ffb.css",
-    "main.js": "/uvm-laundry-link/static/js/main.07903428.js",
+    "main.css": "/uvm-laundry-link/static/css/main.7487644d.css",
+    "main.js": "/uvm-laundry-link/static/js/main.1076bac8.js",
     "static/js/453.a88208c7.chunk.js": "/uvm-laundry-link/static/js/453.a88208c7.chunk.js",
     "index.html": "/uvm-laundry-link/index.html",
-    "main.fe1f1ffb.css.map": "/uvm-laundry-link/static/css/main.fe1f1ffb.css.map",
-    "main.07903428.js.map": "/uvm-laundry-link/static/js/main.07903428.js.map",
+    "main.7487644d.css.map": "/uvm-laundry-link/static/css/main.7487644d.css.map",
+    "main.1076bac8.js.map": "/uvm-laundry-link/static/js/main.1076bac8.js.map",
     "453.a88208c7.chunk.js.map": "/uvm-laundry-link/static/js/453.a88208c7.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.fe1f1ffb.css",
-    "static/js/main.07903428.js"
+    "static/css/main.7487644d.css",
+    "static/js/main.1076bac8.js"
   ]
 }
