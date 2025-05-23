@@ -11,10 +11,11 @@ const getStatusDetails = (status) => {
   const rawStatus = String(status || 'Unknown').trim();
   const lowerStatus = rawStatus.toLowerCase();
   let actualStatusOutput = "Unknown";
+  // Icons are now directly colored, textColor from here will apply to the text part of the badge
   let iconElement = <AlertTriangle size={18} className="mr-2 flex-shrink-0 text-slate-500 dark:text-slate-400" />; 
-  let textColor = 'text-slate-700 dark:text-slate-300';
-  let bgColor = 'bg-slate-100 dark:bg-slate-700';
-  let borderColor = 'border-slate-300 dark:border-slate-600';
+  let textColor = 'text-slate-700 dark:text-slate-300'; // For text in badge
+  let bgColor = 'bg-slate-100 dark:bg-slate-700';     // For badge background
+  let borderColor = 'border-slate-300 dark:border-slate-600'; // For card border
 
 
   if (lowerStatus.includes('available')) {
@@ -51,16 +52,16 @@ const getStatusDetails = (status) => {
         bgColor = 'bg-blue-100 dark:bg-blue-900/30';
         borderColor = 'border-blue-500 dark:border-blue-700';
       }
-    } else if (lowerStatus.includes('in use')) {
+    } else if (lowerStatus.includes('in use')) { // Fallback if "min" not found but "in use" is present
       actualStatusOutput = 'In Use';
       iconElement = <Zap size={18} className="mr-2 flex-shrink-0 text-blue-600 dark:text-blue-500" />;
       textColor = 'text-blue-700 dark:text-blue-400';
       bgColor = 'bg-blue-100 dark:bg-blue-900/30';
       borderColor = 'border-blue-500 dark:border-blue-700';
-    } else if (rawStatus && rawStatus !== 'Unknown') {
+    } else if (rawStatus && rawStatus !== 'Unknown') { // Handle any other non-empty, non-keyword status
       actualStatusOutput = rawStatus.replace(/\b\w/g, l => l.toUpperCase());
        iconElement = <AlertTriangle size={18} className="mr-2 flex-shrink-0 text-slate-500 dark:text-slate-400" />;
-    } else {
+    } else { // Default for "Unknown" or empty
       actualStatusOutput = "Status Unknown";
        iconElement = <AlertTriangle size={18} className="mr-2 flex-shrink-0 text-slate-500 dark:text-slate-400" />;
     }
@@ -93,6 +94,16 @@ const MachineCard = React.memo(({ machine, onSetUpSmsAlert, isAlertSet }) => {
   const MachineTypeSpecificIcon = machine.type === 'Washer' ? Droplet : Wind;
   const formattedTimeRemaining = formatTime(machine.timeRemaining);
 
+  let placeholderText = "Alert not applicable";
+  if (actualStatus === 'Available') {
+    placeholderText = "Ready to use";
+  } else if (actualStatus === 'Out of Order') {
+    placeholderText = "Waiting for service";
+  } else if (actualStatus === 'Cycle Finished') {
+    placeholderText = "Machine ready";
+  }
+
+
   return (
     <div className={`rounded-xl shadow-lg bg-white dark:bg-slate-800/70 border ${borderColor} flex flex-col justify-between transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]`}>
       <div className="p-4">
@@ -106,18 +117,18 @@ const MachineCard = React.memo(({ machine, onSetUpSmsAlert, isAlertSet }) => {
               <span>{String(machine.type || 'N/A')} - {String(machine.size || 'N/A')}</span>
             </div>
           </div>
-          <div className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center flex-shrink-0 ${bgColor} ${textColor}`}>
-            {actualStatus}
-          </div>
+          {/* Top-right status badge removed */}
         </div>
         
-        <div className="text-center my-4 py-3 border-y border-gray-100 dark:border-slate-700">
-          {React.cloneElement(statusIcon, { className: `${statusIcon.props.className} ${textColor}` })}
-          <p className={`text-2xl font-bold mt-1 ${textColor}`}>
-              {actualStatus === 'In Use' && formattedTimeRemaining ? formattedTimeRemaining : actualStatus}
-          </p>
-          {actualStatus === 'In Use' && formattedTimeRemaining && (
-            <p className="text-sm text-gray-500 dark:text-slate-400">remaining</p>
+        <div className="text-center my-4 py-3"> {/* Removed border-y */}
+          <div className={`inline-flex items-center justify-center px-4 py-2.5 rounded-lg shadow-md ${bgColor} ${textColor}`}>
+            {statusIcon} {/* Icon is already colored by getStatusDetails */}
+            <span className="text-xl font-bold ml-2">
+              {(actualStatus === 'In Use' || actualStatus === 'Finishing Soon') && formattedTimeRemaining ? formattedTimeRemaining : actualStatus}
+            </span>
+          </div>
+          {(actualStatus === 'In Use' || actualStatus === 'Finishing Soon') && formattedTimeRemaining && (
+            <p className="text-sm text-gray-500 dark:text-slate-400 mt-2">remaining</p>
           )}
         </div>
       </div>
@@ -141,7 +152,7 @@ const MachineCard = React.memo(({ machine, onSetUpSmsAlert, isAlertSet }) => {
           </button>
         ) : (
           <div className="h-[46px] flex items-center justify-center text-sm text-gray-400 dark:text-slate-500">
-            {actualStatus === 'Available' ? 'Ready to use' : 'Alert not applicable'}
+            {placeholderText}
           </div>
         )}
       </div>
@@ -152,11 +163,11 @@ const MachineCard = React.memo(({ machine, onSetUpSmsAlert, isAlertSet }) => {
 const RoomCard = React.memo(({ room, onSelectRoom, isFavorite, onToggleFavorite }) => (
     <div
         onClick={() => onSelectRoom(room.id)}
-        className="rounded-xl shadow-lg p-5 sm:p-6 flex flex-col justify-between transition-all duration-300 cursor-pointer h-full min-h-[170px] sm:min-h-[190px] group relative overflow-hidden bg-gradient-to-br from-[#0f3927] to-uvm-green hover:shadow-[0_0_15px_rgba(253,181,21,0.5)]"
+        className={`rounded-xl shadow-lg p-5 sm:p-6 flex flex-col justify-between transition-all duration-300 cursor-pointer h-full min-h-[170px] sm:min-h-[190px] group relative overflow-hidden bg-gradient-to-br from-[${UVM_GREEN}] to-green-800 dark:from-[${UVM_GREEN}] dark:to-green-700 hover:shadow-[0_0_20px_3px_rgba(253,181,21,0.6)]`}
     >
         <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
         <div className="relative z-10 flex-grow">
-            <h3 className="text-xl sm:text-2xl font-bold mb-2 text-white group-hover:text-uvm-gold transition-colors">{String(room.name)}</h3>
+            <h3 className="text-xl sm:text-2xl font-bold mb-2 text-white group-hover:text-yellow-400 transition-colors">{String(room.name)}</h3>
         </div>
         <div className="flex items-center justify-end mt-auto pt-3 relative z-10">
             <button
@@ -164,7 +175,7 @@ const RoomCard = React.memo(({ room, onSelectRoom, isFavorite, onToggleFavorite 
                 title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
                 className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
             >
-                <Star size={22} className={`transition-colors ${isFavorite ? `text-[${UVM_GOLD}] fill-[${UVM_GOLD}]` : 'text-white/60 group-hover:text-white'}`} />
+                <Star size={22} className={`transition-colors ${isFavorite ? `text-yellow-400 fill-yellow-400` : 'text-white/60 group-hover:text-white'}`} />
             </button>
         </div>
     </div>
@@ -206,13 +217,13 @@ const App = () => {
   const [showSmsModal, setShowSmsModal] = useState(false);
   const [smsMachine, setSmsMachine] = useState(null);
   const [userPhoneNumber, setUserPhoneNumber] = useState(() => localStorage.getItem('uvmLaundryUserPhoneNumber') || '');
-  const [settingsPhoneNumberInput, setSettingsPhoneNumberInput] = useState(''); // Initialize empty, will be set by useEffect
+  const [settingsPhoneNumberInput, setSettingsPhoneNumberInput] = useState(''); 
   const [modalPhoneNumber, setModalPhoneNumber] = useState('');
   const [smsStatus, setSmsStatus] = useState('');
   const [phoneSaveStatus, setPhoneSaveStatus] = useState('');
   const [smsAlertsSet, setSmsAlertsSet] = useState([]);
 
-  const NGROK_BASE_URL = 'https://7eaa-172-56-118-125.ngrok-free.app'; // Replace with your actual ngrok URL
+  const NGROK_BASE_URL = 'https://b5ac-172-56-113-95.ngrok-free.app';
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -231,27 +242,22 @@ const App = () => {
   useEffect(() => { localStorage.setItem('uvmLaundryManualDarkMode', JSON.stringify(manualDarkMode)); }, [manualDarkMode]);
   useEffect(() => { try { localStorage.setItem('uvmLaundryFavorites', JSON.stringify(favorites)); } catch (e) { console.error("Error saving favs:", e)} }, [favorites]);
   
-  // Effect to initialize/update settingsPhoneNumberInput when userPhoneNumber changes (e.g., on load or after save)
   useEffect(() => {
     setSettingsPhoneNumberInput(userPhoneNumber ? formatPhoneNumber(userPhoneNumber) : '');
   }, [userPhoneNumber]);
 
-  const handleSavePhoneNumber = () => {
-    const rawPhoneNumber = settingsPhoneNumberInput.replace(/[^\d]/g, '');
-    if (rawPhoneNumber.length === 10) {
-      setUserPhoneNumber(rawPhoneNumber); // This will trigger the useEffect above to update settingsPhoneNumberInput
-      localStorage.setItem('uvmLaundryUserPhoneNumber', rawPhoneNumber); 
-      setPhoneSaveStatus('Phone number saved!');
-      setTimeout(() => setPhoneSaveStatus(''), 2000);
-    } else {
-      setPhoneSaveStatus('Please enter a valid 10-digit phone number.');
-      setTimeout(() => setPhoneSaveStatus(''), 3000);
-    }
-  };
-
   const handleSettingsPhoneNumberChange = (e) => {
     const formatted = formatPhoneNumber(e.target.value);
-    setSettingsPhoneNumberInput(formatted); 
+    setSettingsPhoneNumberInput(formatted);
+    const rawPhoneNumber = formatted.replace(/[^\d]/g, '');
+    if (rawPhoneNumber.length === 10) {
+      if (rawPhoneNumber !== userPhoneNumber) { 
+        setUserPhoneNumber(rawPhoneNumber);
+        localStorage.setItem('uvmLaundryUserPhoneNumber', rawPhoneNumber);
+        setPhoneSaveStatus('Saved!');
+        setTimeout(() => setPhoneSaveStatus(''), 1500);
+      }
+    }
   };
   
   const fetchRooms = useCallback(async () => {
@@ -306,7 +312,7 @@ const App = () => {
     return () => clearInterval(intervalId);
   }, [selectedRoomId, currentView, fetchMachineData]);
   
-  const handleSelectRoom = (roomId) => { setSelectedRoomId(roomId); setCurrentView('roomDetail'); setSearchTerm(''); setFilterStatus('All'); setSmsAlertsSet([]); /* Clear session alerts for new room */};
+  const handleSelectRoom = (roomId) => { setSelectedRoomId(roomId); setCurrentView('roomDetail'); setSearchTerm(''); setFilterStatus('All'); setSmsAlertsSet([]); };
   const handleGoHome = () => { setCurrentView('home'); setSelectedRoomId(''); setMachines([]); setError(null); setSearchTerm(''); setFilterStatus('All'); setHomeSearchTerm(''); setSmsAlertsSet([]); };
   const handleGoToSettings = () => { setPreviousViewBeforeSettings(currentView === 'roomDetail' ? 'roomDetail' : 'home'); setCurrentView('settings'); };
   const handleBackFromSettings = () => { setCurrentView(previousViewBeforeSettings); };
@@ -387,14 +393,24 @@ const App = () => {
   const inputFocusClasses = "focus:ring-uvm-gold focus:border-uvm-gold";
   const inputBorderClasses = "border-gray-300 dark:border-slate-600";
 
+  const renderLoadingScreen = (message) => (
+    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] text-center py-16 text-gray-600 dark:text-gray-400 animate-fadeIn">
+        <RefreshCw size={56} className="mx-auto animate-spin text-uvm-green" />
+        <p className="mt-4 text-lg">{message}</p>
+    </div>
+  );
+
 
   const renderContent = () => {
     switch (currentView) {
       case 'home':
+        if (isLoadingRooms && laundryRooms.length === 0) return renderLoadingScreen("Loading Rooms...");
         return (
           <div key="home" className="animate-fadeIn">
             <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-              <h2 className={`text-3xl lg:text-4xl font-bold ${effectiveDarkMode ? 'text-white' : 'text-gray-900'} md:mb-0 mb-3 whitespace-nowrap`}>All Laundry Rooms</h2>
+              <h2 className={`text-3xl lg:text-4xl font-bold ${effectiveDarkMode ? 'text-white' : 'text-gray-900'} md:mb-0 mb-3 whitespace-nowrap`}>
+                {showOnlyFavorites ? "Favorite Laundry Rooms" : "All Laundry Rooms"}
+              </h2>
               <div className="flex-grow md:flex-grow-0 w-full md:w-auto flex flex-col sm:flex-row items-center gap-3">
                 <div className="relative w-full sm:w-auto flex-grow">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
@@ -412,17 +428,15 @@ const App = () => {
                     onClick={() => setShowOnlyFavorites(!showOnlyFavorites)}
                     className={`flex items-center justify-center w-full sm:w-auto px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-900 focus:ring-uvm-gold shadow-md whitespace-nowrap
                                 ${showOnlyFavorites
-                                    ? `bg-[${UVM_GOLD}] text-[${UVM_GREEN}] hover:bg-opacity-90`
+                                    ? `bg-yellow-400 text-yellow-900 hover:bg-yellow-500`
                                     : `${effectiveDarkMode ? 'bg-slate-700 hover:bg-slate-600 text-slate-100' : 'bg-white hover:bg-gray-50 text-gray-900 border border-gray-300'}`}`}
                 >
-                    <Star size={18} className={`mr-2 ${showOnlyFavorites ? `text-[${UVM_GREEN}]` : (effectiveDarkMode ? 'text-slate-100' : `text-[${UVM_GOLD}]` ) }`} />
+                    <Star size={18} className={`mr-2 ${showOnlyFavorites ? `text-yellow-900 fill-yellow-900` : (effectiveDarkMode ? 'text-slate-100' : `text-yellow-400 fill-yellow-400` ) }`} />
                     {showOnlyFavorites ? "Show All" : "Show Favorites"}
                 </button>
               </div>
             </div>
-            {isLoadingRooms ? (
-              <div className="text-center py-16 text-gray-600 dark:text-gray-400"><RefreshCw size={56} className="mx-auto animate-spin text-uvm-green" /><p className="mt-4 text-lg">Loading Rooms...</p></div>
-            ) : filteredHomeRooms.length === 0 ? (
+            {filteredHomeRooms.length === 0 && !isLoadingRooms ? (
               <div className="text-center py-16 text-gray-500 dark:text-gray-400 bg-white dark:bg-slate-800/70 rounded-xl shadow-lg p-8">
                 <Info size={64} className="mx-auto opacity-50 mb-4 text-uvm-green dark:text-uvm-gold" />
                 <p className="mt-4 text-xl font-semibold">
@@ -440,6 +454,7 @@ const App = () => {
           </div>
         );
       case 'roomDetail':
+        if (isLoadingMachines && machines.length === 0 && !error) return renderLoadingScreen(`Loading Machines for ${currentRoomName || 'Selected Room'}...`);
         return (
           <div key="roomDetail" className="animate-fadeIn">
             <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-3">
@@ -474,9 +489,7 @@ const App = () => {
               {lastUpdated && <p className="text-xs text-gray-500 dark:text-slate-400 mt-4 text-right">Last Updated: {lastUpdated.toLocaleTimeString()}</p>}
             </div>
 
-            {(isLoadingMachines && machines.length === 0 && !isBackgroundRefreshing) ? (
-              <div className="text-center py-16 text-gray-600 dark:text-gray-400"><RefreshCw size={56} className="mx-auto animate-spin text-uvm-green" /><p className="mt-4 text-lg">Loading Machines for {currentRoomName}...</p></div>
-            ) : (machines.length === 0 && !error && !isLoadingMachines) ? (
+            {(machines.length === 0 && !error && !isLoadingMachines) ? ( 
                  <div className="text-center py-16 text-gray-500 dark:text-gray-400 bg-white dark:bg-slate-800/70 rounded-xl shadow-lg p-8"><Info size={64} className="mx-auto opacity-50 mb-4 text-uvm-green dark:text-uvm-gold" /><p className="mt-4 text-xl font-semibold">No Machines Found</p><p className="text-sm mt-2 opacity-80">No machines currently listed for {currentRoomName}.</p></div>
             ) : (
               <>
@@ -525,11 +538,11 @@ const App = () => {
                 <div className="space-y-5">
                   <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-700/60 rounded-lg">
                     <label htmlFor="systemThemeToggle" className="text-gray-700 dark:text-slate-200 flex items-center text-sm sm:text-base"><span className="mr-2.5">{useSystemTheme ? <Eye size={20} className="text-uvm-green dark:text-uvm-gold" /> : <EyeOff size={20} className="text-gray-500 dark:text-slate-300" />}</span>Use System Theme</label>
-                    <button id="systemThemeToggle" onClick={() => setUseSystemTheme(!useSystemTheme)} className={`relative inline-flex items-center h-7 rounded-full w-12 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-uvm-gold ${useSystemTheme ? 'bg-uvm-green' : 'bg-gray-300 dark:bg-slate-500'}`}><span className={`inline-block w-5 h-5 transform bg-white rounded-full transition-transform ${useSystemTheme ? 'translate-x-6' : 'translate-x-1'}`} /></button>
+                    <button id="systemThemeToggle" onClick={() => setUseSystemTheme(!useSystemTheme)} className={`relative inline-flex items-center h-7 rounded-full w-12 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-uvm-gold ${useSystemTheme ? 'bg-green-600 dark:bg-green-600' : 'bg-gray-300 dark:bg-slate-500'}`}><span className={`inline-block w-5 h-5 transform bg-white rounded-full transition-transform ${useSystemTheme ? 'translate-x-6' : 'translate-x-1'}`} /></button>
                   </div>
                   {!useSystemTheme && (<div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-700/60 rounded-lg">
                     <label htmlFor="manualDarkModeToggle" className="text-gray-700 dark:text-slate-200 flex items-center text-sm sm:text-base"><span className="mr-2.5">{manualDarkMode ? <Moon size={20} className="text-uvm-gold" /> : <Sun size={20} className="text-yellow-500" />}</span>Dark Mode</label>
-                    <button id="manualDarkModeToggle" onClick={() => setManualDarkMode(!manualDarkMode)} className={`relative inline-flex items-center h-7 rounded-full w-12 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-uvm-gold ${manualDarkMode ? 'bg-uvm-green' : 'bg-gray-300 dark:bg-slate-500'}`}><span className={`inline-block w-5 h-5 transform bg-white rounded-full transition-transform ${manualDarkMode ? 'translate-x-6' : 'translate-x-1'}`} /></button>
+                    <button id="manualDarkModeToggle" onClick={() => setManualDarkMode(!manualDarkMode)} className={`relative inline-flex items-center h-7 rounded-full w-12 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-uvm-gold ${manualDarkMode ? 'bg-green-600 dark:bg-green-600' : 'bg-gray-300 dark:bg-slate-500'}`}><span className={`inline-block w-5 h-5 transform bg-white rounded-full transition-transform ${manualDarkMode ? 'translate-x-6' : 'translate-x-1'}`} /></button>
                   </div>)}
                 </div>
               </section>
@@ -543,10 +556,10 @@ const App = () => {
                             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none"><Smartphone size={18} className="text-gray-500 dark:text-slate-300" /></div>
                             <input type="tel" id="userPhoneNumber" value={settingsPhoneNumberInput} onChange={handleSettingsPhoneNumberChange} placeholder="(XXX) XXX-XXXX" className={`${inputBaseClasses} ${inputBorderClasses} ${inputFocusClasses} pl-10`} maxLength="14" />
                         </div>
-                        <button onClick={handleSavePhoneNumber} className="px-5 py-3 bg-uvm-green text-white rounded-lg hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-uvm-gold focus:ring-offset-2 dark:focus:ring-offset-slate-800 flex items-center text-sm font-semibold"><Save size={18} className="mr-2"/>Save</button>
+                        {/* Save button removed for auto-save */}
                     </div>
-                    {phoneSaveStatus && <p className={`text-xs mt-2.5 ${phoneSaveStatus.includes('Error') || phoneSaveStatus.includes('valid') ? 'text-red-500 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>{phoneSaveStatus}</p>}
-                    <p className="text-xs text-gray-500 dark:text-slate-400 mt-1.5">This number will be pre-filled for SMS alerts. Saved locally.</p>
+                    {phoneSaveStatus && <p className={`text-xs mt-2.5 ${phoneSaveStatus.includes('Error') ? 'text-red-500 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>{phoneSaveStatus}</p>}
+                    <p className="text-xs text-gray-500 dark:text-slate-400 mt-1.5">Number auto-saves when 10 digits are entered. Saved locally.</p>
                   </div>
                 </div>
               </section>
@@ -566,10 +579,10 @@ const App = () => {
           <div className="flex items-center justify-between h-16 md:h-20">
             <button onClick={handleGoHome} className="flex items-center cursor-pointer focus:outline-none focus:ring-2 focus:ring-uvm-gold rounded-md p-1 -ml-1 group">
               <img src={UVM_LOGO_URL} alt="UVM Logo" className="h-10 md:h-12 w-auto mr-3 rounded-sm transition-transform duration-300 group-hover:scale-105" onError={(e) => { e.currentTarget.style.display='none'; }}/>
-              <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight group-hover:text-uvm-gold transition-colors">UVM LaundryLink</h1>
+              <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight group-hover:text-yellow-400 transition-colors">UVM LaundryLink</h1> {/* Changed hover to yellow-400 for UVM_GOLD equivalent */}
             </button>
             <div className="flex items-center space-x-2 sm:space-x-3">
-              {currentView !== 'settings' && <button onClick={handleRefresh} className="p-2.5 text-white hover:bg-white/20 rounded-full transition-colors" title="Refresh Data"> <RefreshCw size={22} className={(isLoadingRooms || isLoadingMachines || isBackgroundRefreshing) ? 'animate-spin' : ''} /> </button> }
+              {currentView !== 'settings' && currentView !== 'home' && <button onClick={handleRefresh} className="p-2.5 text-white hover:bg-white/20 rounded-full transition-colors" title="Refresh Data"> <RefreshCw size={22} className={(isLoadingRooms || isLoadingMachines || isBackgroundRefreshing) ? 'animate-spin' : ''} /> </button> }
               <button onClick={handleGoToSettings} className="p-2.5 text-white hover:bg-white/20 rounded-full transition-colors" title="Settings"> <Settings size={22} /> </button>
             </div>
           </div>
@@ -631,11 +644,11 @@ const App = () => {
           height: 8px;
         }
         ::-webkit-scrollbar-track {
-          background: ${effectiveDarkMode ? '#1e293b' : '#f1f5f9'}; /* slate-800 or gray-100 */
+          background: ${effectiveDarkMode ? '#1e293b' : '#f1f5f9'}; 
           border-radius: 10px;
         }
         ::-webkit-scrollbar-thumb {
-          background: ${effectiveDarkMode ? '#475569' : '#9ca3af'}; /* slate-600 or gray-400 */
+          background: ${effectiveDarkMode ? '#475569' : '#9ca3af'}; 
           border-radius: 10px;
         }
         ::-webkit-scrollbar-thumb:hover {
