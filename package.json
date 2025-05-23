@@ -2,6 +2,7 @@
   "name": "uvm-laundry-link",
   "version": "0.1.0",
   "private": true,
+  "homepage": ".",
   "dependencies": {
     "autoprefixer": "^10.4.14",
     "lucide-react": "^0.123.0",
@@ -18,8 +19,9 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build",
-    "predeploy": "npm install --legacy-peer-deps && npm run build",
+    "build": "npm run build:clean && react-scripts build",
+    "build:clean": "rm -rf node_modules package-lock.json && npm install --legacy-peer-deps",
+    "predeploy": "npm run build",
     "deploy": "gh-pages -d build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
@@ -41,6 +43,5 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  },
-  "homepage": "."
+  }
 }
