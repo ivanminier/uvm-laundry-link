@@ -1,7 +1,3 @@
-"scripts": {
-  "build": "npm install --legacy-peer-deps && react-scripts build",
-  ...
-}
 {
   "name": "uvm-laundry-link",
   "version": "0.1.0",
