@@ -164,12 +164,10 @@ const MachineCard = React.memo(({ machine, onSetUpSmsAlert, isAlertSet }) => {
 const RoomCard = React.memo(({ room, onSelectRoom, isFavorite, onToggleFavorite }) => (
     <div
         onClick={() => onSelectRoom(room.id)}
-        // Apply the CSS custom property via the style prop
-        style={{ '--gradient-start-color': UVM_GREEN }}
-        // Use the CSS custom property in your Tailwind classes for the gradient
-        className={`rounded-xl shadow-lg p-5 sm:p-6 flex flex-col justify-between transition-all duration-300 cursor-pointer h-full min-h-[170px] sm:min-h-[190px] group relative overflow-hidden bg-gradient-to-br from-[var(--gradient-start-color)] to-green-800 dark:from-[var(--gradient-start-color)] dark:to-green-700 hover:shadow-[0_0_20px_3px_rgba(253,181,21,0.6)]`}
+        // Set solid background color and enhanced hover effects
+        className={`rounded-xl shadow-lg p-5 sm:p-6 flex flex-col justify-between transition-all duration-300 cursor-pointer h-full min-h-[170px] sm:min-h-[190px] group relative overflow-hidden bg-[${UVM_GREEN}] hover:bg-[#0f3927] hover:shadow-[0_0_25px_5px_rgba(253,181,21,0.7)] hover:scale-[1.03]`}
     >
-        <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+        {/* Removed absolute inset div for gradient overlay as it's no longer needed */}
         <div className="relative z-10 flex-grow">
             <h3 className="text-xl sm:text-2xl font-bold mb-2 text-white group-hover:text-yellow-400 transition-colors">{String(room.name)}</h3>
         </div>
@@ -177,9 +175,9 @@ const RoomCard = React.memo(({ room, onSelectRoom, isFavorite, onToggleFavorite 
             <button
                 onClick={(e) => { e.stopPropagation(); onToggleFavorite(room.id); }}
                 title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
-                className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+                className="p-2.5 rounded-full bg-white/10 hover:bg-white/25 transition-colors" // Slightly more visible hover for the star button
             >
-                <Star size={22} className={`transition-colors ${isFavorite ? `text-yellow-400 fill-yellow-400` : 'text-white/60 group-hover:text-white'}`} />
+                <Star size={22} className={`transition-colors ${isFavorite ? `text-yellow-400 fill-yellow-400` : 'text-white/70 group-hover:text-white'}`} /> {/* Increased opacity for non-favorite star */}
             </button>
         </div>
     </div>
