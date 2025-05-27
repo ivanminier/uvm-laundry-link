@@ -7,4 +7,4 @@ import * as serviceWorkerRegistration from './serviceWorkerRegistration'; // ðŸ‘
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 
 // ðŸ”¥ Disable service worker to clear old manifest
-serviceWorkerRegistration.unregister();
+serviceWorkerRegistration.register();
