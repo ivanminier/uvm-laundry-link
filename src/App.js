@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Zap, CheckCircle, XCircle, AlertTriangle, Clock, RefreshCw, Settings, Star, ArrowLeft, Filter, ExternalLink, Droplet, Wind, MessageCircle, Smartphone, Eye, EyeOff, Info, Save, Search, ChevronDown, Sun, Moon } from 'lucide-react';
+import { Zap, CheckCircle, XCircle, AlertTriangle, Clock, RefreshCw, Settings, Star, ArrowLeft, ExternalLink, Droplet, Wind, MessageCircle, Smartphone, Eye, EyeOff, Info, Search, Sun, Moon } from 'lucide-react';
 
 // UVM Colors
 const UVM_GREEN = '#154734';
