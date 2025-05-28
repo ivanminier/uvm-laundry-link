@@ -129,6 +129,8 @@ const MachineLayoutIcon = ({ machine, effectiveDarkMode, onMachineClick }) => {
     const machineTextColor = effectiveDarkMode ? 'text-slate-200' : 'text-slate-700';
     const machineIconColor = effectiveDarkMode ? 'text-slate-400' : 'text-slate-500';
 
+    const isDryer = machine.type === 'Dryer';
+
     return (
         <button
             onClick={() => onMachineClick(machineIdForScroll)}
@@ -144,7 +146,7 @@ const MachineLayoutIcon = ({ machine, effectiveDarkMode, onMachineClick }) => {
             {/* "Door" or main status area */}
             <div className="flex-grow flex items-center justify-center w-full my-1">
                 <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center border-2"
+                    className={`w-10 h-10 flex items-center justify-center border-2 ${isDryer ? 'rounded-sm' : 'rounded-full'}`}
                     style={{ borderColor: statusColorHex, backgroundColor: `${statusColorHex}33` /* 20% opacity */ }}
                 >
                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: statusColorHex }}></div>
