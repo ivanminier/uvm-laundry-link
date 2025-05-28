@@ -195,8 +195,7 @@ const RoomLayout = ({ machines, effectiveDarkMode, onMachineClick }) => {
         machineGroup.length > 0 && (
             <div>
                 <h4 className="text-lg font-semibold mb-4 text-gray-700 dark:text-slate-200">{title}</h4>
-                {/* Container for horizontal scrolling row of machines */}
-                <div className="flex flex-row items-start space-x-3 overflow-x-auto pb-3 -mb-3"> {/* Added pb-3 and -mb-3 for scrollbar visibility */}
+                <div className="flex flex-row items-start space-x-3 overflow-x-auto pb-3 -mb-3">
                     {machineGroup.map((item) => (
                         item.type === 'stack' ? (
                             <div key={item.top.id || item.top.machineName} className="flex flex-col space-y-2 items-center flex-shrink-0">
@@ -692,7 +691,8 @@ const App = () => {
                 {filteredWashers.length > 0 && (
                   <div className="mb-10">
                     <h3 className={`text-2xl font-semibold mb-5 pb-3 border-b-2 ${effectiveDarkMode ? 'text-white border-slate-700' : 'text-gray-900 border-gray-300'}`}>Washers</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
+                    {/* Reverted grid classes for MachineCard list to 1 column on mobile */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
                       {filteredWashers.map(machine => <MachineCard key={machine.id || machine.machineName} machine={machine} onSetUpSmsAlert={handleOpenSmsModal} isAlertSet={smsAlertsSet.includes(machine.id)} />)}
                     </div>
                   </div>
@@ -700,7 +700,8 @@ const App = () => {
                 {filteredDryers.length > 0 && (
                   <div>
                     <h3 className={`text-2xl font-semibold mb-5 pb-3 border-b-2 ${effectiveDarkMode ? 'text-white border-slate-700' : 'text-gray-900 border-gray-300'}`}>Dryers</h3>
-                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
+                    {/* Reverted grid classes for MachineCard list to 1 column on mobile */}
+                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
                        {filteredDryers.map(machine => <MachineCard key={machine.id || machine.machineName} machine={machine} onSetUpSmsAlert={handleOpenSmsModal} isAlertSet={smsAlertsSet.includes(machine.id)} />)}
                      </div>
                   </div>
