@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Zap, CheckCircle, XCircle, AlertTriangle, Clock, RefreshCw, Settings, Star, ArrowLeft, ExternalLink, Droplet, Wind, MessageCircle, Smartphone, Eye, EyeOff, Info, Search, Sun, Moon, LayoutGrid, BarChart3 } from 'lucide-react'; // Added BarChart3
+import { Zap, CheckCircle, XCircle, AlertTriangle, Clock, RefreshCw, Settings, Star, ArrowLeft, ExternalLink, Droplet, Wind, MessageCircle, Smartphone, Eye, EyeOff, Info, Search, Sun, Moon, LayoutGrid } from 'lucide-react'; // Removed BarChart3
 
 // UVM Colors
 const UVM_GREEN = '#154734';
@@ -401,32 +401,50 @@ const App = () => {
   
   useEffect(() => { setSettingsPhoneNumberInput(userPhoneNumber ? formatPhoneNumber(userPhoneNumber) : ''); }, [userPhoneNumber]);
 
+
+  const handleSelectRoom = useCallback((roomId, updateHash = true) => {
+    setSelectedRoomId(roomId);
+    setCurrentView('roomDetail');
+    setSearchTerm(''); setFilterStatus('All'); setSmsAlertsSet([]); setError(null); setMachines([]);
+    setOfflineMode(false);
+    if (updateHash) {
+      const roomObject = laundryRooms.find(r => r.id === roomId);
+      const roomSlug = roomObject ? String(roomObject.name).toLowerCase().replace(/\s+/g, '-') : roomId;
+      window.location.hash = `room/${roomSlug}`;
+    }
+  }, [laundryRooms]); // Added laundryRooms as it's used to find roomObject for slug
+
+  const handleGoHome = useCallback((updateHash = true) => {
+    setCurrentView('home'); setSelectedRoomId(''); setMachines([]); setError(null); setSearchTerm(''); setFilterStatus('All'); setHomeSearchTerm(''); setSmsAlertsSet([]);
+    setOfflineMode(false);
+    if (updateHash) window.location.hash = '';
+  }, []);
+
+
   // Handle Deep Linking & Hash Changes
   useEffect(() => {
     const handleHashChange = () => {
-      const hash = window.location.hash.replace(/^#\/?room\//, '').replace(/^#\//, ''); // Allow both #/room/ and #room/
+      const hash = window.location.hash.replace(/^#\/?room\//, '').replace(/^#\//, '');
       if (hash && laundryRooms.length > 0) {
-        // Try matching by ID first, then by slugified name
         const foundRoom = laundryRooms.find(r => r.id === hash || String(r.name).toLowerCase().replace(/\s+/g, '-') === hash);
         if (foundRoom && foundRoom.id !== selectedRoomId) {
-          handleSelectRoom(foundRoom.id, false); // Pass false to avoid updating hash again
-        } else if (!foundRoom && currentView === 'roomDetail') { // Only go home if on roomDetail and hash is invalid
-           handleGoHome(false); // Pass false to avoid updating hash again
+          handleSelectRoom(foundRoom.id, false);
+        } else if (!foundRoom && currentView === 'roomDetail') {
+           handleGoHome(false);
         }
-      } else if (!hash && currentView === 'roomDetail') { // If hash cleared and on roomDetail
-         handleGoHome(false); // Pass false to avoid updating hash again
+      } else if (!hash && currentView === 'roomDetail') {
+         handleGoHome(false);
       }
     };
 
-    // Initial check
     const initialHash = window.location.hash.replace(/^#\/?room\//, '').replace(/^#\//, '');
     if (initialHash) {
-      initialRoomIdFromHash.current = initialHash; // Store to process after rooms are loaded
+      initialRoomIdFromHash.current = initialHash;
     }
 
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
-  }, [laundryRooms, selectedRoomId, currentView]); // Added dependencies
+  }, [laundryRooms, selectedRoomId, currentView, handleSelectRoom, handleGoHome]); // Added handleSelectRoom and handleGoHome
 
 
   const handleSettingsPhoneNumberChange = (e) => {
@@ -436,7 +454,6 @@ const App = () => {
     if (rawPhoneNumber.length === 10) {
       if (rawPhoneNumber !== userPhoneNumber) {
         setUserPhoneNumber(rawPhoneNumber);
-        // localStorage.setItem('uvmLaundryUserPhoneNumber', rawPhoneNumber); // Persisted by useEffect
         setPhoneSaveStatus('Saved!');
         setTimeout(() => setPhoneSaveStatus(''), 2000);
       }
@@ -465,14 +482,12 @@ const App = () => {
       const sortedRooms = data.sort((a,b) => String(a.name).localeCompare(String(b.name)));
       setLaundryRooms(sortedRooms);
       
-      // Attempt to navigate to room from hash after rooms are loaded
       if (initialRoomIdFromHash.current) {
         const foundRoom = sortedRooms.find(r => r.id === initialRoomIdFromHash.current || String(r.name).toLowerCase().replace(/\s+/g, '-') === initialRoomIdFromHash.current);
         if (foundRoom) {
-          // Defer selection slightly to ensure UI is ready
-          setTimeout(() => handleSelectRoom(foundRoom.id, false), 0); // Pass false to avoid hash update
+          setTimeout(() => handleSelectRoom(foundRoom.id, false), 0);
         }
-        initialRoomIdFromHash.current = null; // Clear after attempt
+        initialRoomIdFromHash.current = null;
       }
 
     } catch (e) {
@@ -481,7 +496,7 @@ const App = () => {
     } finally {
       setIsLoadingRooms(false);
     }
-  }, []); // handleSelectRoom removed from deps to avoid loop, initialRoomIdFromHash.current handles it
+  }, [handleSelectRoom]); // Added handleSelectRoom
 
   useEffect(() => { fetchRooms(); }, [fetchRooms]);
 
@@ -492,7 +507,7 @@ const App = () => {
     if (!isBackground) {
         setIsLoadingMachines(true);
         setError(null);
-        setOfflineMode(false); // Assume online when initiating a new fetch
+        setOfflineMode(false);
     } else if (selectedRoomId === roomIdToFetch) {
         setIsBackgroundRefreshing(true);
     }
@@ -500,8 +515,7 @@ const App = () => {
     try {
       const response = await fetch(`${BACKEND_BASE_URL}/laundry-data/${roomIdToFetch}`);
       if (!response.ok) {
-        // If network error, try to load from cache
-        if (!navigator.onLine) { // Check if browser thinks it's offline
+        if (!navigator.onLine) {
             const cachedData = localStorage.getItem(`roomData-${roomIdToFetch}`);
             if (cachedData) {
                 const { data: cachedMachines, timestamp } = JSON.parse(cachedData);
@@ -509,10 +523,10 @@ const App = () => {
                 setLastUpdated(new Date(timestamp));
                 setError(`Offline. Showing cached data from ${new Date(timestamp).toLocaleTimeString()}.`);
                 setOfflineMode(true);
-                setIsLoadingMachines(false); // Stop loading indicator
+                setIsLoadingMachines(false);
                 setIsBackgroundRefreshing(false);
                 ongoingFetches.current.delete(roomIdToFetch);
-                return; // Exit early as we're using cached data
+                return;
             }
         }
         throw new Error(`Network response was not ok: ${response.statusText}`);
@@ -523,16 +537,14 @@ const App = () => {
       if (selectedRoomId === roomIdToFetch) {
         setMachines(jsonData);
         setLastUpdated(new Date());
-        // Cache successful fetch
         localStorage.setItem(`roomData-${roomIdToFetch}`, JSON.stringify({ data: jsonData, timestamp: new Date().toISOString() }));
-        setOfflineMode(false); // We are online and data is fresh
+        setOfflineMode(false);
         if (error && !isBackground) setError(null);
       }
     } catch (e) {
         const roomName = laundryRooms.find(r => r.id === roomIdToFetch)?.name || `the selected room`;
         let errorMessage = `Could not load machines for ${String(roomName)}. It might be a temporary issue.`;
 
-        // Attempt to load from cache on any error if selected room matches
         if (selectedRoomId === roomIdToFetch) {
             const cachedData = localStorage.getItem(`roomData-${roomIdToFetch}`);
             if (cachedData) {
@@ -543,7 +555,7 @@ const App = () => {
                 setOfflineMode(true);
             } else {
                  errorMessage += ` No cached data available.`;
-                 setOfflineMode(false); // No cache, so not in offline mode with data
+                 setOfflineMode(false);
             }
             setError(errorMessage);
         } else {
@@ -556,7 +568,7 @@ const App = () => {
       }
       ongoingFetches.current.delete(roomIdToFetch);
     }
-  }, [laundryRooms, selectedRoomId, error]); // Added error to dependency to allow clearing it
+  }, [laundryRooms, selectedRoomId, error]);
 
   useEffect(() => {
     if (selectedRoomId && currentView === 'roomDetail') {
@@ -565,10 +577,10 @@ const App = () => {
   }, [selectedRoomId, currentView, fetchMachineData]);
 
   useEffect(() => {
-    if (!selectedRoomId || currentView !== 'roomDetail' || offlineMode) return; // Don't refresh if offline
+    if (!selectedRoomId || currentView !== 'roomDetail' || offlineMode) return;
     const intervalId = setInterval(() => fetchMachineData(selectedRoomId, true), ACTIVE_ROOM_REFRESH_INTERVAL_MS);
     return () => clearInterval(intervalId);
-  }, [selectedRoomId, currentView, fetchMachineData, offlineMode]); // Added offlineMode
+  }, [selectedRoomId, currentView, fetchMachineData, offlineMode]);
 
   const handleScrollToMachine = (machineCardId) => {
     const element = document.getElementById(machineCardId);
@@ -581,30 +593,14 @@ const App = () => {
     }
   };
 
-  const handleSelectRoom = (roomId, updateHash = true) => {
-    setSelectedRoomId(roomId);
-    setCurrentView('roomDetail');
-    setSearchTerm(''); setFilterStatus('All'); setSmsAlertsSet([]); setError(null); setMachines([]);
-    setOfflineMode(false); // Reset offline mode when selecting a new room
-    if (updateHash) {
-      const roomObject = laundryRooms.find(r => r.id === roomId);
-      const roomSlug = roomObject ? String(roomObject.name).toLowerCase().replace(/\s+/g, '-') : roomId;
-      window.location.hash = `room/${roomSlug}`; // Update hash for deep linking
-    }
-  };
-  const handleGoHome = (updateHash = true) => {
-    setCurrentView('home'); setSelectedRoomId(''); setMachines([]); setError(null); setSearchTerm(''); setFilterStatus('All'); setHomeSearchTerm(''); setSmsAlertsSet([]);
-    setOfflineMode(false);
-    if (updateHash) window.location.hash = ''; // Clear hash on going home
-  };
   const handleBackFromSettings = () => setCurrentView(previousViewBeforeSettings);
   const handleGoToSettings = () => {
-    setPreviousViewBeforeSettings(currentView); // Store the current view before going to settings
+    setPreviousViewBeforeSettings(currentView);
     setCurrentView('settings');
   };
   const handleRefresh = () => {
     if (selectedRoomId && currentView === 'roomDetail') {
-      setOfflineMode(false); // Assume online for manual refresh
+      setOfflineMode(false);
       fetchMachineData(selectedRoomId, false);
     }
   };
