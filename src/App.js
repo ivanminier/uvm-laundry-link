@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Zap, CheckCircle, XCircle, AlertTriangle, Clock, RefreshCw, Settings, Star, ArrowLeft, ExternalLink, Droplet, Wind, MessageCircle, Smartphone, Eye, EyeOff, Info, Search, Sun, Moon, LayoutGrid } from 'lucide-react';
+import { Zap, CheckCircle, XCircle, AlertTriangle, Clock, RefreshCw, Settings, Star, ArrowLeft, ExternalLink, Droplet, Wind, MessageCircle, Smartphone, Eye, EyeOff, Info, Search, Sun, Moon, LayoutGrid, BarChart3 } from 'lucide-react'; // Added BarChart3
 
 // UVM Colors
 const UVM_GREEN = '#154734';
@@ -822,20 +822,7 @@ const App = () => {
                   </div>
                 </div>
               </section>
-               {/* Placeholder sections for Kiosk and Trends - to be implemented */}
-              <section>
-                <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-5 border-b pb-3 border-gray-200 dark:border-slate-700">Advanced Features</h3>
-                 <div className="space-y-5">
-                    <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-700/60 rounded-lg opacity-50 cursor-not-allowed">
-                        <label className="text-gray-700 dark:text-slate-200 flex items-center text-sm sm:text-base"><LayoutGrid size={20} className="mr-2.5 text-gray-500 dark:text-slate-300" />iPad Wall-Mounted View</label>
-                        <span className="text-xs text-gray-400 dark:text-slate-500">Planned</span>
-                    </div>
-                    <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-700/60 rounded-lg opacity-50 cursor-not-allowed">
-                        <label className="text-gray-700 dark:text-slate-200 flex items-center text-sm sm:text-base"><BarChart3 size={20} className="mr-2.5 text-gray-500 dark:text-slate-300" />Machine Usage Trends</label>
-                        <span className="text-xs text-gray-400 dark:text-slate-500">Beta</span>
-                    </div>
-                 </div>
-              </section>
+              {/* Advanced Features section removed */}
               <section>
                 <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-5 border-b pb-3 border-gray-200 dark:border-slate-700">SMS Notifications</h3>
                 <div className="space-y-3">
