@@ -319,13 +319,11 @@ const App = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [homeSearchTerm, setHomeSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
-  const [offlineMode, setOfflineMode] = useState(false); // New state for offline mode
+  const [offlineMode, setOfflineMode] = useState(false);
   
-  // Theme and Feature Settings
-  const [useSystemTheme, setUseSystemTheme] = useState(true); // Default, will be overridden by localStorage
-  const [manualDarkMode, setManualDarkMode] = useState(false); // Default
-  const [showVisualLayout, setShowVisualLayout] = useState(false); // Default, will be intelligently set
-  // Kiosk mode and Trends dashboard placeholders will be added in settings UI
+  const [useSystemTheme, setUseSystemTheme] = useState(true);
+  const [manualDarkMode, setManualDarkMode] = useState(false);
+  const [showVisualLayout, setShowVisualLayout] = useState(false);
 
   const [systemDarkMode, setSystemDarkMode] = useState(false);
   const effectiveDarkMode = useMemo(() => useSystemTheme ? systemDarkMode : manualDarkMode, [useSystemTheme, systemDarkMode, manualDarkMode]);
@@ -333,12 +331,12 @@ const App = () => {
   const [lastUpdated, setLastUpdated] = useState(null);
   const [error, setError] = useState(null);
   
-  const [favorites, setFavorites] = useState([]); // Default
+  const [favorites, setFavorites] = useState([]);
   const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
 
   const [showSmsModal, setShowSmsModal] = useState(false);
   const [smsMachine, setSmsMachine] = useState(null);
-  const [userPhoneNumber, setUserPhoneNumber] = useState(''); // Default
+  const [userPhoneNumber, setUserPhoneNumber] = useState('');
   const [settingsPhoneNumberInput, setSettingsPhoneNumberInput] = useState('');
   const [modalPhoneNumber, setModalPhoneNumber] = useState('');
   const [smsStatus, setSmsStatus] = useState({ message: '', type: 'info' });
@@ -346,12 +344,11 @@ const App = () => {
   const [smsAlertsSet, setSmsAlertsSet] = useState([]);
 
   const ongoingFetches = useRef(new Set());
-  const initialRoomIdFromHash = useRef(null); // For deep linking
+  const initialRoomIdFromHash = useRef(null);
 
 
   // --- Effects ---
 
-  // Initialize settings from localStorage
   useEffect(() => {
     setUseSystemTheme(JSON.parse(localStorage.getItem('uvmLaundryUseSystemTheme') || 'true'));
     setManualDarkMode(JSON.parse(localStorage.getItem('uvmLaundryManualDarkMode') || 'false'));
@@ -360,7 +357,6 @@ const App = () => {
     if (storedShowVisualLayout !== null) {
       setShowVisualLayout(JSON.parse(storedShowVisualLayout));
     } else {
-      // Default to ON for wider screens if no preference saved
       setShowVisualLayout(window.innerWidth > 800);
     }
     
@@ -368,7 +364,6 @@ const App = () => {
     setUserPhoneNumber(localStorage.getItem('uvmLaundryUserPhoneNumber') || '');
   }, []);
 
-  // Persist settings to localStorage
   useEffect(() => { localStorage.setItem('uvmLaundryUseSystemTheme', JSON.stringify(useSystemTheme)); }, [useSystemTheme]);
   useEffect(() => { localStorage.setItem('uvmLaundryManualDarkMode', JSON.stringify(manualDarkMode)); }, [manualDarkMode]);
   useEffect(() => { localStorage.setItem('uvmLaundryShowVisualLayout', JSON.stringify(showVisualLayout)); }, [showVisualLayout]);
@@ -401,7 +396,6 @@ const App = () => {
   
   useEffect(() => { setSettingsPhoneNumberInput(userPhoneNumber ? formatPhoneNumber(userPhoneNumber) : ''); }, [userPhoneNumber]);
 
-
   const handleSelectRoom = useCallback((roomId, updateHash = true) => {
     setSelectedRoomId(roomId);
     setCurrentView('roomDetail');
@@ -410,41 +404,70 @@ const App = () => {
     if (updateHash) {
       const roomObject = laundryRooms.find(r => r.id === roomId);
       const roomSlug = roomObject ? String(roomObject.name).toLowerCase().replace(/\s+/g, '-') : roomId;
-      window.location.hash = `room/${roomSlug}`;
+      if (window.location.hash !== `#room/${roomSlug}`) {
+            window.location.hash = `room/${roomSlug}`;
+      }
     }
-  }, [laundryRooms]); // Added laundryRooms as it's used to find roomObject for slug
+  }, [laundryRooms]);
 
   const handleGoHome = useCallback((updateHash = true) => {
     setCurrentView('home'); setSelectedRoomId(''); setMachines([]); setError(null); setSearchTerm(''); setFilterStatus('All'); setHomeSearchTerm(''); setSmsAlertsSet([]);
     setOfflineMode(false);
-    if (updateHash) window.location.hash = '';
+    if (updateHash) {
+        if (window.location.hash !== "") {
+            window.location.hash = '';
+        }
+    }
   }, []);
 
-
-  // Handle Deep Linking & Hash Changes
   useEffect(() => {
-    const handleHashChange = () => {
-      const hash = window.location.hash.replace(/^#\/?room\//, '').replace(/^#\//, '');
-      if (hash && laundryRooms.length > 0) {
-        const foundRoom = laundryRooms.find(r => r.id === hash || String(r.name).toLowerCase().replace(/\s+/g, '-') === hash);
-        if (foundRoom && foundRoom.id !== selectedRoomId) {
-          handleSelectRoom(foundRoom.id, false);
-        } else if (!foundRoom && currentView === 'roomDetail') {
-           handleGoHome(false);
-        }
-      } else if (!hash && currentView === 'roomDetail') {
-         handleGoHome(false);
-      }
-    };
-
     const initialHash = window.location.hash.replace(/^#\/?room\//, '').replace(/^#\//, '');
     if (initialHash) {
-      initialRoomIdFromHash.current = initialHash;
+        initialRoomIdFromHash.current = initialHash;
     }
+  }, []);
 
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
-  }, [laundryRooms, selectedRoomId, currentView, handleSelectRoom, handleGoHome]); // Added handleSelectRoom and handleGoHome
+  useEffect(() => {
+    if (initialRoomIdFromHash.current && laundryRooms.length > 0) {
+        const hash = initialRoomIdFromHash.current;
+        const foundRoom = laundryRooms.find(r => r.id === hash || String(r.name).toLowerCase().replace(/\s+/g, '-') === hash);
+        if (foundRoom) {
+            setTimeout(() => {
+                if (foundRoom.id !== selectedRoomId) {
+                    handleSelectRoom(foundRoom.id, false);
+                }
+            }, 0);
+        } else {
+            setTimeout(() => handleGoHome(false), 0);
+        }
+        initialRoomIdFromHash.current = null;
+    }
+  }, [laundryRooms, selectedRoomId, handleSelectRoom, handleGoHome]);
+
+  useEffect(() => {
+    const handleActualHashChange = () => {
+        const hash = window.location.hash.replace(/^#\/?room\//, '').replace(/^#\//, '');
+        if (hash) {
+            if (laundryRooms.length > 0) {
+                const foundRoom = laundryRooms.find(r => r.id === hash || String(r.name).toLowerCase().replace(/\s+/g, '-') === hash);
+                if (foundRoom) {
+                    if (foundRoom.id !== selectedRoomId) {
+                        handleSelectRoom(foundRoom.id, false);
+                    }
+                } else {
+                    if (currentView !== 'home') handleGoHome(false);
+                }
+            }
+        } else {
+            if (currentView !== 'home' && currentView !== 'settings') {
+                handleGoHome(false);
+            }
+        }
+    };
+
+    window.addEventListener('hashchange', handleActualHashChange);
+    return () => window.removeEventListener('hashchange', handleActualHashChange);
+  }, [laundryRooms, selectedRoomId, currentView, handleSelectRoom, handleGoHome]);
 
 
   const handleSettingsPhoneNumberChange = (e) => {
@@ -481,22 +504,13 @@ const App = () => {
       });
       const sortedRooms = data.sort((a,b) => String(a.name).localeCompare(String(b.name)));
       setLaundryRooms(sortedRooms);
-      
-      if (initialRoomIdFromHash.current) {
-        const foundRoom = sortedRooms.find(r => r.id === initialRoomIdFromHash.current || String(r.name).toLowerCase().replace(/\s+/g, '-') === initialRoomIdFromHash.current);
-        if (foundRoom) {
-          setTimeout(() => handleSelectRoom(foundRoom.id, false), 0);
-        }
-        initialRoomIdFromHash.current = null;
-      }
-
     } catch (e) {
       setError("Could not load laundry rooms. Please check your internet connection and try refreshing the page.");
       setLaundryRooms([]);
     } finally {
       setIsLoadingRooms(false);
     }
-  }, [handleSelectRoom]); // Added handleSelectRoom
+  }, []);
 
   useEffect(() => { fetchRooms(); }, [fetchRooms]);
 
@@ -505,13 +519,13 @@ const App = () => {
     ongoingFetches.current.add(roomIdToFetch);
 
     if (!isBackground) {
-        setIsLoadingMachines(true);
-        setError(null);
-        setOfflineMode(false);
+      setIsLoadingMachines(true);
+      setError(null);
+      setOfflineMode(false);
     } else if (selectedRoomId === roomIdToFetch) {
-        setIsBackgroundRefreshing(true);
+      setIsBackgroundRefreshing(true);
     }
-    
+
     try {
       const response = await fetch(`${BACKEND_BASE_URL}/laundry-data/${roomIdToFetch}`);
       if (!response.ok) {
@@ -531,16 +545,30 @@ const App = () => {
         }
         throw new Error(`Network response was not ok: ${response.statusText}`);
       }
+
       const jsonData = await response.json();
-      if (!Array.isArray(jsonData)) throw new Error("Received invalid data format for machines.");
-      
+      const machineArray = Array.isArray(jsonData)
+        ? jsonData
+        : Array.isArray(jsonData.machines)
+          ? jsonData.machines
+          : [];
+
+      const normalized = machineArray.map(m => ({
+        ...m,
+        type: m.machineType ?? m.type
+      }));
+
       if (selectedRoomId === roomIdToFetch) {
-        setMachines(jsonData);
+        setMachines(normalized);
         setLastUpdated(new Date());
-        localStorage.setItem(`roomData-${roomIdToFetch}`, JSON.stringify({ data: jsonData, timestamp: new Date().toISOString() }));
+        localStorage.setItem(
+          `roomData-${roomIdToFetch}`,
+          JSON.stringify({ data: normalized, timestamp: new Date().toISOString() })
+        );
         setOfflineMode(false);
         if (error && !isBackground) setError(null);
       }
+
     } catch (e) {
         const roomName = laundryRooms.find(r => r.id === roomIdToFetch)?.name || `the selected room`;
         let errorMessage = `Could not load machines for ${String(roomName)}. It might be a temporary issue.`;
