@@ -4,10 +4,10 @@ import { Zap, CheckCircle, XCircle, AlertTriangle, Clock, RefreshCw, Settings, S
 // UVM Colors
 const UVM_GREEN = '#154734';
 const UVM_GOLD = '#fdb515';
-const UVM_LOGO_URL = 'https://i.imgur.com/kvyrGbL.png'; // Placeholder for UVM Logo
+const UVM_LOGO_URL = 'https://i.imgur.com/kvyrGbL.png';
 
 // --- Refresh Interval Configuration ---
-const ACTIVE_ROOM_REFRESH_INTERVAL_MS = 30 * 1000; // 30 seconds for active room
+const ACTIVE_ROOM_REFRESH_INTERVAL_MS = 30 * 1000;
 
 // --- Backend URL Configuration (Hardcoded) ---
 const BACKEND_BASE_URL = 'https://api.uvmlaundry.com';
@@ -22,7 +22,7 @@ const getStatusDetails = (status) => {
   let textColor = 'text-slate-700 dark:text-slate-300';
   let bgColor = 'bg-slate-100 dark:bg-slate-700';
   let borderColor = 'border-slate-300 dark:border-slate-600';
-  let statusColorHex = '#94a3b8'; // slate-400 default for layout icon
+  let statusColorHex = '#94a3b8';
 
   if (lowerStatus.includes('available')) {
     actualStatusOutput = 'Available';
@@ -30,21 +30,21 @@ const getStatusDetails = (status) => {
     textColor = 'text-green-700 dark:text-green-300';
     bgColor = 'bg-green-100 dark:bg-green-800/60';
     borderColor = 'border-green-500 dark:border-green-600';
-    statusColorHex = '#22c55e'; // green-500
+    statusColorHex = '#22c55e';
   } else if (lowerStatus.includes('out of order') || lowerStatus.includes('service') || lowerStatus.includes('offline')) {
     actualStatusOutput = 'Out of Order';
     iconElement = <XCircle size={18} className="mr-2 flex-shrink-0 text-red-600 dark:text-red-400" />;
     textColor = 'text-red-700 dark:text-red-300';
     bgColor = 'bg-red-100 dark:bg-red-800/60';
     borderColor = 'border-red-500 dark:border-red-600';
-    statusColorHex = '#ef4444'; // red-500
+    statusColorHex = '#ef4444';
   } else if (lowerStatus.includes('eoc') || lowerStatus.includes('cycle finished') || lowerStatus.includes('complete') || lowerStatus.includes('cycle complete')) {
     actualStatusOutput = 'Cycle Finished';
     iconElement = <CheckCircle size={18} className="mr-2 flex-shrink-0 text-teal-600 dark:text-teal-400" />;
     textColor = 'text-teal-700 dark:text-teal-300';
     bgColor = 'bg-teal-100 dark:bg-teal-800/60';
     borderColor = 'border-teal-500 dark:border-teal-600';
-    statusColorHex = '#14b8a6'; // teal-500
+    statusColorHex = '#14b8a6';
   } else {
     const timeMatch = rawStatus.match(/(\d+)\s*min/i);
     if (timeMatch && parseInt(timeMatch[1], 10) > 0) {
@@ -54,14 +54,14 @@ const getStatusDetails = (status) => {
         textColor = 'text-yellow-700 dark:text-yellow-300';
         bgColor = 'bg-yellow-100 dark:bg-yellow-800/60';
         borderColor = 'border-yellow-500 dark:border-yellow-600';
-        statusColorHex = '#eab308'; // yellow-500
+        statusColorHex = '#eab308';
       } else {
         actualStatusOutput = 'In Use';
         iconElement = <Zap size={18} className="mr-2 flex-shrink-0 text-blue-600 dark:text-blue-400" />;
         textColor = 'text-blue-700 dark:text-blue-300';
         bgColor = 'bg-blue-100 dark:bg-blue-800/60';
         borderColor = 'border-blue-500 dark:border-blue-600';
-        statusColorHex = '#3b82f6'; // blue-500
+        statusColorHex = '#3b82f6';
       }
     } else if (lowerStatus.includes('in use')) {
       actualStatusOutput = 'In Use';
@@ -69,11 +69,10 @@ const getStatusDetails = (status) => {
       textColor = 'text-blue-700 dark:text-blue-300';
       bgColor = 'bg-blue-100 dark:bg-blue-800/60';
       borderColor = 'border-blue-500 dark:border-blue-600';
-      statusColorHex = '#3b82f6'; // blue-500
+      statusColorHex = '#3b82f6';
     } else if (rawStatus && rawStatus !== 'Unknown') {
       actualStatusOutput = rawStatus.replace(/\b\w/g, l => l.toUpperCase());
        iconElement = <AlertTriangle size={18} className="mr-2 flex-shrink-0 text-slate-500 dark:text-slate-400" />;
-       // Keep default statusColorHex for custom unknown states
     } else {
       actualStatusOutput = "Status Unknown";
       iconElement = <AlertTriangle size={18} className="mr-2 flex-shrink-0 text-slate-500 dark:text-slate-400" />;
@@ -137,23 +136,18 @@ const MachineLayoutIcon = ({ machine, effectiveDarkMode, onMachineClick }) => {
             className={`flex-shrink-0 w-24 h-32 rounded-md flex flex-col items-center justify-between p-2 text-center shadow-md hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-uvm-gold ${machineBodyBg} ${machineTextColor} border border-transparent hover:border-uvm-gold`}
             title={`${machine.machineName} - ${machine.type} - ${actualStatus}${timeRemaining ? ` (${timeRemaining} left)` : ''}`}
         >
-            {/* Top panel with number and type icon */}
             <div className={`w-full flex items-center justify-between px-1 py-0.5 rounded-t-sm ${machineAccentBg}`}>
                 <MachineTypeIcon size={16} className={machineIconColor} />
                 <span className="font-semibold text-xs">{machineNumber}</span>
             </div>
-
-            {/* "Door" or main status area */}
             <div className="flex-grow flex items-center justify-center w-full my-1">
                 <div
                     className={`w-10 h-10 flex items-center justify-center border-2 ${isDryer ? 'rounded-sm' : 'rounded-full'}`}
-                    style={{ borderColor: statusColorHex, backgroundColor: `${statusColorHex}33` /* 20% opacity */ }}
+                    style={{ borderColor: statusColorHex, backgroundColor: `${statusColorHex}33` }}
                 >
                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: statusColorHex }}></div>
                 </div>
             </div>
-            
-            {/* Status text */}
             <div className={`w-full px-1 py-0.5 rounded-b-sm text-xs font-medium ${machineAccentBg}`}>
                 {statusText}
             </div>
@@ -325,20 +319,13 @@ const App = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [homeSearchTerm, setHomeSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
+  const [offlineMode, setOfflineMode] = useState(false); // New state for offline mode
   
   // Theme and Feature Settings
-  const [useSystemTheme, setUseSystemTheme] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('uvmLaundryUseSystemTheme') || 'true'); }
-    catch (e) { console.warn("Failed to parse useSystemTheme from localStorage", e); return true; }
-  });
-  const [manualDarkMode, setManualDarkMode] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('uvmLaundryManualDarkMode') || 'false'); }
-    catch (e) { console.warn("Failed to parse manualDarkMode from localStorage", e); return false; }
-  });
-  const [showVisualLayout, setShowVisualLayout] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('uvmLaundryShowVisualLayout') || 'false'); }
-    catch (e) { console.warn("Failed to parse showVisualLayout from localStorage", e); return false; }
-  });
+  const [useSystemTheme, setUseSystemTheme] = useState(true); // Default, will be overridden by localStorage
+  const [manualDarkMode, setManualDarkMode] = useState(false); // Default
+  const [showVisualLayout, setShowVisualLayout] = useState(false); // Default, will be intelligently set
+  // Kiosk mode and Trends dashboard placeholders will be added in settings UI
 
   const [systemDarkMode, setSystemDarkMode] = useState(false);
   const effectiveDarkMode = useMemo(() => useSystemTheme ? systemDarkMode : manualDarkMode, [useSystemTheme, systemDarkMode, manualDarkMode]);
@@ -346,15 +333,12 @@ const App = () => {
   const [lastUpdated, setLastUpdated] = useState(null);
   const [error, setError] = useState(null);
   
-  const [favorites, setFavorites] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('uvmLaundryFavorites') || '[]'); }
-    catch (e) { console.error("Error parsing favorites from localStorage:", e); return []; }
-  });
+  const [favorites, setFavorites] = useState([]); // Default
   const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
 
   const [showSmsModal, setShowSmsModal] = useState(false);
   const [smsMachine, setSmsMachine] = useState(null);
-  const [userPhoneNumber, setUserPhoneNumber] = useState(() => localStorage.getItem('uvmLaundryUserPhoneNumber') || '');
+  const [userPhoneNumber, setUserPhoneNumber] = useState(''); // Default
   const [settingsPhoneNumberInput, setSettingsPhoneNumberInput] = useState('');
   const [modalPhoneNumber, setModalPhoneNumber] = useState('');
   const [smsStatus, setSmsStatus] = useState({ message: '', type: 'info' });
@@ -362,8 +346,35 @@ const App = () => {
   const [smsAlertsSet, setSmsAlertsSet] = useState([]);
 
   const ongoingFetches = useRef(new Set());
+  const initialRoomIdFromHash = useRef(null); // For deep linking
+
 
   // --- Effects ---
+
+  // Initialize settings from localStorage
+  useEffect(() => {
+    setUseSystemTheme(JSON.parse(localStorage.getItem('uvmLaundryUseSystemTheme') || 'true'));
+    setManualDarkMode(JSON.parse(localStorage.getItem('uvmLaundryManualDarkMode') || 'false'));
+    
+    const storedShowVisualLayout = localStorage.getItem('uvmLaundryShowVisualLayout');
+    if (storedShowVisualLayout !== null) {
+      setShowVisualLayout(JSON.parse(storedShowVisualLayout));
+    } else {
+      // Default to ON for wider screens if no preference saved
+      setShowVisualLayout(window.innerWidth > 800);
+    }
+    
+    setFavorites(JSON.parse(localStorage.getItem('uvmLaundryFavorites') || '[]'));
+    setUserPhoneNumber(localStorage.getItem('uvmLaundryUserPhoneNumber') || '');
+  }, []);
+
+  // Persist settings to localStorage
+  useEffect(() => { localStorage.setItem('uvmLaundryUseSystemTheme', JSON.stringify(useSystemTheme)); }, [useSystemTheme]);
+  useEffect(() => { localStorage.setItem('uvmLaundryManualDarkMode', JSON.stringify(manualDarkMode)); }, [manualDarkMode]);
+  useEffect(() => { localStorage.setItem('uvmLaundryShowVisualLayout', JSON.stringify(showVisualLayout)); }, [showVisualLayout]);
+  useEffect(() => { localStorage.setItem('uvmLaundryFavorites', JSON.stringify(favorites)); }, [favorites]);
+  useEffect(() => { localStorage.setItem('uvmLaundryUserPhoneNumber', userPhoneNumber); }, [userPhoneNumber]);
+
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -387,16 +398,36 @@ const App = () => {
       body.classList.add('bg-gray-100', 'text-gray-900');
     }
   }, [effectiveDarkMode]);
-
-  useEffect(() => { localStorage.setItem('uvmLaundryUseSystemTheme', JSON.stringify(useSystemTheme)); }, [useSystemTheme]);
-  useEffect(() => { localStorage.setItem('uvmLaundryManualDarkMode', JSON.stringify(manualDarkMode)); }, [manualDarkMode]);
-  useEffect(() => { localStorage.setItem('uvmLaundryShowVisualLayout', JSON.stringify(showVisualLayout)); }, [showVisualLayout]);
-  useEffect(() => {
-    try { localStorage.setItem('uvmLaundryFavorites', JSON.stringify(favorites)); }
-    catch (e) { console.error("Error saving favorites to localStorage:", e); }
-  }, [favorites]);
   
   useEffect(() => { setSettingsPhoneNumberInput(userPhoneNumber ? formatPhoneNumber(userPhoneNumber) : ''); }, [userPhoneNumber]);
+
+  // Handle Deep Linking & Hash Changes
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace(/^#\/?room\//, '').replace(/^#\//, ''); // Allow both #/room/ and #room/
+      if (hash && laundryRooms.length > 0) {
+        // Try matching by ID first, then by slugified name
+        const foundRoom = laundryRooms.find(r => r.id === hash || String(r.name).toLowerCase().replace(/\s+/g, '-') === hash);
+        if (foundRoom && foundRoom.id !== selectedRoomId) {
+          handleSelectRoom(foundRoom.id, false); // Pass false to avoid updating hash again
+        } else if (!foundRoom && currentView === 'roomDetail') { // Only go home if on roomDetail and hash is invalid
+           handleGoHome(false); // Pass false to avoid updating hash again
+        }
+      } else if (!hash && currentView === 'roomDetail') { // If hash cleared and on roomDetail
+         handleGoHome(false); // Pass false to avoid updating hash again
+      }
+    };
+
+    // Initial check
+    const initialHash = window.location.hash.replace(/^#\/?room\//, '').replace(/^#\//, '');
+    if (initialHash) {
+      initialRoomIdFromHash.current = initialHash; // Store to process after rooms are loaded
+    }
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, [laundryRooms, selectedRoomId, currentView]); // Added dependencies
+
 
   const handleSettingsPhoneNumberChange = (e) => {
     const formatted = formatPhoneNumber(e.target.value);
@@ -405,7 +436,7 @@ const App = () => {
     if (rawPhoneNumber.length === 10) {
       if (rawPhoneNumber !== userPhoneNumber) {
         setUserPhoneNumber(rawPhoneNumber);
-        localStorage.setItem('uvmLaundryUserPhoneNumber', rawPhoneNumber);
+        // localStorage.setItem('uvmLaundryUserPhoneNumber', rawPhoneNumber); // Persisted by useEffect
         setPhoneSaveStatus('Saved!');
         setTimeout(() => setPhoneSaveStatus(''), 2000);
       }
@@ -422,25 +453,35 @@ const App = () => {
       let data = await response.json();
       if (!Array.isArray(data)) throw new Error("Received invalid data format for rooms.");
 
-      // Client-side patch for specific room names
       data = data.map(room => {
         if (room.name && room.name.toLowerCase() === 'cottage#256') {
           return { ...room, name: 'The Cottages' };
         }
-        // Example for McAuley - adjust if API returns a specific common misspelling
         if (room.name && room.name.toLowerCase().includes('mccauley')) {
-          return { ...room, name: 'McAuley Hall' }; // Corrected spelling
+          return { ...room, name: 'McAuley Hall' };
         }
         return room;
       });
-      setLaundryRooms(data.sort((a,b) => String(a.name).localeCompare(String(b.name))));
+      const sortedRooms = data.sort((a,b) => String(a.name).localeCompare(String(b.name)));
+      setLaundryRooms(sortedRooms);
+      
+      // Attempt to navigate to room from hash after rooms are loaded
+      if (initialRoomIdFromHash.current) {
+        const foundRoom = sortedRooms.find(r => r.id === initialRoomIdFromHash.current || String(r.name).toLowerCase().replace(/\s+/g, '-') === initialRoomIdFromHash.current);
+        if (foundRoom) {
+          // Defer selection slightly to ensure UI is ready
+          setTimeout(() => handleSelectRoom(foundRoom.id, false), 0); // Pass false to avoid hash update
+        }
+        initialRoomIdFromHash.current = null; // Clear after attempt
+      }
+
     } catch (e) {
       setError("Could not load laundry rooms. Please check your internet connection and try refreshing the page.");
       setLaundryRooms([]);
     } finally {
       setIsLoadingRooms(false);
     }
-  }, []);
+  }, []); // handleSelectRoom removed from deps to avoid loop, initialRoomIdFromHash.current handles it
 
   useEffect(() => { fetchRooms(); }, [fetchRooms]);
 
@@ -451,26 +492,63 @@ const App = () => {
     if (!isBackground) {
         setIsLoadingMachines(true);
         setError(null);
+        setOfflineMode(false); // Assume online when initiating a new fetch
     } else if (selectedRoomId === roomIdToFetch) {
         setIsBackgroundRefreshing(true);
     }
     
     try {
       const response = await fetch(`${BACKEND_BASE_URL}/laundry-data/${roomIdToFetch}`);
-      if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
+      if (!response.ok) {
+        // If network error, try to load from cache
+        if (!navigator.onLine) { // Check if browser thinks it's offline
+            const cachedData = localStorage.getItem(`roomData-${roomIdToFetch}`);
+            if (cachedData) {
+                const { data: cachedMachines, timestamp } = JSON.parse(cachedData);
+                setMachines(cachedMachines);
+                setLastUpdated(new Date(timestamp));
+                setError(`Offline. Showing cached data from ${new Date(timestamp).toLocaleTimeString()}.`);
+                setOfflineMode(true);
+                setIsLoadingMachines(false); // Stop loading indicator
+                setIsBackgroundRefreshing(false);
+                ongoingFetches.current.delete(roomIdToFetch);
+                return; // Exit early as we're using cached data
+            }
+        }
+        throw new Error(`Network response was not ok: ${response.statusText}`);
+      }
       const jsonData = await response.json();
       if (!Array.isArray(jsonData)) throw new Error("Received invalid data format for machines.");
       
       if (selectedRoomId === roomIdToFetch) {
         setMachines(jsonData);
         setLastUpdated(new Date());
+        // Cache successful fetch
+        localStorage.setItem(`roomData-${roomIdToFetch}`, JSON.stringify({ data: jsonData, timestamp: new Date().toISOString() }));
+        setOfflineMode(false); // We are online and data is fresh
         if (error && !isBackground) setError(null);
       }
     } catch (e) {
         const roomName = laundryRooms.find(r => r.id === roomIdToFetch)?.name || `the selected room`;
-        const errorMessage = `Could not load machines for ${String(roomName)}. It might be a temporary issue. Please try refreshing.`;
-        if (selectedRoomId === roomIdToFetch) setError(errorMessage);
-        else console.warn(`Background fetch error for ${roomName}: ${e.message}`);
+        let errorMessage = `Could not load machines for ${String(roomName)}. It might be a temporary issue.`;
+
+        // Attempt to load from cache on any error if selected room matches
+        if (selectedRoomId === roomIdToFetch) {
+            const cachedData = localStorage.getItem(`roomData-${roomIdToFetch}`);
+            if (cachedData) {
+                const { data: cachedMachines, timestamp } = JSON.parse(cachedData);
+                setMachines(cachedMachines);
+                setLastUpdated(new Date(timestamp));
+                errorMessage = `Failed to update. Showing cached data for ${String(roomName)} from ${new Date(timestamp).toLocaleTimeString()}.`;
+                setOfflineMode(true);
+            } else {
+                 errorMessage += ` No cached data available.`;
+                 setOfflineMode(false); // No cache, so not in offline mode with data
+            }
+            setError(errorMessage);
+        } else {
+            console.warn(`Background fetch error for ${roomName}: ${e.message}`);
+        }
     } finally {
       if (selectedRoomId === roomIdToFetch) {
         if (!isBackground) setIsLoadingMachines(false);
@@ -478,23 +556,24 @@ const App = () => {
       }
       ongoingFetches.current.delete(roomIdToFetch);
     }
-  }, [laundryRooms, selectedRoomId, error]);
+  }, [laundryRooms, selectedRoomId, error]); // Added error to dependency to allow clearing it
 
   useEffect(() => {
-    if (selectedRoomId && currentView === 'roomDetail') fetchMachineData(selectedRoomId, false);
+    if (selectedRoomId && currentView === 'roomDetail') {
+      fetchMachineData(selectedRoomId, false);
+    }
   }, [selectedRoomId, currentView, fetchMachineData]);
 
   useEffect(() => {
-    if (!selectedRoomId || currentView !== 'roomDetail') return;
+    if (!selectedRoomId || currentView !== 'roomDetail' || offlineMode) return; // Don't refresh if offline
     const intervalId = setInterval(() => fetchMachineData(selectedRoomId, true), ACTIVE_ROOM_REFRESH_INTERVAL_MS);
     return () => clearInterval(intervalId);
-  }, [selectedRoomId, currentView, fetchMachineData]);
+  }, [selectedRoomId, currentView, fetchMachineData, offlineMode]); // Added offlineMode
 
   const handleScrollToMachine = (machineCardId) => {
     const element = document.getElementById(machineCardId);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      // Optional: Add a temporary highlight effect
       element.classList.add('ring-2', 'ring-uvm-gold', 'ring-offset-2', 'dark:ring-offset-slate-800', 'transition-all', 'duration-300');
       setTimeout(() => {
         element.classList.remove('ring-2', 'ring-uvm-gold', 'ring-offset-2', 'dark:ring-offset-slate-800');
@@ -502,21 +581,32 @@ const App = () => {
     }
   };
 
-  const handleSelectRoom = (roomId) => {
+  const handleSelectRoom = (roomId, updateHash = true) => {
     setSelectedRoomId(roomId);
     setCurrentView('roomDetail');
     setSearchTerm(''); setFilterStatus('All'); setSmsAlertsSet([]); setError(null); setMachines([]);
+    setOfflineMode(false); // Reset offline mode when selecting a new room
+    if (updateHash) {
+      const roomObject = laundryRooms.find(r => r.id === roomId);
+      const roomSlug = roomObject ? String(roomObject.name).toLowerCase().replace(/\s+/g, '-') : roomId;
+      window.location.hash = `room/${roomSlug}`; // Update hash for deep linking
+    }
   };
-  const handleGoHome = () => {
+  const handleGoHome = (updateHash = true) => {
     setCurrentView('home'); setSelectedRoomId(''); setMachines([]); setError(null); setSearchTerm(''); setFilterStatus('All'); setHomeSearchTerm(''); setSmsAlertsSet([]);
+    setOfflineMode(false);
+    if (updateHash) window.location.hash = ''; // Clear hash on going home
   };
   const handleBackFromSettings = () => setCurrentView(previousViewBeforeSettings);
   const handleGoToSettings = () => {
-    setPreviousViewBeforeSettings(currentView === 'roomDetail' ? 'roomDetail' : 'home');
+    setPreviousViewBeforeSettings(currentView); // Store the current view before going to settings
     setCurrentView('settings');
   };
   const handleRefresh = () => {
-    if (selectedRoomId && currentView === 'roomDetail') fetchMachineData(selectedRoomId, false);
+    if (selectedRoomId && currentView === 'roomDetail') {
+      setOfflineMode(false); // Assume online for manual refresh
+      fetchMachineData(selectedRoomId, false);
+    }
   };
   const toggleFavorite = (roomId) => setFavorites(prev => prev.includes(roomId) ? prev.filter(id => id !== roomId) : [...new Set([...prev, roomId])]);
   const handleOpenSmsModal = (machine) => {
@@ -633,25 +723,23 @@ const App = () => {
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 md:gap-6">
-                {filteredHomeRooms.map(room => <RoomCard key={room.id} room={room} onSelectRoom={handleSelectRoom} isFavorite={favorites.includes(room.id)} onToggleFavorite={toggleFavorite} />)}
+                {filteredHomeRooms.map(room => <RoomCard key={room.id} room={room} onSelectRoom={() => handleSelectRoom(room.id)} isFavorite={favorites.includes(room.id)} onToggleFavorite={toggleFavorite} />)}
               </div>
             )}
           </div>
         );
       case 'roomDetail':
-        if (isLoadingMachines && machines.length === 0 && !error) return renderLoadingScreen(`Loading machines for ${currentRoomName || 'room'}...`);
+        if (isLoadingMachines && machines.length === 0 && !error && !offlineMode) return renderLoadingScreen(`Loading machines for ${currentRoomName || 'room'}...`);
         return (
           <div key="roomDetail" className="animate-fadeIn">
-            {/* Header: Back button, Room Name, Official Site */}
             <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-3">
-              <button onClick={handleGoHome} className={`flex items-center text-sm font-semibold rounded-lg px-4 py-2.5 transition-colors focus:outline-none focus:ring-2 focus:ring-uvm-gold ${effectiveDarkMode ? 'text-slate-100 bg-slate-700 hover:bg-slate-600' : 'text-gray-900 bg-gray-100 hover:bg-gray-200'}`}> <ArrowLeft size={18} className="mr-2"/> Back to Rooms </button>
+              <button onClick={() => handleGoHome()} className={`flex items-center text-sm font-semibold rounded-lg px-4 py-2.5 transition-colors focus:outline-none focus:ring-2 focus:ring-uvm-gold ${effectiveDarkMode ? 'text-slate-100 bg-slate-700 hover:bg-slate-600' : 'text-gray-900 bg-gray-100 hover:bg-gray-200'}`}> <ArrowLeft size={18} className="mr-2"/> Back to Rooms </button>
               <h2 className={`text-2xl md:text-3xl font-bold text-center flex-1 sm:mx-4 truncate ${effectiveDarkMode ? 'text-white' : 'text-gray-900'}`} title={String(currentRoomName)}>{String(currentRoomName)}</h2>
               <div className="sm:w-auto hidden sm:block" style={{minWidth: '135px'}}>
                   {currentRoomOfficialUrl && (<a href={currentRoomOfficialUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-4 py-2.5 border border-transparent text-xs font-semibold rounded-md shadow-sm text-white transition-colors duration-150 hover:opacity-80 whitespace-nowrap" style={{ backgroundColor: UVM_GREEN }} title="Visit Official Tracker"><ExternalLink size={16} className="mr-1.5" />Official Site</a>)}
               </div>
             </div>
             
-            {/* Search and Filter Card */}
             <div className="mb-8 p-5 sm:p-6 bg-white dark:bg-slate-800/70 rounded-xl shadow-xl">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-end">
                 <div>
@@ -672,10 +760,9 @@ const App = () => {
                 <p>Washers: <span className="font-semibold text-uvm-green dark:text-uvm-gold">{availableWashersInRoom}</span> Available / <span className="font-semibold">{allWashers.length}</span> Total</p>
                 <p>Dryers: <span className="font-semibold text-uvm-green dark:text-uvm-gold">{availableDryersInRoom}</span> Available / <span className="font-semibold">{allDryers.length}</span> Total</p>
               </div>
-              {lastUpdated && <p className="text-xs text-gray-500 dark:text-slate-400 mt-4 text-right">Last Updated: {lastUpdated.toLocaleTimeString()}</p>}
+              {lastUpdated && <p className={`text-xs mt-4 text-right ${offlineMode ? 'text-yellow-600 dark:text-yellow-400' : 'text-gray-500 dark:text-slate-400'}`}>Last Updated: {lastUpdated.toLocaleTimeString()} {offlineMode ? '(Offline - Cached)' : ''}</p>}
             </div>
 
-            {/* Visual Room Layout Card (conditionally rendered) */}
             {showVisualLayout && machines.length > 0 && (
               <div className="mb-8 p-5 sm:p-6 bg-white dark:bg-slate-800/70 rounded-xl shadow-xl animate-fadeIn">
                 <h3 className="text-xl font-semibold mb-6 text-gray-800 dark:text-white">Room Layout</h3>
@@ -683,15 +770,13 @@ const App = () => {
               </div>
             )}
 
-            {/* Machine List (Washers and Dryers) */}
-            {(machines.length === 0 && !error && !isLoadingMachines) ? (
+            {(machines.length === 0 && !error && !isLoadingMachines && !offlineMode) ? ( // Check offlineMode here too
                  <div className="text-center py-16 text-gray-500 dark:text-gray-400 bg-white dark:bg-slate-800/70 rounded-xl shadow-lg p-8"><Info size={64} className="mx-auto opacity-50 mb-4 text-uvm-green dark:text-uvm-gold" /><p className="mt-4 text-xl font-semibold">No Machines Found</p><p className="text-sm mt-2 opacity-80">This laundry room appears to have no machines listed, or they could not be loaded.</p></div>
             ) : (
               <>
                 {filteredWashers.length > 0 && (
                   <div className="mb-10">
                     <h3 className={`text-2xl font-semibold mb-5 pb-3 border-b-2 ${effectiveDarkMode ? 'text-white border-slate-700' : 'text-gray-900 border-gray-300'}`}>Washers</h3>
-                    {/* Reverted grid classes for MachineCard list to 1 column on mobile */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
                       {filteredWashers.map(machine => <MachineCard key={machine.id || machine.machineName} machine={machine} onSetUpSmsAlert={handleOpenSmsModal} isAlertSet={smsAlertsSet.includes(machine.id)} />)}
                     </div>
@@ -700,7 +785,6 @@ const App = () => {
                 {filteredDryers.length > 0 && (
                   <div>
                     <h3 className={`text-2xl font-semibold mb-5 pb-3 border-b-2 ${effectiveDarkMode ? 'text-white border-slate-700' : 'text-gray-900 border-gray-300'}`}>Dryers</h3>
-                    {/* Reverted grid classes for MachineCard list to 1 column on mobile */}
                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
                        {filteredDryers.map(machine => <MachineCard key={machine.id || machine.machineName} machine={machine} onSetUpSmsAlert={handleOpenSmsModal} isAlertSet={smsAlertsSet.includes(machine.id)} />)}
                      </div>
@@ -737,6 +821,20 @@ const App = () => {
                     <button id="visualLayoutToggle" onClick={() => setShowVisualLayout(!showVisualLayout)} className={`relative inline-flex items-center h-7 rounded-full w-12 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-uvm-gold ${showVisualLayout ? 'bg-green-600 dark:bg-green-600' : 'bg-gray-300 dark:bg-slate-500'}`}><span className={`inline-block w-5 h-5 transform bg-white rounded-full transition-transform ${showVisualLayout ? 'translate-x-6' : 'translate-x-1'}`} /></button>
                   </div>
                 </div>
+              </section>
+               {/* Placeholder sections for Kiosk and Trends - to be implemented */}
+              <section>
+                <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-5 border-b pb-3 border-gray-200 dark:border-slate-700">Advanced Features</h3>
+                 <div className="space-y-5">
+                    <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-700/60 rounded-lg opacity-50 cursor-not-allowed">
+                        <label className="text-gray-700 dark:text-slate-200 flex items-center text-sm sm:text-base"><LayoutGrid size={20} className="mr-2.5 text-gray-500 dark:text-slate-300" />iPad Wall-Mounted View</label>
+                        <span className="text-xs text-gray-400 dark:text-slate-500">Planned</span>
+                    </div>
+                    <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-700/60 rounded-lg opacity-50 cursor-not-allowed">
+                        <label className="text-gray-700 dark:text-slate-200 flex items-center text-sm sm:text-base"><BarChart3 size={20} className="mr-2.5 text-gray-500 dark:text-slate-300" />Machine Usage Trends</label>
+                        <span className="text-xs text-gray-400 dark:text-slate-500">Beta</span>
+                    </div>
+                 </div>
               </section>
               <section>
                 <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-5 border-b pb-3 border-gray-200 dark:border-slate-700">SMS Notifications</h3>
@@ -777,7 +875,7 @@ const App = () => {
       <header className="sticky top-0 z-50 shadow-lg" style={{ backgroundColor: UVM_GREEN }}>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 md:h-20">
-            <button onClick={handleGoHome} className="flex items-center cursor-pointer focus:outline-none focus:ring-2 focus:ring-uvm-gold rounded-md p-1 -ml-1 group">
+            <button onClick={() => handleGoHome()} className="flex items-center cursor-pointer focus:outline-none focus:ring-2 focus:ring-uvm-gold rounded-md p-1 -ml-1 group">
               <img src={UVM_LOGO_URL} alt="UVM Logo" className="h-10 md:h-12 w-auto mr-3 rounded-sm transition-transform duration-300 group-hover:scale-105" onError={(e) => { e.currentTarget.style.display='none'; }}/>
               <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight group-hover:text-yellow-400 transition-colors">UVM LaundryLink</h1>
             </button>
@@ -791,12 +889,23 @@ const App = () => {
       </header>
 
       <main className={`container mx-auto p-4 sm:p-6 lg:p-8`}>
-        {error && !isLoadingRooms && !(isLoadingMachines && selectedRoomId) && (
+        {error && !isLoadingRooms && !(isLoadingMachines && selectedRoomId) && !offlineMode && ( // Only show general error if not in offline mode
           <div className="mb-6 p-4 bg-red-100 dark:bg-red-900/60 border-l-4 border-red-500 text-red-700 dark:text-red-300 rounded-md shadow-md animate-fadeIn" role="alert">
             <div className="flex items-start mb-1">
               <AlertTriangle size={22} className="mr-2.5 mt-0.5 text-red-500 dark:text-red-400 flex-shrink-0" />
               <div>
                 <p className="font-semibold text-md">Could Not Update Data</p>
+                <p className="text-sm break-words mt-1">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+         {offlineMode && error && ( // Specific display for offline cached data message
+          <div className="mb-6 p-4 bg-yellow-100 dark:bg-yellow-700/30 border-l-4 border-yellow-500 text-yellow-700 dark:text-yellow-300 rounded-md shadow-md animate-fadeIn" role="alert">
+            <div className="flex items-start mb-1">
+              <AlertTriangle size={22} className="mr-2.5 mt-0.5 text-yellow-500 dark:text-yellow-400 flex-shrink-0" />
+              <div>
+                <p className="font-semibold text-md">Offline Mode</p>
                 <p className="text-sm break-words mt-1">{error}</p>
               </div>
             </div>
@@ -839,7 +948,7 @@ const App = () => {
         .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         body { min-height: 100vh; transition: background-color 0.3s ease, color 0.3s ease; }
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; } /* For RoomLayout horizontal scroll */
         ::-webkit-scrollbar-track { background: ${effectiveDarkMode ? '#1e293b' : '#f1f5f9'}; border-radius: 10px; }
         ::-webkit-scrollbar-thumb { background: ${effectiveDarkMode ? '#475569' : '#9ca3af'}; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: ${effectiveDarkMode ? UVM_GOLD : UVM_GREEN}; }
