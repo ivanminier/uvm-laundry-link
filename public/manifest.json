@@ -3,6 +3,8 @@
   "name": "UVM LaundryLink",
   "short_name": "LaundryLink",
   "description": "Track real-time washer & dryer availability across UVM residence halls with LaundryLink.",
+  "dir": "ltr",
+  "lang": "en-US",
   "start_url": "./?source=pwa",
   "scope": "./",
   "display": "standalone",
@@ -50,7 +52,6 @@
   "launch_handler": {
     "client_mode": "navigate-existing"
   },
-  "lang": "en-US",
   "categories": [
     "utilities",
     "education"
@@ -70,5 +71,7 @@
     }
   ],
   "prefer_related_applications": false,
-  "related_applications": []
+  "related_applications": [],
+  "iarc_rating_id": "0000-0000-0000-0000",
+  "scope_extensions": []
 }
