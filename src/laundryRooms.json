@@ -1,0 +1,351 @@
+[
+  {
+    "id": "austin",
+    "name": "Austin Hall",
+    "url": "https://laundrytrackerconnect.com/UVM/austin.html",
+    "providerId": "12305",
+    "historyId": "loc_2a8c9d",
+    "officialName": "Austin Hall"
+  },
+  {
+    "id": "central_campus_2",
+    "name": "Central Campus Flr 2",
+    "url": "https://laundrytrackerconnect.com/UVM/central_campus_2.html",
+    "providerId": "12241",
+    "historyId": "loc_399394",
+    "officialName": "Central Campus Residence Hall - 2nd Floor"
+  },
+  {
+    "id": "central_campus_3",
+    "name": "Central Campus Flr 3",
+    "url": "https://laundrytrackerconnect.com/UVM/central_campus_3.html",
+    "providerId": "12244",
+    "historyId": "loc_1c5701",
+    "officialName": "Central Campus Residence Hall - 3rd Floor"
+  },
+  {
+    "id": "central_campus_4",
+    "name": "Central Campus Flr 4",
+    "url": "https://laundrytrackerconnect.com/UVM/central_campus_4.html",
+    "providerId": "12245",
+    "historyId": "loc_419336",
+    "officialName": "Central Campus Residence Hall - 4th Floor"
+  },
+  {
+    "id": "central_campus_5",
+    "name": "Central Campus Flr 5",
+    "url": "https://laundrytrackerconnect.com/UVM/central_campus_5.html",
+    "providerId": "12246",
+    "historyId": "loc_a4686c",
+    "officialName": "Central Campus Residence Hall - 5thFloor"
+  },
+  {
+    "id": "central_campus_6",
+    "name": "Central Campus Flr 6",
+    "url": "https://laundrytrackerconnect.com/UVM/central_campus_6.html",
+    "providerId": "12247",
+    "historyId": "loc_44963c",
+    "officialName": "Central Campus Residence Hall - 6th Floor"
+  },
+  {
+    "id": "central_campus_7",
+    "name": "Central Campus Flr 7",
+    "url": "https://laundrytrackerconnect.com/UVM/UVM.html"
+  },
+  {
+    "id": "christie",
+    "name": "Christie Hall Bsmt",
+    "url": "https://laundrytrackerconnect.com/UVM/christie.html",
+    "providerId": "12250",
+    "historyId": "loc_83f59f",
+    "officialName": "Christie Hall"
+  },
+  {
+    "id": "converse",
+    "name": "Converse",
+    "url": "https://laundrytrackerconnect.com/UVM/converse.html",
+    "providerId": "12251",
+    "historyId": "loc_716df4",
+    "officialName": "Converse"
+  },
+  {
+    "id": "coolidge",
+    "name": "Coolidge Hall",
+    "url": "https://laundrytrackerconnect.com/UVM/coolidge.html",
+    "providerId": "12252",
+    "historyId": "loc_2dca51",
+    "officialName": "Coolidge Hall"
+  },
+  {
+    "id": "cwp",
+    "name": "CWP Wright Hall",
+    "url": "https://laundrytrackerconnect.com/UVM/cwp.html",
+    "providerId": "12249",
+    "historyId": "loc_499892",
+    "officialName": "Wright Hall"
+  },
+  {
+    "id": "davis",
+    "name": "Davis Hall Flr 1",
+    "url": "https://laundrytrackerconnect.com/UVM/davis.html",
+    "providerId": "12254",
+    "historyId": "loc_c578c6",
+    "officialName": "Davis Hall 1st Floor"
+  },
+  {
+    "id": "hamilton",
+    "name": "Hamilton Hall",
+    "url": "https://laundrytrackerconnect.com/UVM/hamilton.html",
+    "providerId": "12255",
+    "historyId": "loc_00f73f",
+    "officialName": "Hamilton Hall"
+  },
+  {
+    "id": "harris",
+    "name": "Harris Hall",
+    "url": "https://laundrytrackerconnect.com/UVM/harris.html",
+    "providerId": "12256",
+    "historyId": "loc_a2a45a",
+    "officialName": "Harris Hall"
+  },
+  {
+    "id": "hunt",
+    "name": "Hunt Hall",
+    "url": "https://laundrytrackerconnect.com/UVM/hunt.html",
+    "providerId": "12257",
+    "historyId": "loc_3bef2c",
+    "officialName": "Hunt Hall"
+  },
+  {
+    "id": "jeanne_mance",
+    "name": "Jeanne Mance Hall",
+    "url": "https://laundrytrackerconnect.com/UVM/jeanne_mance.html",
+    "providerId": "12258",
+    "historyId": "loc_e209d3",
+    "officialName": "Jeanne Mance Hall"
+  },
+  {
+    "id": "lll_140",
+    "name": "Living & Learning A140",
+    "url": "https://laundrytrackerconnect.com/UVM/LLL_140.html",
+    "providerId": "12259",
+    "historyId": "loc_0768af",
+    "officialName": "Living & Learning Lounge A140"
+  },
+  {
+    "id": "lll_180",
+    "name": "Living & Learning A180",
+    "url": "https://laundrytrackerconnect.com/UVM/LLL_180.html",
+    "providerId": "12260",
+    "historyId": "loc_beb029",
+    "officialName": "Living & Learning Lounge A180"
+  },
+  {
+    "id": "lll_b110",
+    "name": "Living & Learning B110",
+    "url": "https://laundrytrackerconnect.com/UVM/LLL_B110.html",
+    "providerId": "12261",
+    "historyId": "loc_56a455",
+    "officialName": "Living & Learning Lounge B110"
+  },
+  {
+    "id": "lll_c131",
+    "name": "Living & Learning C131",
+    "url": "https://laundrytrackerconnect.com/UVM/LLL_C131.html",
+    "providerId": "12262",
+    "historyId": "loc_a9714c",
+    "officialName": "Living & Learning Lounge C131"
+  },
+  {
+    "id": "lll_d110",
+    "name": "Living & Learning D110",
+    "url": "https://laundrytrackerconnect.com/UVM/LLL_D110.html",
+    "providerId": "12263",
+    "historyId": "loc_0a4aec",
+    "officialName": "Living & Learning Lounge D110"
+  },
+  {
+    "id": "lll_d140",
+    "name": "Living & Learning D140",
+    "url": "https://laundrytrackerconnect.com/UVM/LLL_D140.html",
+    "providerId": "12264",
+    "historyId": "loc_0bfea5",
+    "officialName": "Living & Learning Lounge D140"
+  },
+  {
+    "id": "lll_e110",
+    "name": "Living & Learning E110",
+    "url": "https://laundrytrackerconnect.com/UVM/LLL_E110.html",
+    "providerId": "12265",
+    "historyId": "loc_1f1d23",
+    "officialName": "Living & Learning Lounge E110"
+  },
+  {
+    "id": "lll_e160",
+    "name": "Living & Learning E160",
+    "url": "https://laundrytrackerconnect.com/UVM/LLL_E160.html",
+    "providerId": "12266",
+    "historyId": "loc_66909a",
+    "officialName": "Living & Learning Lounge E160"
+  },
+  {
+    "id": "mason",
+    "name": "Mason Hall 2nd Flr",
+    "url": "https://laundrytrackerconnect.com/UVM/mason.html",
+    "providerId": "12267",
+    "historyId": "loc_5a2657",
+    "officialName": "Mason Hall 2nd Floor"
+  },
+  {
+    "id": "mcauley",
+    "name": "McAuley Hall",
+    "url": "https://laundrytrackerconnect.com/UVM/mcauley.html",
+    "providerId": "12268",
+    "historyId": "loc_deb3a2",
+    "officialName": "McAuley Hall"
+  },
+  {
+    "id": "mccann",
+    "name": "McCann Hall",
+    "url": "https://laundrytrackerconnect.com/UVM/mccann.html",
+    "providerId": "12269",
+    "historyId": "loc_368d75",
+    "officialName": "McCann Hall"
+  },
+  {
+    "id": "mercy",
+    "name": "Mercy Hall",
+    "url": "https://laundrytrackerconnect.com/UVM/mercy.html",
+    "providerId": "12270",
+    "historyId": "loc_85c065",
+    "officialName": "Mercy Hall"
+  },
+  {
+    "id": "millis",
+    "name": "Millis Hall",
+    "url": "https://laundrytrackerconnect.com/UVM/millis.html",
+    "providerId": "12271",
+    "historyId": "loc_e0a3e6",
+    "officialName": "Millis Hall"
+  },
+  {
+    "id": "patterson",
+    "name": "Patterson Hall 1st Flr",
+    "url": "https://laundrytrackerconnect.com/UVM/patterson.html",
+    "providerId": "12272",
+    "historyId": "loc_c226af",
+    "officialName": "Patterson Hall 1st Floor"
+  },
+  {
+    "id": "ready",
+    "name": "Ready Hall",
+    "url": "https://laundrytrackerconnect.com/UVM/ready.html",
+    "providerId": "12273",
+    "historyId": "loc_6d14a2",
+    "officialName": "Ready Hall"
+  },
+  {
+    "id": "redstone",
+    "name": "Redstone Hall Bsmt",
+    "url": "https://laundrytrackerconnect.com/UVM/redstone.html",
+    "providerId": "12274",
+    "historyId": "loc_269a6b",
+    "officialName": "Redstone Hall Basement"
+  },
+  {
+    "id": "richardson",
+    "name": "Richardson Hall",
+    "url": "https://laundrytrackerconnect.com/UVM/richardson.html",
+    "providerId": "12275",
+    "historyId": "loc_41d89d",
+    "officialName": "Richardson Hall"
+  },
+  {
+    "id": "sichel",
+    "name": "Sichel Hall",
+    "url": "https://laundrytrackerconnect.com/UVM/sichel.html",
+    "providerId": "12276",
+    "historyId": "loc_aa1e78",
+    "officialName": "Sichel Hall"
+  },
+  {
+    "id": "simpson",
+    "name": "Simpson Hall LL",
+    "url": "https://laundrytrackerconnect.com/UVM/simpson.html",
+    "providerId": "12277",
+    "historyId": "loc_70e626",
+    "officialName": "Simpson Hall - Lower Level"
+  },
+  {
+    "id": "slade",
+    "name": "Slade Hall Bsmt",
+    "url": "https://laundrytrackerconnect.com/UVM/slade.html",
+    "providerId": "12278",
+    "historyId": "loc_8129eb",
+    "officialName": "Slade Hall Basement"
+  },
+  {
+    "id": "cottage256",
+    "name": "The Cottages",
+    "url": "https://laundrytrackerconnect.com/UVM/cottage256.html",
+    "providerId": "12253",
+    "historyId": "loc_32521b",
+    "officialName": "Cottage 256"
+  },
+  {
+    "id": "tupper",
+    "name": "Tupper Hall",
+    "url": "https://laundrytrackerconnect.com/UVM/tupper.html",
+    "providerId": "12279",
+    "historyId": "loc_29f224",
+    "officialName": "Tupper Hall"
+  },
+  {
+    "id": "uheightsn1",
+    "name": "Univ Heights North 1",
+    "url": "https://laundrytrackerconnect.com/UVM/uheightsn1.html",
+    "providerId": "12280",
+    "historyId": "loc_a8e4e8",
+    "officialName": "University Heights North 1"
+  },
+  {
+    "id": "uheightsn2",
+    "name": "Univ Heights North 2",
+    "url": "https://laundrytrackerconnect.com/UVM/uheightsn2.html",
+    "providerId": "12281",
+    "historyId": "loc_fe37ab",
+    "officialName": "University Heights North 2"
+  },
+  {
+    "id": "uheightss1",
+    "name": "Univ Heights South 1",
+    "url": "https://laundrytrackerconnect.com/UVM/uheightss1.html",
+    "providerId": "12282",
+    "historyId": "loc_e7b03b",
+    "officialName": "University Heights South 1"
+  },
+  {
+    "id": "uheightss2",
+    "name": "Univ Heights South 2",
+    "url": "https://laundrytrackerconnect.com/UVM/uheightss2.html",
+    "providerId": "12283",
+    "historyId": "loc_1a2fdd",
+    "officialName": "University Heights South 2"
+  },
+  {
+    "id": "wilks",
+    "name": "Wilks Hall",
+    "url": "https://laundrytrackerconnect.com/UVM/wilks.html",
+    "providerId": "12284",
+    "historyId": "loc_687e75",
+    "officialName": "Wilks Hall"
+  },
+  {
+    "id": "wing",
+    "name": "Wing Hall 1st Flr",
+    "url": "https://laundrytrackerconnect.com/UVM/wing.html",
+    "providerId": "12285",
+    "historyId": "loc_f2a015",
+    "officialName": "Wing Hall - 1st Floor"
+  }
+]

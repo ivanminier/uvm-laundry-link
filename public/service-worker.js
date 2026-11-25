@@ -1,47 +1,40 @@
-const CACHE_NAME = 'laundrylink-static-v1';
-const URLsToCache = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/favicon.ico',
-  '/logo192.png',
-  '/logo512.png'
-];
+const CACHE_NAME = 'laundrylink-static-v2';
+const SHELL_URLS = ['/index.html', '/manifest.json', '/favicon.ico', '/logo192.png', '/logo512.png'];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches
-      .open(CACHE_NAME)
-      .then((cache) => cache.addAll(URLsToCache))
-      .then(() => self.skipWaiting())
-  );
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_URLS)).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    caches.keys().then((keys) => Promise.all(
+      keys.filter((key) => key.startsWith('laundrylink-static-') && key !== CACHE_NAME)
+        .map((key) => caches.delete(key))
+    )).then(() => self.clients.claim())
+  );
 });
 
 self.addEventListener('fetch', (event) => {
-  if (
-    event.request.method !== 'GET' ||
-    new URL(event.request.url).origin !== location.origin
-  ) {
-    return;
-  }
+  const request = event.request;
+  if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin) return;
 
-  event.respondWith(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.match(event.request).then((cachedResponse) => {
-        if (cachedResponse) {
-          return cachedResponse;
+  event.respondWith(caches.open(CACHE_NAME).then(async (cache) => {
+    if (request.mode === 'navigate') {
+      try {
+        const response = await fetch(request);
+        if (response.ok && new URL(request.url).pathname === '/') {
+          await cache.put('/index.html', response.clone());
         }
-        return fetch(event.request).then((networkResponse) => {
-          if (networkResponse.ok) {
-            cache.put(event.request, networkResponse.clone());
-          }
-          return networkResponse;
-        });
-      });
-    })
-  );
+        return response;
+      } catch {
+        return await cache.match('/index.html') || Response.error();
+      }
+    }
+
+    const cached = await cache.match(request);
+    if (cached) return cached;
+    const response = await fetch(request);
+    if (response.ok) await cache.put(request, response.clone());
+    return response;
+  }));
 });

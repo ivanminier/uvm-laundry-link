@@ -1,17 +1,15 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Zap, CheckCircle, XCircle, AlertTriangle, Clock, RefreshCw, Settings, Star, ArrowLeft, ExternalLink, Droplet, Wind, MessageCircle, Smartphone, Eye, EyeOff, Info, Search, Sun, Moon, LayoutGrid } from 'lucide-react'; // Removed BarChart3
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Zap, CheckCircle, XCircle, AlertTriangle, Clock, RefreshCw, Settings, Star, ArrowLeft, ExternalLink, Droplet, Wind, MessageCircle, Eye, EyeOff, Info, Search, Sun, Moon, LayoutGrid } from 'lucide-react';
+
+import { findLaundryRoom, laundryRooms } from './laundryData';
+import { useLaundryStatus } from './useLaundryStatus';
+import { RoomPeakTimes } from './RoomPeakTimes';
+import { MachineReport, SERVICE_REQUEST_URL } from './MachineReport';
 
 // UVM Colors
 const UVM_GREEN = '#154734';
 const UVM_GOLD = '#fdb515';
 const UVM_LOGO_URL = 'https://i.imgur.com/kvyrGbL.png';
-
-// --- Refresh Interval Configuration ---
-const ACTIVE_ROOM_REFRESH_INTERVAL_MS = 30 * 1000;
-
-// --- Backend URL Configuration (Hardcoded) ---
-const BACKEND_BASE_URL = 'https://api.uvmlaundry.com';
-
 
 // Helper function to get status color and icon
 const getStatusDetails = (status) => {
@@ -89,17 +87,6 @@ const formatTime = (minutes) => {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
   return `${h > 0 ? `${h}h ` : ''}${m}m`;
-};
-
-const formatPhoneNumber = (value) => {
-  if (!value) return value;
-  const phoneNumber = value.replace(/[^\d]/g, '');
-  const phoneNumberLength = phoneNumber.length;
-  if (phoneNumberLength < 4) return phoneNumber;
-  if (phoneNumberLength < 7) {
-    return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3)}`;
-  }
-  return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3, 6)}-${phoneNumber.slice(6, 10)}`;
 };
 
 // --- Child Components ---
@@ -217,9 +204,9 @@ const RoomLayout = ({ machines, effectiveDarkMode, onMachineClick }) => {
 };
 
 
-const MachineCard = React.memo(({ machine, onSetUpSmsAlert, isAlertSet }) => {
+const MachineCard = React.memo(({ machine, room }) => {
   const { icon: statusIcon, textColor, bgColor, actualStatus, borderColor } = getStatusDetails(machine.status);
-  const canSetAlertInitially = actualStatus === 'In Use' || actualStatus === 'Finishing Soon';
+  const canSetAlert = actualStatus === 'In Use' || actualStatus === 'Finishing Soon';
   const MachineTypeSpecificIcon = machine.type === 'Washer' ? Droplet : Wind;
   const formattedTimeRemaining = formatTime(machine.timeRemaining);
   const machineIdForScroll = `machine-card-${machine.id || machine.machineName.replace(/\s+/g, '-')}`;
@@ -257,25 +244,19 @@ const MachineCard = React.memo(({ machine, onSetUpSmsAlert, isAlertSet }) => {
         </div>
       </div>
       <div className="p-4 pt-0">
-        {isAlertSet && canSetAlertInitially ? (
-          <div className="w-full font-semibold py-3 px-4 rounded-lg text-sm flex items-center justify-center text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-800/60">
-            <CheckCircle size={18} className="mr-2" /> Alert Set
-          </div>
-        ) : canSetAlertInitially ? (
-          <button
-            onClick={() => onSetUpSmsAlert(machine)}
-            className="w-full font-semibold py-3 px-4 rounded-lg transition-all duration-200 text-sm flex items-center justify-center text-white focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-uvm-gold"
-            style={{backgroundColor: UVM_GREEN}}
-            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#0f3927'}
-            onMouseOut={(e) => e.currentTarget.style.backgroundColor = UVM_GREEN}
-          >
-            <MessageCircle size={18} className="mr-2" /> Set SMS Alert
-          </button>
-        ) : (
+        {canSetAlert && (
+          <a href={room.url} target="_blank" rel="noopener noreferrer"
+            className="w-full font-semibold py-3 px-4 rounded-lg text-sm flex items-center justify-center text-white focus:outline-none focus:ring-2 focus:ring-uvm-gold"
+            style={{ backgroundColor: UVM_GREEN }}>
+            <MessageCircle size={18} className="mr-2" /> Machine Alerts
+          </a>
+        )}
+        {!canSetAlert && (
           <div className="h-[46px] flex items-center justify-center text-sm text-gray-400 dark:text-slate-400">
             {placeholderText}
           </div>
         )}
+        <MachineReport machine={machine} room={room} />
       </div>
     </div>
   );
@@ -286,7 +267,12 @@ const RoomCard = React.memo(({ room, onSelectRoom, isFavorite, onToggleFavorite 
         role="button"
         tabIndex={0}
         onClick={() => onSelectRoom(room.id)}
-        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onSelectRoom(room.id)}
+        onKeyDown={(e) => {
+            if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+                e.preventDefault();
+                onSelectRoom(room.id);
+            }
+        }}
         style={{ '--gradient-start-color': UVM_GREEN }}
         className={`rounded-xl shadow-lg p-5 sm:p-6 flex flex-col justify-between transition-all duration-300 cursor-pointer h-full min-h-[170px] sm:min-h-[190px] group relative overflow-hidden bg-gradient-to-br from-[var(--gradient-start-color)] to-green-800 dark:from-[var(--gradient-start-color)] dark:to-green-700 hover:shadow-[0_0_20px_3px_rgba(253,181,21,0.6)] focus:outline-none focus:ring-4 focus:ring-yellow-400/80`}
     >
@@ -306,20 +292,16 @@ const RoomCard = React.memo(({ room, onSelectRoom, isFavorite, onToggleFavorite 
     </div>
 ));
 
+const EMPTY_MACHINES = [];
+
 // --- Main App Component ---
 const App = () => {
   const [currentView, setCurrentView] = useState('home');
   const [previousViewBeforeSettings, setPreviousViewBeforeSettings] = useState('home');
-  const [laundryRooms, setLaundryRooms] = useState([]);
   const [selectedRoomId, setSelectedRoomId] = useState('');
-  const [machines, setMachines] = useState([]);
-  const [isLoadingRooms, setIsLoadingRooms] = useState(true);
-  const [isLoadingMachines, setIsLoadingMachines] = useState(false);
-  const [isBackgroundRefreshing, setIsBackgroundRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [homeSearchTerm, setHomeSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
-  const [offlineMode, setOfflineMode] = useState(false);
   
   const [useSystemTheme, setUseSystemTheme] = useState(true);
   const [manualDarkMode, setManualDarkMode] = useState(false);
@@ -328,24 +310,12 @@ const App = () => {
   const [systemDarkMode, setSystemDarkMode] = useState(false);
   const effectiveDarkMode = useMemo(() => useSystemTheme ? systemDarkMode : manualDarkMode, [useSystemTheme, systemDarkMode, manualDarkMode]);
 
-  const [lastUpdated, setLastUpdated] = useState(null);
-  const [error, setError] = useState(null);
-  
   const [favorites, setFavorites] = useState([]);
   const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
 
-  const [showSmsModal, setShowSmsModal] = useState(false);
-  const [smsMachine, setSmsMachine] = useState(null);
-  const [userPhoneNumber, setUserPhoneNumber] = useState('');
-  const [settingsPhoneNumberInput, setSettingsPhoneNumberInput] = useState('');
-  const [modalPhoneNumber, setModalPhoneNumber] = useState('');
-  const [smsStatus, setSmsStatus] = useState({ message: '', type: 'info' });
-  const [phoneSaveStatus, setPhoneSaveStatus] = useState('');
-  const [smsAlertsSet, setSmsAlertsSet] = useState([]);
-
-  const ongoingFetches = useRef(new Set());
-  const initialRoomIdFromHash = useRef(null);
-
+  const currentRoom = findLaundryRoom(selectedRoomId);
+  const roomStatus = useLaundryStatus(currentView === 'roomDetail' ? currentRoom : null);
+  const machines = roomStatus.machines ?? EMPTY_MACHINES;
 
   // --- Effects ---
 
@@ -360,15 +330,14 @@ const App = () => {
       setShowVisualLayout(window.innerWidth > 800);
     }
     
-    setFavorites(JSON.parse(localStorage.getItem('uvmLaundryFavorites') || '[]'));
-    setUserPhoneNumber(localStorage.getItem('uvmLaundryUserPhoneNumber') || '');
+    const savedFavorites = JSON.parse(localStorage.getItem('uvmLaundryFavorites') || '[]');
+    setFavorites(savedFavorites.map(id => findLaundryRoom(id)?.id ?? id));
   }, []);
 
   useEffect(() => { localStorage.setItem('uvmLaundryUseSystemTheme', JSON.stringify(useSystemTheme)); }, [useSystemTheme]);
   useEffect(() => { localStorage.setItem('uvmLaundryManualDarkMode', JSON.stringify(manualDarkMode)); }, [manualDarkMode]);
   useEffect(() => { localStorage.setItem('uvmLaundryShowVisualLayout', JSON.stringify(showVisualLayout)); }, [showVisualLayout]);
   useEffect(() => { localStorage.setItem('uvmLaundryFavorites', JSON.stringify(favorites)); }, [favorites]);
-  useEffect(() => { localStorage.setItem('uvmLaundryUserPhoneNumber', userPhoneNumber); }, [userPhoneNumber]);
 
 
   useEffect(() => {
@@ -394,221 +363,36 @@ const App = () => {
     }
   }, [effectiveDarkMode]);
   
-  useEffect(() => { setSettingsPhoneNumberInput(userPhoneNumber ? formatPhoneNumber(userPhoneNumber) : ''); }, [userPhoneNumber]);
-
   const handleSelectRoom = useCallback((roomId, updateHash = true) => {
-    setSelectedRoomId(roomId);
+    const room = findLaundryRoom(roomId);
+    if (!room) return;
+    setSelectedRoomId(room.id);
     setCurrentView('roomDetail');
-    setSearchTerm(''); setFilterStatus('All'); setSmsAlertsSet([]); setError(null); setMachines([]);
-    setOfflineMode(false);
-    if (updateHash) {
-      const roomObject = laundryRooms.find(r => r.id === roomId);
-      const roomSlug = roomObject ? String(roomObject.name).toLowerCase().replace(/\s+/g, '-') : roomId;
-      if (window.location.hash !== `#room/${roomSlug}`) {
-            window.location.hash = `room/${roomSlug}`;
-      }
-    }
-  }, [laundryRooms]);
+    setSearchTerm('');
+    setFilterStatus('All');
+    if (updateHash) window.location.hash = `room/${room.name.toLowerCase().replace(/\s+/g, '-')}`;
+  }, []);
 
   const handleGoHome = useCallback((updateHash = true) => {
-    setCurrentView('home'); setSelectedRoomId(''); setMachines([]); setError(null); setSearchTerm(''); setFilterStatus('All'); setHomeSearchTerm(''); setSmsAlertsSet([]);
-    setOfflineMode(false);
-    if (updateHash) {
-        if (window.location.hash !== "") {
-            window.location.hash = '';
-        }
-    }
+    setCurrentView('home');
+    setSelectedRoomId('');
+    setSearchTerm('');
+    setFilterStatus('All');
+    setHomeSearchTerm('');
+    if (updateHash && window.location.hash) window.location.hash = '';
   }, []);
 
   useEffect(() => {
-    const initialHash = window.location.hash.replace(/^#\/?room\//, '').replace(/^#\//, '');
-    if (initialHash) {
-        initialRoomIdFromHash.current = initialHash;
-    }
-  }, []);
-
-  useEffect(() => {
-    if (initialRoomIdFromHash.current && laundryRooms.length > 0) {
-        const hash = initialRoomIdFromHash.current;
-        const foundRoom = laundryRooms.find(r => r.id === hash || String(r.name).toLowerCase().replace(/\s+/g, '-') === hash);
-        if (foundRoom) {
-            setTimeout(() => {
-                if (foundRoom.id !== selectedRoomId) {
-                    handleSelectRoom(foundRoom.id, false);
-                }
-            }, 0);
-        } else {
-            setTimeout(() => handleGoHome(false), 0);
-        }
-        initialRoomIdFromHash.current = null;
-    }
-  }, [laundryRooms, selectedRoomId, handleSelectRoom, handleGoHome]);
-
-  useEffect(() => {
-    const handleActualHashChange = () => {
-        const hash = window.location.hash.replace(/^#\/?room\//, '').replace(/^#\//, '');
-        if (hash) {
-            if (laundryRooms.length > 0) {
-                const foundRoom = laundryRooms.find(r => r.id === hash || String(r.name).toLowerCase().replace(/\s+/g, '-') === hash);
-                if (foundRoom) {
-                    if (foundRoom.id !== selectedRoomId) {
-                        handleSelectRoom(foundRoom.id, false);
-                    }
-                } else {
-                    if (currentView !== 'home') handleGoHome(false);
-                }
-            }
-        } else {
-            if (currentView !== 'home' && currentView !== 'settings') {
-                handleGoHome(false);
-            }
-        }
+    const syncRoute = () => {
+      const hash = window.location.hash.replace(/^#\/?(?:room\/)?/, '');
+      const room = findLaundryRoom(hash);
+      if (room) handleSelectRoom(room.id, false);
+      else handleGoHome(false);
     };
-
-    window.addEventListener('hashchange', handleActualHashChange);
-    return () => window.removeEventListener('hashchange', handleActualHashChange);
-  }, [laundryRooms, selectedRoomId, currentView, handleSelectRoom, handleGoHome]);
-
-
-  const handleSettingsPhoneNumberChange = (e) => {
-    const formatted = formatPhoneNumber(e.target.value);
-    setSettingsPhoneNumberInput(formatted);
-    const rawPhoneNumber = formatted.replace(/[^\d]/g, '');
-    if (rawPhoneNumber.length === 10) {
-      if (rawPhoneNumber !== userPhoneNumber) {
-        setUserPhoneNumber(rawPhoneNumber);
-        setPhoneSaveStatus('Saved!');
-        setTimeout(() => setPhoneSaveStatus(''), 2000);
-      }
-    } else {
-        setPhoneSaveStatus('');
-    }
-  };
-  
-  const fetchRooms = useCallback(async () => {
-    setIsLoadingRooms(true); setError(null);
-    try {
-      const response = await fetch(`${BACKEND_BASE_URL}/rooms`);
-      if (!response.ok) throw new Error(`Network response was not ok: ${response.statusText}`);
-      let data = await response.json();
-      if (!Array.isArray(data)) throw new Error("Received invalid data format for rooms.");
-
-      data = data.map(room => {
-        if (room.name && room.name.toLowerCase() === 'cottage#256') {
-          return { ...room, name: 'The Cottages' };
-        }
-        if (room.name && room.name.toLowerCase().includes('mccauley')) {
-          return { ...room, name: 'McAuley Hall' };
-        }
-        return room;
-      });
-      const sortedRooms = data.sort((a,b) => String(a.name).localeCompare(String(b.name)));
-      setLaundryRooms(sortedRooms);
-    } catch (e) {
-      setError("Could not load laundry rooms. Please check your internet connection and try refreshing the page.");
-      setLaundryRooms([]);
-    } finally {
-      setIsLoadingRooms(false);
-    }
-  }, []);
-
-  useEffect(() => { fetchRooms(); }, [fetchRooms]);
-
-  const fetchMachineData = useCallback(async (roomIdToFetch, isBackground = false) => {
-    if (!roomIdToFetch || ongoingFetches.current.has(roomIdToFetch)) return;
-    ongoingFetches.current.add(roomIdToFetch);
-
-    if (!isBackground) {
-      setIsLoadingMachines(true);
-      setError(null);
-      setOfflineMode(false);
-    } else if (selectedRoomId === roomIdToFetch) {
-      setIsBackgroundRefreshing(true);
-    }
-
-    try {
-      const response = await fetch(`${BACKEND_BASE_URL}/laundry-data/${roomIdToFetch}`);
-      if (!response.ok) {
-        if (!navigator.onLine) {
-            const cachedData = localStorage.getItem(`roomData-${roomIdToFetch}`);
-            if (cachedData) {
-                const { data: cachedMachines, timestamp } = JSON.parse(cachedData);
-                setMachines(cachedMachines);
-                setLastUpdated(new Date(timestamp));
-                setError(`Offline. Showing cached data from ${new Date(timestamp).toLocaleTimeString()}.`);
-                setOfflineMode(true);
-                setIsLoadingMachines(false);
-                setIsBackgroundRefreshing(false);
-                ongoingFetches.current.delete(roomIdToFetch);
-                return;
-            }
-        }
-        throw new Error(`Network response was not ok: ${response.statusText}`);
-      }
-
-      const jsonData = await response.json();
-      const machineArray = Array.isArray(jsonData)
-        ? jsonData
-        : Array.isArray(jsonData.machines)
-          ? jsonData.machines
-          : [];
-
-      const normalized = machineArray.map(m => ({
-        ...m,
-        type: m.machineType ?? m.type
-      }));
-
-      if (selectedRoomId === roomIdToFetch) {
-        setMachines(normalized);
-        setLastUpdated(new Date());
-        localStorage.setItem(
-          `roomData-${roomIdToFetch}`,
-          JSON.stringify({ data: normalized, timestamp: new Date().toISOString() })
-        );
-        setOfflineMode(false);
-        if (error && !isBackground) setError(null);
-      }
-
-    } catch (e) {
-        const roomName = laundryRooms.find(r => r.id === roomIdToFetch)?.name || `the selected room`;
-        let errorMessage = `Could not load machines for ${String(roomName)}. It might be a temporary issue.`;
-
-        if (selectedRoomId === roomIdToFetch) {
-            const cachedData = localStorage.getItem(`roomData-${roomIdToFetch}`);
-            if (cachedData) {
-                const { data: cachedMachines, timestamp } = JSON.parse(cachedData);
-                setMachines(cachedMachines);
-                setLastUpdated(new Date(timestamp));
-                errorMessage = `Failed to update. Showing cached data for ${String(roomName)} from ${new Date(timestamp).toLocaleTimeString()}.`;
-                setOfflineMode(true);
-            } else {
-                 errorMessage += ` No cached data available.`;
-                 setOfflineMode(false);
-            }
-            setError(errorMessage);
-        } else {
-            console.warn(`Background fetch error for ${roomName}: ${e.message}`);
-        }
-    } finally {
-      if (selectedRoomId === roomIdToFetch) {
-        if (!isBackground) setIsLoadingMachines(false);
-        setIsBackgroundRefreshing(false);
-      }
-      ongoingFetches.current.delete(roomIdToFetch);
-    }
-  }, [laundryRooms, selectedRoomId, error]);
-
-  useEffect(() => {
-    if (selectedRoomId && currentView === 'roomDetail') {
-      fetchMachineData(selectedRoomId, false);
-    }
-  }, [selectedRoomId, currentView, fetchMachineData]);
-
-  useEffect(() => {
-    if (!selectedRoomId || currentView !== 'roomDetail' || offlineMode) return;
-    const intervalId = setInterval(() => fetchMachineData(selectedRoomId, true), ACTIVE_ROOM_REFRESH_INTERVAL_MS);
-    return () => clearInterval(intervalId);
-  }, [selectedRoomId, currentView, fetchMachineData, offlineMode]);
+    syncRoute();
+    window.addEventListener('hashchange', syncRoute);
+    return () => window.removeEventListener('hashchange', syncRoute);
+  }, [handleSelectRoom, handleGoHome]);
 
   const handleScrollToMachine = (machineCardId) => {
     const element = document.getElementById(machineCardId);
@@ -626,50 +410,7 @@ const App = () => {
     setPreviousViewBeforeSettings(currentView);
     setCurrentView('settings');
   };
-  const handleRefresh = () => {
-    if (selectedRoomId && currentView === 'roomDetail') {
-      setOfflineMode(false);
-      fetchMachineData(selectedRoomId, false);
-    }
-  };
   const toggleFavorite = (roomId) => setFavorites(prev => prev.includes(roomId) ? prev.filter(id => id !== roomId) : [...new Set([...prev, roomId])]);
-  const handleOpenSmsModal = (machine) => {
-    setSmsMachine(machine);
-    setModalPhoneNumber(userPhoneNumber ? formatPhoneNumber(userPhoneNumber) : '');
-    setShowSmsModal(true);
-    setSmsStatus({ message: '', type: 'info' });
-  };
-
-  const handleSendSmsAlert = async () => {
-    const rawModalPhoneNumber = modalPhoneNumber.replace(/[^\d]/g, '');
-    if (!smsMachine || !selectedRoomId) {
-      setSmsStatus({ message: "An unexpected error occurred. Please close this and try again.", type: 'error' });
-      return;
-    }
-    if (rawModalPhoneNumber.length !== 10) {
-      setSmsStatus({ message: "Please enter a valid 10-digit phone number.", type: 'error' });
-      return;
-    }
-    setSmsStatus({ message: "Sending request...", type: 'info' });
-    try {
-      const response = await fetch(`${BACKEND_BASE_URL}/set-sms-alert`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roomId: selectedRoomId, machineName: smsMachine.machineName, phoneNumber: rawModalPhoneNumber })
-      });
-      const result = await response.json();
-      if (response.ok && result.success) {
-        setSmsStatus({ message: result.message || 'SMS alert request submitted successfully!', type: 'success' });
-        setSmsAlertsSet(prev => [...new Set([...prev, smsMachine.id])]);
-        setTimeout(() => setShowSmsModal(false), 2500);
-      } else {
-        throw new Error(result.error || "The server could not set the SMS alert.");
-      }
-    } catch (err) {
-      setSmsStatus({ message: `Request Failed. ${err.message} Please check your connection and try again.`, type: 'error' });
-    }
-  };
-
   // --- Memoized Selectors for Filtering and Derived Data ---
   const filteredHomeRooms = useMemo(() => {
     let roomsToDisplay = laundryRooms;
@@ -679,7 +420,7 @@ const App = () => {
       roomsToDisplay = roomsToDisplay.filter(room => String(room.name).toLowerCase().includes(lowerSearchTerm));
     }
     return roomsToDisplay;
-  }, [laundryRooms, showOnlyFavorites, homeSearchTerm, favorites]);
+  }, [showOnlyFavorites, homeSearchTerm, favorites]);
   
   const allWashers = useMemo(() => machines.filter(machine => machine.type === 'Washer'), [machines]);
   const allDryers = useMemo(() => machines.filter(machine => machine.type === 'Dryer'), [machines]);
@@ -698,26 +439,20 @@ const App = () => {
   const availableWashersInRoom = useMemo(() => allWashers.filter(m => getStatusDetails(m.status).actualStatus === 'Available').length, [allWashers]);
   const availableDryersInRoom = useMemo(() => allDryers.filter(m => getStatusDetails(m.status).actualStatus === 'Available').length, [allDryers]);
 
-  const statusOptions = ['All', 'Available', 'In Use', 'Finishing Soon', 'Cycle Finished', 'Out of Order', 'Unknown'];
-  const currentRoomName = useMemo(() => laundryRooms.find(room => room.id === selectedRoomId)?.name || "All Rooms", [laundryRooms, selectedRoomId]);
-  const currentRoomOfficialUrl = useMemo(() => laundryRooms.find(room => room.id === selectedRoomId)?.url, [laundryRooms, selectedRoomId]);
+  const statusOptions = ['All', 'Available', 'In Use', 'Finishing Soon', 'Cycle Finished', 'Out of Order', 'Status Unknown'];
+  const currentRoomName = currentRoom?.name || 'All Rooms';
+  const currentRoomOfficialUrl = currentRoom?.historyId
+    ? `https://laundryconnectlive.com/live/${currentRoom.historyId}`
+    : currentRoom?.url;
 
   const inputBaseClasses = "w-full p-3 border rounded-lg shadow-sm transition-colors duration-200 focus:outline-none focus:ring-2 dark:bg-slate-700 dark:text-white placeholder-gray-400 dark:placeholder-slate-400";
   const inputFocusClasses = "focus:ring-uvm-gold focus:border-uvm-gold";
   const inputBorderClasses = "border-gray-300 dark:border-slate-600";
 
   // --- Render Functions ---
-  const renderLoadingScreen = (message) => (
-    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] text-center py-16 text-gray-600 dark:text-gray-400 animate-fadeIn">
-        <RefreshCw size={56} className="mx-auto animate-spin text-uvm-green dark:text-uvm-gold" />
-        <p className="mt-4 text-lg">{message}</p>
-    </div>
-  );
-
   const renderContent = () => {
     switch (currentView) {
       case 'home':
-        if (isLoadingRooms && laundryRooms.length === 0) return renderLoadingScreen("Loading Laundry Rooms...");
         return (
           <div key="home" className="animate-fadeIn">
             <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
@@ -735,7 +470,7 @@ const App = () => {
                 </button>
               </div>
             </div>
-            {filteredHomeRooms.length === 0 && !isLoadingRooms ? (
+            {filteredHomeRooms.length === 0 ? (
               <div className="text-center py-16 text-gray-500 dark:text-gray-400 bg-white dark:bg-slate-800/70 rounded-xl shadow-lg p-8">
                 <Info size={64} className="mx-auto opacity-50 mb-4 text-uvm-green dark:text-uvm-gold" />
                 <p className="mt-4 text-xl font-semibold">
@@ -747,23 +482,37 @@ const App = () => {
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 md:gap-6">
-                {filteredHomeRooms.map(room => <RoomCard key={room.id} room={room} onSelectRoom={() => handleSelectRoom(room.id)} isFavorite={favorites.includes(room.id)} onToggleFavorite={toggleFavorite} />)}
+                {filteredHomeRooms.map(room => <RoomCard key={room.id} room={room} onSelectRoom={handleSelectRoom} isFavorite={favorites.includes(room.id)} onToggleFavorite={toggleFavorite} />)}
               </div>
             )}
           </div>
         );
       case 'roomDetail':
-        if (isLoadingMachines && machines.length === 0 && !error && !offlineMode) return renderLoadingScreen(`Loading machines for ${currentRoomName || 'room'}...`);
         return (
           <div key="roomDetail" className="animate-fadeIn">
             <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-3">
               <button onClick={() => handleGoHome()} className={`flex items-center text-sm font-semibold rounded-lg px-4 py-2.5 transition-colors focus:outline-none focus:ring-2 focus:ring-uvm-gold ${effectiveDarkMode ? 'text-slate-100 bg-slate-700 hover:bg-slate-600' : 'text-gray-900 bg-gray-100 hover:bg-gray-200'}`}> <ArrowLeft size={18} className="mr-2"/> Back to Rooms </button>
               <h2 className={`text-2xl md:text-3xl font-bold text-center flex-1 sm:mx-4 truncate ${effectiveDarkMode ? 'text-white' : 'text-gray-900'}`} title={String(currentRoomName)}>{String(currentRoomName)}</h2>
-              <div className="sm:w-auto hidden sm:block" style={{minWidth: '135px'}}>
-                  {currentRoomOfficialUrl && (<a href={currentRoomOfficialUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-4 py-2.5 border border-transparent text-xs font-semibold rounded-md shadow-sm text-white transition-colors duration-150 hover:opacity-80 whitespace-nowrap" style={{ backgroundColor: UVM_GREEN }} title="Visit Official Tracker"><ExternalLink size={16} className="mr-1.5" />Official Site</a>)}
+              <div className="sm:w-auto" style={{minWidth: '135px'}}>
+                  {currentRoomOfficialUrl && (<a href={currentRoomOfficialUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-4 py-2.5 border border-transparent text-xs font-semibold rounded-md shadow-sm text-white transition-colors duration-150 hover:opacity-80 whitespace-nowrap" style={{ backgroundColor: UVM_GREEN }}><ExternalLink size={16} className="mr-1.5" />{currentRoom.providerId ? 'Official Status & Alerts' : 'Official Room Directory'}</a>)}
               </div>
             </div>
             
+            {!currentRoom.providerId && (
+              <p role="status" className="mb-6 rounded-md bg-yellow-100 p-4 text-yellow-900 dark:bg-yellow-700/30 dark:text-yellow-200">
+                The provider does not currently list a separate live feed for this room.
+              </p>
+            )}
+            {roomStatus.failed && (
+              <div role="status" className="mb-6 rounded-md border-l-4 border-yellow-500 bg-yellow-100 p-4 text-yellow-900 dark:bg-yellow-700/30 dark:text-yellow-200">
+                {roomStatus.stale ? 'Live refresh failed. Showing the last saved machine statuses.' : 'Live machine status unavailable. Try refreshing or open the official status page.'}
+              </div>
+            )}
+            {roomStatus.busy && !roomStatus.checkedAt && (
+              <p role="status" className="mb-6 text-gray-600 dark:text-slate-300">Loading live machine status…</p>
+            )}
+            <RoomPeakTimes key={currentRoom.id} room={currentRoom} />
+            {roomStatus.checkedAt && <>
             <div className="mb-8 p-5 sm:p-6 bg-white dark:bg-slate-800/70 rounded-xl shadow-xl">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-end">
                 <div>
@@ -784,7 +533,7 @@ const App = () => {
                 <p>Washers: <span className="font-semibold text-uvm-green dark:text-uvm-gold">{availableWashersInRoom}</span> Available / <span className="font-semibold">{allWashers.length}</span> Total</p>
                 <p>Dryers: <span className="font-semibold text-uvm-green dark:text-uvm-gold">{availableDryersInRoom}</span> Available / <span className="font-semibold">{allDryers.length}</span> Total</p>
               </div>
-              {lastUpdated && <p className={`text-xs mt-4 text-right ${offlineMode ? 'text-yellow-600 dark:text-yellow-400' : 'text-gray-500 dark:text-slate-400'}`}>Last Updated: {lastUpdated.toLocaleTimeString()} {offlineMode ? '(Offline - Cached)' : ''}</p>}
+              <p className={`text-xs mt-4 text-right ${roomStatus.stale ? 'text-yellow-700 dark:text-yellow-400' : 'text-gray-500 dark:text-slate-400'}`}>{roomStatus.stale ? 'Saved snapshot' : 'Last checked'} · {new Date(roomStatus.checkedAt).toLocaleString()}</p>
             </div>
 
             {showVisualLayout && machines.length > 0 && (
@@ -794,15 +543,15 @@ const App = () => {
               </div>
             )}
 
-            {(machines.length === 0 && !error && !isLoadingMachines && !offlineMode) ? ( // Check offlineMode here too
-                 <div className="text-center py-16 text-gray-500 dark:text-gray-400 bg-white dark:bg-slate-800/70 rounded-xl shadow-lg p-8"><Info size={64} className="mx-auto opacity-50 mb-4 text-uvm-green dark:text-uvm-gold" /><p className="mt-4 text-xl font-semibold">No Machines Found</p><p className="text-sm mt-2 opacity-80">This laundry room appears to have no machines listed, or they could not be loaded.</p></div>
+            {machines.length === 0 ? (
+                 <div className="text-center py-16 text-gray-500 dark:text-gray-400 bg-white dark:bg-slate-800/70 rounded-xl shadow-lg p-8"><Info size={64} className="mx-auto opacity-50 mb-4 text-uvm-green dark:text-uvm-gold" /><p className="mt-4 text-xl font-semibold">No Machines Found</p><p className="text-sm mt-2 opacity-80">The provider has no machines listed for this room.</p></div>
             ) : (
               <>
                 {filteredWashers.length > 0 && (
                   <div className="mb-10">
                     <h3 className={`text-2xl font-semibold mb-5 pb-3 border-b-2 ${effectiveDarkMode ? 'text-white border-slate-700' : 'text-gray-900 border-gray-300'}`}>Washers</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
-                      {filteredWashers.map(machine => <MachineCard key={machine.id || machine.machineName} machine={machine} onSetUpSmsAlert={handleOpenSmsModal} isAlertSet={smsAlertsSet.includes(machine.id)} />)}
+                      {filteredWashers.map(machine => <MachineCard key={machine.id || machine.machineName} machine={machine} room={currentRoom} />)}
                     </div>
                   </div>
                 )}
@@ -810,7 +559,7 @@ const App = () => {
                   <div>
                     <h3 className={`text-2xl font-semibold mb-5 pb-3 border-b-2 ${effectiveDarkMode ? 'text-white border-slate-700' : 'text-gray-900 border-gray-300'}`}>Dryers</h3>
                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
-                       {filteredDryers.map(machine => <MachineCard key={machine.id || machine.machineName} machine={machine} onSetUpSmsAlert={handleOpenSmsModal} isAlertSet={smsAlertsSet.includes(machine.id)} />)}
+                       {filteredDryers.map(machine => <MachineCard key={machine.id || machine.machineName} machine={machine} room={currentRoom} />)}
                      </div>
                   </div>
                 )}
@@ -819,6 +568,7 @@ const App = () => {
                  )}
               </>
             )}
+            </>}
           </div>
         );
       case 'settings':
@@ -846,30 +596,13 @@ const App = () => {
                   </div>
                 </div>
               </section>
-              {/* Advanced Features section removed */}
-              <section>
-                <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-5 border-b pb-3 border-gray-200 dark:border-slate-700">SMS Notifications</h3>
-                <div className="space-y-3">
-                  <div>
-                    <label htmlFor="userPhoneNumber" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Default Phone Number</label>
-                    <div className="flex items-center space-x-3">
-                        <div className="relative flex-grow">
-                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none"><Smartphone size={18} className="text-gray-500 dark:text-slate-300" /></div>
-                            <input type="tel" id="userPhoneNumber" value={settingsPhoneNumberInput} onChange={handleSettingsPhoneNumberChange} placeholder="(XXX) XXX-XXXX" className={`${inputBaseClasses} ${inputBorderClasses} ${inputFocusClasses} pl-10`} maxLength="14" />
-                        </div>
-                    </div>
-                    {phoneSaveStatus && <p className="text-xs mt-2.5 text-green-600 dark:text-green-400 animate-fadeIn">{phoneSaveStatus}</p>}
-                    <p className="text-xs text-gray-500 dark:text-slate-400 mt-1.5">Your number is saved automatically to this device for your convenience.</p>
-                  </div>
-                </div>
-              </section>
               <section>
                 <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-5 border-b pb-3 border-gray-200 dark:border-slate-700">Report Issues</h3>
                  <div className="space-y-3">
                     <p className="text-sm text-gray-700 dark:text-slate-300">
-                        If you encounter a broken machine, please report it through the official UVM Laundry Tracker website.
+                        If you encounter a broken machine, please report it to Automatic Laundry.
                     </p>
-                    <a href="https://laundrytrackerconnect.com/UVM/UVM.html" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 rounded-lg text-sm font-semibold transition-all duration-200 text-white focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-uvm-gold shadow-md" style={{backgroundColor: UVM_GREEN}} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#0f3927'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = UVM_GREEN}>
+                    <a href={SERVICE_REQUEST_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 rounded-lg text-sm font-semibold transition-all duration-200 text-white focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-uvm-gold shadow-md" style={{backgroundColor: UVM_GREEN}} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#0f3927'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = UVM_GREEN}>
                         <ExternalLink size={18} className="mr-2" /> Report a Broken Machine
                     </a>
                 </div>
@@ -891,8 +624,8 @@ const App = () => {
               <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight group-hover:text-yellow-400 transition-colors">UVM LaundryLink</h1>
             </button>
             <div className="flex items-center space-x-2 sm:space-x-3">
-              {currentView === 'roomDetail' && (isLoadingMachines || isBackgroundRefreshing) && <div title="Refreshing data..." className="p-2.5 text-white"><RefreshCw size={22} className='animate-spin' /></div>}
-              {currentView === 'roomDetail' && !(isLoadingMachines || isBackgroundRefreshing) && <button onClick={handleRefresh} className="p-2.5 text-white hover:bg-white/20 rounded-full transition-colors" title="Refresh Data"> <RefreshCw size={22} /> </button> }
+              {currentView === 'roomDetail' && roomStatus.busy && <div title="Refreshing data..." className="p-2.5 text-white"><RefreshCw size={22} className='animate-spin' /></div>}
+              {currentView === 'roomDetail' && currentRoom?.providerId && !roomStatus.busy && <button onClick={roomStatus.refresh} className="p-2.5 text-white hover:bg-white/20 rounded-full transition-colors" title="Refresh Data"> <RefreshCw size={22} /> </button> }
               <button onClick={handleGoToSettings} className="p-2.5 text-white hover:bg-white/20 rounded-full transition-colors" title="Settings"> <Settings size={22} /> </button>
             </div>
           </div>
@@ -900,62 +633,17 @@ const App = () => {
       </header>
 
       <main className={`container mx-auto p-4 sm:p-6 lg:p-8`}>
-        {error && !isLoadingRooms && !(isLoadingMachines && selectedRoomId) && !offlineMode && ( // Only show general error if not in offline mode
-          <div className="mb-6 p-4 bg-red-100 dark:bg-red-900/60 border-l-4 border-red-500 text-red-700 dark:text-red-300 rounded-md shadow-md animate-fadeIn" role="alert">
-            <div className="flex items-start mb-1">
-              <AlertTriangle size={22} className="mr-2.5 mt-0.5 text-red-500 dark:text-red-400 flex-shrink-0" />
-              <div>
-                <p className="font-semibold text-md">Could Not Update Data</p>
-                <p className="text-sm break-words mt-1">{error}</p>
-              </div>
-            </div>
-          </div>
-        )}
-         {offlineMode && error && ( // Specific display for offline cached data message
-          <div className="mb-6 p-4 bg-yellow-100 dark:bg-yellow-700/30 border-l-4 border-yellow-500 text-yellow-700 dark:text-yellow-300 rounded-md shadow-md animate-fadeIn" role="alert">
-            <div className="flex items-start mb-1">
-              <AlertTriangle size={22} className="mr-2.5 mt-0.5 text-yellow-500 dark:text-yellow-400 flex-shrink-0" />
-              <div>
-                <p className="font-semibold text-md">Offline Mode</p>
-                <p className="text-sm break-words mt-1">{error}</p>
-              </div>
-            </div>
-          </div>
-        )}
         {renderContent()}
       </main>
 
       <footer className="mt-20 py-10 border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center text-gray-500 dark:text-slate-400 text-sm">
           <p>&copy; {new Date().getFullYear()} UVM LaundryLink. Created by Ivan Minier.</p>
-           <p className="mt-1">Not affiliated with the University of Vermont. Data sourced from public APIs.</p>
+           <p className="mt-1">Not affiliated with the University of Vermont. Machine status provided by UVM’s Wash Alert pages.</p>
         </div>
       </footer>
       
-      {showSmsModal && smsMachine && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-fadeIn" onClick={() => setShowSmsModal(false)}>
-          <div className="bg-white dark:bg-slate-800 p-6 sm:p-7 rounded-xl shadow-2xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-5">
-              <h3 className="text-xl font-semibold text-gray-800 dark:text-white">Set SMS Alert for <span className="text-uvm-green dark:text-uvm-gold">{String(smsMachine.machineName)}</span></h3>
-              <button onClick={() => setShowSmsModal(false)} className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-500 dark:text-slate-300 transition-colors"> <XCircle size={24} /> </button>
-            </div>
-            <p className="text-sm text-gray-600 dark:text-slate-300 mb-5">Enter your phone number to be notified when the cycle is complete.</p>
-            <div className="mb-5">
-              <label htmlFor="modalPhoneNumber" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Phone Number:</label>
-              <input type="tel" id="modalPhoneNumber" value={modalPhoneNumber} onChange={(e) => setModalPhoneNumber(formatPhoneNumber(e.target.value))} placeholder="(XXX) XXX-XXXX" className={`${inputBaseClasses} ${inputBorderClasses} ${inputFocusClasses}`} maxLength="14"/>
-            </div>
-            {smsStatus.message && (<p className={`text-sm my-4 p-3 rounded-lg border ${smsStatus.type === 'error' ? 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-300 dark:border-red-600' : (smsStatus.type === 'success' ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-300 dark:border-green-600' : 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-600')}`}>{smsStatus.message}</p>)}
-            <div className="mt-7 flex justify-end space-x-3">
-              <button onClick={() => setShowSmsModal(false)} className={`px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400 ${effectiveDarkMode ? 'bg-slate-600 hover:bg-slate-500 text-slate-100' : 'bg-gray-200 hover:bg-gray-300 text-gray-700'}`}>Cancel</button>
-              <button onClick={handleSendSmsAlert} className="px-5 py-2.5 rounded-lg text-white text-sm font-semibold transition-colors flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-uvm-gold" style={{backgroundColor: UVM_GREEN}} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#0f3927'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = UVM_GREEN} disabled={smsStatus.message.toLowerCase().includes("sending")}>
-                {smsStatus.message.toLowerCase().includes("sending") ? <RefreshCw size={18} className="animate-spin mr-2" /> : null}
-                Set Alert
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      <style jsx global>{`
+      <style>{`
         .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         body { min-height: 100vh; transition: background-color 0.3s ease, color 0.3s ease; }
