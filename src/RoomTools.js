@@ -41,8 +41,8 @@ export function RoomTools({ room, onSelectRoom }) {
           <Share2 size={16} /> Share Room
         </button>
         <a href={getOfficialRoomUrl(room)} target="_blank" rel="noopener noreferrer"
-          className="inline-flex min-h-[44px] items-center gap-2 rounded-lg bg-uvm-green px-3 text-sm font-semibold text-white hover:bg-green-900">
-          <ExternalLink size={16} /> Official Status &amp; Alerts
+          className="inline-flex min-h-[44px] items-center gap-1.5 px-2 text-sm text-slate-600 underline underline-offset-4 hover:text-uvm-green dark:text-slate-300 dark:hover:text-uvm-gold">
+          Official Room Page <ExternalLink size={14} />
         </a>
       </div>
       {shareStatus && <p role="status" className="mt-2 text-sm text-slate-700 dark:text-slate-200">{shareStatus}</p>}

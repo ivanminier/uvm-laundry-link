@@ -1,56 +1,12 @@
 import React, { useEffect, useState } from 'react';
 
-const ALERTS_API = 'https://alerts.uvmlaundry.com';
-const recordKey = (room, machine) => `uvmLaundryPushAlert-${room.id}-${machine.id}`;
+import { alertsRequest, getSavedAlert, recordKey, removeSavedAlert, saveAlert } from './pushAlerts';
 
-function getSavedAlert(key) {
-  try {
-    const alert = JSON.parse(localStorage.getItem(key));
-    return alert?.expiresAt > Date.now() ? alert : null;
-  } catch {
-    return null;
-  }
-}
-
-export function hasPushAlert(room, machine) {
-  return !!getSavedAlert(recordKey(room, machine));
-}
-
-function saveAlert(key, alert) {
-  try {
-    if (alert) localStorage.setItem(key, JSON.stringify(alert));
-    else localStorage.removeItem(key);
-  } catch {
-    // The alert can still be managed until the dialog closes.
-  }
-}
+export { hasPushAlert } from './pushAlerts';
 
 function decodeApplicationKey(base64url) {
   const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/').padEnd(88, '=');
   return Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
-}
-
-async function alertsRequest(path, data, signal) {
-  const controller = signal ? null : new AbortController();
-  const timeout = controller && setTimeout(() => controller.abort(), 12000);
-
-  try {
-    const response = await fetch(`${ALERTS_API}${path}`, {
-      ...(data && {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      }),
-      signal: signal ?? controller.signal,
-    });
-    if (!response.ok) {
-      const body = await response.json().catch(() => null);
-      throw new Error(body?.error ?? 'The alert service is temporarily unavailable.');
-    }
-    return await response.json();
-  } finally {
-    if (timeout) clearTimeout(timeout);
-  }
 }
 
 export function PushAlertForm({ machine, room, canSetAlert }) {
@@ -98,7 +54,7 @@ export function PushAlertForm({ machine, room, canSetAlert }) {
     alertsRequest('/alerts/status', { roomId: room.id, id: saved.id }, controller.signal)
       .then(({ active }) => {
         if (active || controller.signal.aborted) return;
-        saveAlert(key, null);
+        removeSavedAlert(key, saved.id);
         setSaved(null);
       })
       .catch(() => {})
@@ -127,7 +83,7 @@ export function PushAlertForm({ machine, room, canSetAlert }) {
         leadMinutes,
         subscription: subscription.toJSON(),
       });
-      const savedAlert = { ...alert, leadMinutes };
+      const savedAlert = { ...alert, machineName: machine.machineName, leadMinutes };
       saveAlert(key, savedAlert);
       setSaved(savedAlert);
     } catch (failure) {
@@ -146,7 +102,7 @@ export function PushAlertForm({ machine, room, canSetAlert }) {
     setError('');
     try {
       await alertsRequest('/alerts/cancel', { roomId: room.id, id: saved.id });
-      saveAlert(key, null);
+      removeSavedAlert(key, saved.id);
       setSaved(null);
     } catch {
       setError('The alert could not be cancelled. Try again.');

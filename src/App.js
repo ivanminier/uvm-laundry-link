@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Zap, CheckCircle, XCircle, AlertTriangle, Clock, RefreshCw, Settings, Star, ArrowLeft, ExternalLink, Droplet, Wind, Eye, EyeOff, Info, Search, Sun, Moon, LayoutGrid } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { Zap, CheckCircle, XCircle, AlertTriangle, Clock, RefreshCw, Settings, Star, ArrowLeft, ExternalLink, Droplet, Wind, Eye, EyeOff, Info, Search, Sun, Moon, LayoutGrid, Bell } from 'lucide-react';
 
-import { findLaundryRoom, laundryRooms, roomDisplayName, roomLabel, roomPath } from './laundryData';
+import { findLaundryRoom, laundryRooms, roomDisplayName, roomLabel, roomPath, machinePath } from './laundryData';
 import { useLaundryStatus } from './useLaundryStatus';
 import { RoomTools } from './RoomTools';
+import { MyLaundry } from './MyLaundry';
 import { LaundryHelp } from './LaundryHelp';
 import { RoomPeakTimes } from './RoomPeakTimes';
 import { MachineReport, SERVICE_REQUEST_URL } from './MachineReport';
@@ -228,7 +229,7 @@ const MachineCard = React.memo(({ machine, room, stale }) => {
   else if (actualStatus === 'Cycle Finished') placeholderText = machine.type === 'Washer' ? "Clothes left in washer" : "Clothes left in dryer";
 
   return (
-    <div id={machineIdForScroll} className={`rounded-xl shadow-lg bg-white dark:bg-slate-800 border ${borderColor} flex flex-col justify-between transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]`}>
+    <div id={machineIdForScroll} tabIndex={-1} aria-label={machine.machineName} className={`rounded-xl shadow-lg bg-white dark:bg-slate-800 border ${borderColor} flex flex-col justify-between transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]`}>
       <div className="p-4">
         <div className="flex items-start justify-between mb-3">
           <div>
@@ -260,10 +261,55 @@ const MachineCard = React.memo(({ machine, room, stale }) => {
           </div>
         )}
         <MachineReport machine={machine} room={room} canSetAlert={canSetAlert} />
+        <a href={machinePath(room, machine.id)} className="mt-1 inline-flex min-h-[44px] items-center text-xs text-slate-600 underline underline-offset-4 dark:text-slate-300"
+          aria-label={`Link to ${machine.machineName}`}>Machine link</a>
       </div>
     </div>
   );
 });
+
+function FavoriteAvailability({ room }) {
+  const container = useRef(null);
+  const [nearViewport, setNearViewport] = useState(() => !('IntersectionObserver' in window));
+  const { machines, checkedAt, stale, failed } = useLaundryStatus(nearViewport ? room : null, 60_000);
+
+  useEffect(() => {
+    if (!('IntersectionObserver' in window)) return;
+    const observer = new IntersectionObserver(([entry]) => setNearViewport(entry.isIntersecting), { rootMargin: '200px' });
+    observer.observe(container.current);
+    return () => observer.disconnect();
+  }, []);
+  const keepHeight = 'mt-3 min-h-[44px] text-sm text-green-100';
+  const [, setClock] = useState(0);
+
+  useEffect(() => {
+    const updateClock = () => { if (!document.hidden) setClock(Date.now()); };
+    const timer = setInterval(updateClock, 15_000);
+    document.addEventListener('visibilitychange', updateClock);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', updateClock);
+    };
+  }, []);
+
+  if (!room.providerId || (!machines && failed)) return <div ref={container} className={keepHeight}>Live availability unavailable</div>;
+  if (!checkedAt) return <div ref={container} className={keepHeight}>Checking availability…</div>;
+
+  const available = machines.filter(({ status }) => status === 'Available');
+  const washers = available.filter(({ type }) => type === 'Washer').length;
+  const dryers = available.filter(({ type }) => type === 'Dryer').length;
+  const minutes = Math.max(0, Math.floor((Date.now() - checkedAt) / 60_000));
+  const age = minutes >= 60 ? `${Math.floor(minutes / 60)} hr ago` : minutes ? `${minutes} min ago` : 'just now';
+  const saved = stale || minutes >= 2;
+  return (
+    <div ref={container} className={keepHeight}>
+      {machines.some(({ status }) => status !== 'Unknown') && (
+        <p className="text-sm font-semibold text-white">{washers} {washers === 1 ? 'washer' : 'washers'} free · {dryers} {dryers === 1 ? 'dryer' : 'dryers'} free</p>
+      )}
+      <p className={`mt-1 text-xs ${saved ? 'text-yellow-200' : ''}`}>{saved ? 'Saved snapshot' : 'Checked'} {age}</p>
+    </div>
+  );
+}
 
 const RoomCard = React.memo(({ room, onSelectRoom, isFavorite, onToggleFavorite }) => (
     <div
@@ -283,6 +329,7 @@ const RoomCard = React.memo(({ room, onSelectRoom, isFavorite, onToggleFavorite 
         <div className="relative z-10 flex-grow">
             <h3 className="text-xl sm:text-2xl font-bold mb-2 text-white group-hover:text-yellow-400 transition-colors">{roomDisplayName(room)}</h3>
             {room.locationLabel && <p className="text-sm text-green-100">{room.locationLabel}</p>}
+            {isFavorite && <FavoriteAvailability room={room} />}
         </div>
         <div className="flex items-center justify-end mt-auto pt-3 relative z-10">
             <button
@@ -395,6 +442,7 @@ const App = () => {
   const handleSelectRoom = useCallback((roomId, updateHash = true) => {
     const room = findLaundryRoom(roomId);
     if (!room) return;
+    setMachineScrollTarget(null);
     setSelectedRoomId(room.id);
     setCurrentView('roomDetail');
     setSearchTerm('');
@@ -403,6 +451,7 @@ const App = () => {
   }, []);
 
   const handleGoHome = useCallback((updateHash = true) => {
+    setMachineScrollTarget(null);
     setCurrentView('home');
     setSelectedRoomId('');
     setSearchTerm('');
@@ -413,10 +462,18 @@ const App = () => {
 
   useEffect(() => {
     const syncRoute = () => {
-      const hash = window.location.hash.replace(/^#\/?(?:room\/)?/, '');
+      const [hash, query] = window.location.hash.replace(/^#\/?(?:room\/)?/, '').split('?', 2);
       const room = findLaundryRoom(hash);
-      if (room) handleSelectRoom(room.id, false);
-      else handleGoHome(false);
+      if (!room) {
+        handleGoHome(false);
+        return;
+      }
+      handleSelectRoom(room.id, false);
+      const machineId = new URLSearchParams(query).get('machine');
+      if (machineId && /^\d+$/.test(machineId)) {
+        setShowMachineList(true);
+        setMachineScrollTarget(`machine-card-${machineId}`);
+      }
     };
     const lastRoom = !window.location.hash && readPreference(REMEMBER_ROOM_KEY, false)
       ? findLaundryRoom(readPreference(LAST_ROOM_KEY, null))
@@ -427,22 +484,38 @@ const App = () => {
     } else {
       syncRoute();
     }
+    const onWorkerMessage = (event) => {
+      if (event.data?.type === 'OPEN_MACHINE' && event.data.path === window.location.hash) syncRoute();
+    };
     window.addEventListener('hashchange', syncRoute);
-    return () => window.removeEventListener('hashchange', syncRoute);
-  }, [handleSelectRoom, handleGoHome]);
+    navigator.serviceWorker?.addEventListener('message', onWorkerMessage);
+    return () => {
+      window.removeEventListener('hashchange', syncRoute);
+      navigator.serviceWorker?.removeEventListener('message', onWorkerMessage);
+    };
+  }, [handleSelectRoom, handleGoHome, setShowMachineList]);
 
   useEffect(() => {
-    if (!machineScrollTarget || !showMachineList) return undefined;
+    if (currentView !== 'roomDetail' || !machineScrollTarget || !showMachineList) return;
     const element = document.getElementById(machineScrollTarget);
+    if (!element) return;
     setMachineScrollTarget(null);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      element.classList.add('ring-2', 'ring-uvm-gold', 'ring-offset-2', 'dark:ring-offset-slate-800', 'transition-all', 'duration-300');
-      setTimeout(() => {
-        element.classList.remove('ring-2', 'ring-uvm-gold', 'ring-offset-2', 'dark:ring-offset-slate-800');
-      }, 1500);
-    }
-  }, [machineScrollTarget, showMachineList]);
+    element.focus({ preventScroll: true });
+    element.scrollIntoView?.({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' });
+    const highlight = ['ring-2', 'ring-uvm-gold', 'ring-offset-2', 'dark:ring-offset-slate-800'];
+    element.classList.add(...highlight);
+    setTimeout(() => element.classList.remove(...highlight), 1500);
+  }, [currentView, machines, machineScrollTarget, showMachineList]);
+
+  const openMachine = (event, room, machineId) => {
+    if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    const path = machinePath(room, machineId);
+    if (window.location.hash !== path) window.history.pushState(null, '', path);
+    handleSelectRoom(room.id, false);
+    setShowMachineList(true);
+    setMachineScrollTarget(`machine-card-${machineId}`);
+  };
 
   const handleScrollToMachine = (machineCardId) => {
     setSearchTerm('');
@@ -641,6 +714,8 @@ const App = () => {
             </>}
           </div>
         );
+      case 'myLaundry':
+        return <MyLaundry onBack={handleBackFromOverlay} onOpenMachine={openMachine} />;
       case 'help':
         return <LaundryHelp onBack={handleBackFromOverlay} />;
       case 'settings':
@@ -700,12 +775,15 @@ const App = () => {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 md:h-20">
             <button onClick={() => handleGoHome()} className="flex min-w-0 items-center cursor-pointer focus:outline-none focus:ring-2 focus:ring-uvm-gold rounded-md p-1 -ml-1 group">
-              <img src={UVM_LOGO_URL} alt="UVM Logo" className="h-10 md:h-12 w-auto mr-3 rounded-sm transition-transform duration-300 group-hover:scale-105" onError={(e) => { e.currentTarget.style.display='none'; }}/>
+              <img src={UVM_LOGO_URL} alt="UVM Logo" className="h-7 w-auto mr-1.5 rounded-sm sm:mr-3 sm:h-10 md:h-12 transition-transform duration-300 group-hover:scale-105" onError={(e) => { e.currentTarget.style.display='none'; }}/>
               <h1 className="truncate text-base sm:text-xl md:text-2xl font-bold text-white tracking-tight group-hover:text-yellow-400 transition-colors">UVM LaundryLink</h1>
             </button>
-            <div className="flex items-center space-x-2 sm:space-x-3">
+            <div className="flex shrink-0 items-center sm:gap-2">
               {currentView === 'roomDetail' && roomStatus.busy && <div title="Refreshing data..." className="p-2.5 text-white"><RefreshCw size={22} className='animate-spin' /></div>}
               {currentView === 'roomDetail' && currentRoom?.providerId && !roomStatus.busy && <button onClick={roomStatus.refresh} className="p-2.5 text-white hover:bg-white/20 rounded-full transition-colors" title="Refresh Data"> <RefreshCw size={22} /> </button> }
+              <button onClick={() => handleOpenOverlay('myLaundry')} className="flex min-h-[44px] min-w-[44px] items-center justify-center gap-2 rounded-full p-2.5 text-sm font-semibold text-white hover:bg-white/20" aria-label="My Laundry" title="My Laundry">
+                <Bell size={22} /><span className="hidden md:inline">My Laundry</span>
+              </button>
               <button onClick={() => handleOpenOverlay('help')} className="rounded-full p-2.5 text-white hover:bg-white/20" aria-label="Laundry Help" title="Laundry Help"><Info size={22} /></button>
               <button onClick={() => handleOpenOverlay('settings')} className="p-2.5 text-white hover:bg-white/20 rounded-full transition-colors" title="Settings"> <Settings size={22} /> </button>
             </div>

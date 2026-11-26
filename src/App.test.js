@@ -2,6 +2,7 @@ import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import { MachineReport } from './MachineReport';
+import { quieterWindow } from './RoomPeakTimes';
 import { filterRoomMachines, findLaundryRoom, getRoomHistoryId, laundryRooms, normalizeRoomStatus, roomLabel, roomPath } from './laundryData';
 
 const statusFixture = (entries) => ({
@@ -123,10 +124,12 @@ test('switching CCRH floors excludes the legacy combined cache and saves each fl
     expect(container.querySelector('#room-switcher option[value="cottage256"]').textContent).toBe('The Cottages');
 
     await act(async () => {
-      window.history.replaceState(null, '', '#room/central-campus-flr-7');
+      window.history.replaceState(null, '', '#room/central-campus-flr-7?machine=62');
       window.dispatchEvent(new HashChangeEvent('hashchange'));
     });
     expect(cards()).toEqual(['Washer 56', 'Dryer 62']);
+    expect(document.activeElement.id).toBe('machine-card-62');
+    expect(container.querySelector('[aria-label="Link to Dryer 62"]').getAttribute('href')).toBe('#room/central-campus-flr-7?machine=62');
     expect(container.querySelector('main h2').textContent).toBe('CCRH');
     expect(container.querySelector('#room-switcher').selectedOptions[0].textContent).toBe('CCRH · Floor 7');
     const snapshot = (floor) => JSON.parse(localStorage.getItem(`washAlertRoom-v2-central_campus_${floor}`));
@@ -166,6 +169,89 @@ test('SMS setup uses the vendor embed and keeps the selected CCRH floor in the a
     container.remove();
     if (originalShowModal) HTMLDialogElement.prototype.showModal = originalShowModal;
     else delete HTMLDialogElement.prototype.showModal;
+    delete global.IS_REACT_ACT_ENVIRONMENT;
+  }
+});
+
+
+test('quiet guidance requires a recurring signal and sufficient history', () => {
+  const grid = Array.from({ length: 7 }, () =>
+    Array.from({ length: 24 }, (_, hour) => hour >= 9 && hour < 12 ? 10 : 45)
+  );
+  expect(quieterWindow(grid)).toBe('9 AM–12 PM');
+  expect(quieterWindow(grid.map((row) => row.map(() => 10)))).toBeNull();
+  expect(quieterWindow(grid.map((row, day) => day < 3 ? row : row.map(() => null)))).toBeNull();
+});
+
+test('favorite counts distinguish CCRH floors that share a provider feed', async () => {
+  global.IS_REACT_ACT_ENVIRONMENT = true;
+  window.matchMedia = jest.fn(() => ({ matches: false, addEventListener: jest.fn(), removeEventListener: jest.fn() }));
+  localStorage.setItem('uvmLaundryFavorites', JSON.stringify(['central_campus_6', 'central_campus_7']));
+  const metadata = [45, 56, 62].map((id) => ({
+    id, machineNumber: id, washAlertIsVisible: true,
+    machineType: { isWasher: id !== 62, isDryer: id === 62 },
+  }));
+  const payload = { room: { id: 12247 }, machines: {
+    45: { statusId: 'AVAILABLE' }, 56: { statusId: 'IN_USE' }, 62: { statusId: 'AVAILABLE' },
+  } };
+  global.fetch = jest.fn(async (url) => ({ ok: true, json: async () => url.includes('/machines/') ? metadata : payload }));
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  const root = createRoot(container);
+  try {
+    await act(async () => { root.render(<App />); });
+    const card = (floor) => [...container.querySelectorAll('[role="button"]')]
+      .find((element) => element.textContent.includes(`Floor ${floor}`) && element.textContent.includes('CCRH'));
+    expect(card(6).textContent).toContain('1 washer free · 0 dryers free');
+    expect(card(7).textContent).toContain('0 washers free · 1 dryer free');
+    expect(global.fetch.mock.calls.every(([url]) => url.endsWith('/12247'))).toBe(true);
+  } finally {
+    act(() => root.unmount());
+    container.remove();
+    localStorage.clear();
+    delete global.IS_REACT_ACT_ENVIRONMENT;
+  }
+});
+
+test('My Laundry loads legacy alerts, shows their machine links and cancels through the alert service', async () => {
+  global.IS_REACT_ACT_ENVIRONMENT = true;
+  window.matchMedia = jest.fn(() => ({ matches: false, addEventListener: jest.fn(), removeEventListener: jest.fn() }));
+  const roomId = 'central_campus_7';
+  const key = `uvmLaundryPushAlert-${roomId}-56`;
+  const id = '00000000-0000-0000-0000-000000000056';
+  localStorage.setItem(key, JSON.stringify({ id, expiresAt: Date.now() + 60_000, leadMinutes: 5 }));
+  global.fetch = jest.fn(async (url) => {
+    let body;
+    if (url.endsWith('/alerts/status')) body = { statuses: [{ active: true, machineName: 'Washer 56' }] };
+    else if (url.endsWith('/alerts/cancel')) body = { cancelled: true };
+    else if (url.includes('/machines/')) body = [{
+      id: 56, machineNumber: 56, washAlertIsVisible: true, machineType: { isWasher: true },
+    }];
+    else body = { room: { id: 12247 }, machines: { 56: { statusId: 'IN_USE', remainingSeconds: 180 } } };
+    return { ok: true, json: async () => body };
+  });
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  const root = createRoot(container);
+  try {
+    await act(async () => { root.render(<App />); });
+    await act(async () => { container.querySelector('[aria-label="My Laundry"]').click(); });
+    const machineLink = container.querySelector('main a');
+    expect(machineLink.textContent).toBe('Washer 56');
+    expect(machineLink.getAttribute('href')).toBe('#room/central-campus-flr-7?machine=56');
+    expect(container.textContent).toContain('CCRH · Floor 7 · About 3 min left');
+    await act(async () => { machineLink.click(); });
+    expect(document.activeElement.id).toBe('machine-card-56');
+    await act(async () => { container.querySelector('[aria-label="My Laundry"]').click(); });
+    await act(async () => { container.querySelector('[aria-label="Cancel alert for Washer 56"]').click(); });
+    expect(JSON.parse(global.fetch.mock.calls.find(([url]) => url.endsWith('/alerts/cancel'))[1].body)).toEqual({ roomId, id });
+    expect(localStorage.getItem(key)).toBeNull();
+    expect(container.textContent).toContain('No active push alerts');
+  } finally {
+    act(() => root.unmount());
+    container.remove();
+    localStorage.clear();
+    window.history.replaceState(null, '', '/');
     delete global.IS_REACT_ACT_ENVIRONMENT;
   }
 });

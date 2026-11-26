@@ -48,6 +48,10 @@ export function roomPath(room) {
   return `#room/${room.name.toLowerCase().replace(/\s+/g, '-')}`;
 }
 
+export function machinePath(room, machineId) {
+  return `${roomPath(room)}?machine=${encodeURIComponent(machineId)}`;
+}
+
 export function filterRoomMachines(room, machines) {
   if (!room.machineRange) return machines;
   const [first, last] = room.machineRange;

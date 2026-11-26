@@ -31,12 +31,36 @@ function summarize(grid) {
   ];
 }
 
+export function quieterWindow(grid) {
+  const firstHour = 7;
+  const windowHours = 3;
+  // Compare each window with the same room's daytime/evening use on the same days.
+  const coveredDays = grid.filter((row) => row.slice(firstHour).filter(Number.isFinite).length >= 12);
+  const windows = HOURS.slice(firstHour, 24 - windowHours + 1).flatMap((start) => {
+    const measurements = coveredDays.flatMap((row) => {
+      const hours = row.slice(start, start + windowHours);
+      return hours.every(Number.isFinite) ? [average(row.slice(firstHour)) - average(hours)] : [];
+    });
+    return measurements.length >= 5 && measurements.filter((difference) => difference >= 5).length >= 4
+      ? [{ start, improvement: average(measurements) }]
+      : [];
+  });
+  const best = windows.sort((first, second) => second.improvement - first.improvement)[0];
+  return best ? `${hourLabel(best.start)}–${hourLabel((best.start + windowHours) % 24)}` : null;
+}
+
 function UsageChart({ grid, totalSamples, capturedAt }) {
   const [selection, setSelection] = useState(null);
   const selectedValue = selection && grid[selection.day][selection.hour];
+  const quietHours = quieterWindow(grid);
 
   return (
     <>
+      {quietHours && (
+        <p className="mt-4 rounded-lg bg-teal-50 p-3 text-sm text-teal-950 dark:bg-teal-950/50 dark:text-teal-100">
+          <strong>Usually quieter from {quietHours}.</strong> Based on past usage across the week, Burlington time.
+        </p>
+      )}
       <dl className="my-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
         {summarize(grid).map(([label, value]) => (
           <div key={label} className="rounded-lg bg-slate-100 p-3 dark:bg-slate-700/60">

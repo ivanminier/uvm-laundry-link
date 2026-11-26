@@ -62,7 +62,10 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil((async () => {
     const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     const matching = windows.find((client) => client.url === url.href);
-    if (matching) return matching.focus();
+    if (matching) {
+      matching.postMessage({ type: 'OPEN_MACHINE', path: url.hash });
+      return matching.focus();
+    }
     return self.clients.openWindow(url.href);
   })());
 });

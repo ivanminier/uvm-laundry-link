@@ -1,5 +1,5 @@
 import { DurableObject } from 'cloudflare:workers';
-import { fetchRoomStatus, filterRoomMachines, findLaundryRoom, roomLabel, roomPath } from '../src/laundryData';
+import { fetchRoomStatus, filterRoomMachines, findLaundryRoom, roomLabel, machinePath } from '../src/laundryData';
 import { deliverPush, parseSubscription } from './push';
 import ccrhMachines from './ccrh-machines.json';
 
@@ -10,6 +10,8 @@ const ALERT_LIFETIME = 4 * 60 * 60 * 1000;
 const MAX_ALERTS_PER_ROOM = 60;
 const RUNNING = new Set(['IN_USE', 'ALMOST_DONE', 'LUCKY_CYCLE']);
 const FINISHED = new Set(['COMPLETE', 'END_OF_CYCLE', 'CYCLE_COMPLETE', 'CYCLE_FINISHED', 'CLOTHES_LEFT', 'EOC']);
+
+const validAlertId = (id) => typeof id === 'string' && /^[0-9a-f-]{36}$/.test(id);
 
 const rejected = (status, error) => ({ status, error });
 
@@ -57,14 +59,27 @@ export default {
 
     let data;
     try { data = await readJson(request); } catch { return reply({ error: 'Invalid request.' }, 400); }
+    if (pathname === '/alerts/status' && Array.isArray(data?.alerts)) {
+      if (data.alerts.length > 20) return reply({ error: 'Too many alerts to check together.' }, 400);
+      const statuses = await Promise.all(data.alerts.map(async (entry) => {
+        const room = typeof entry?.roomId === 'string' && findLaundryRoom(entry.roomId);
+        if (!room?.providerId || room.id !== entry.roomId || !validAlertId(entry.id)) return null;
+        try {
+          return await env.ROOM_ALERTS.getByName(room.providerId).status(room.id, entry.id);
+        } catch {
+          return null;
+        }
+      }));
+      return reply({ statuses });
+    }
     if (typeof data?.roomId !== 'string' || data.roomId.length > 80) return reply({ error: 'Room not found.' }, 404);
     const room = findLaundryRoom(data.roomId);
     if (!room?.providerId || room.id !== data.roomId) return reply({ error: 'Room not found.' }, 404);
     const roomAlerts = env.ROOM_ALERTS.getByName(room.providerId);
 
     if (pathname !== '/alerts') {
-      if (typeof data.id !== 'string' || !/^[0-9a-f-]{36}$/.test(data.id)) return reply({ error: 'Invalid alert.' }, 400);
-      if (pathname === '/alerts/status') return reply({ active: await roomAlerts.isPending(room.id, data.id) });
+      if (!validAlertId(data.id)) return reply({ error: 'Invalid alert.' }, 400);
+      if (pathname === '/alerts/status') return reply(await roomAlerts.status(room.id, data.id));
       await roomAlerts.cancel(room.id, data.id);
       return reply({ cancelled: true });
     }
@@ -144,9 +159,12 @@ export class RoomAlerts extends DurableObject {
     return saved;
   }
 
-  isPending(roomId, id) {
-    return this.sql.exec('SELECT 1 FROM alerts WHERE room_id = ? AND id = ? AND expires_at > ?', roomId, id, Date.now())
-      .toArray().length > 0;
+  status(roomId, id) {
+    const alert = this.sql.exec(
+      'SELECT machine_name AS machineName FROM alerts WHERE room_id = ? AND id = ? AND expires_at > ?',
+      roomId, id, Date.now()
+    ).toArray()[0];
+    return alert ? { active: true, machineName: alert.machineName } : { active: false };
   }
 
   cancel(roomId, id) {
@@ -190,7 +208,7 @@ export class RoomAlerts extends DurableObject {
           terminal = await deliverPush(JSON.parse(alert.subscription), {
             title: `${alert.machine_name} ${status}`,
             body: roomLabel(room),
-            path: roomPath(room),
+            path: machinePath(room, alert.machine_id),
             tag: alert.id,
           }, this.env);
         } catch {
