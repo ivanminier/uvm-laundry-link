@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Clock, ExternalLink } from 'lucide-react';
+import { getOfficialRoomUrl, getRoomHistoryId } from './laundryData';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
@@ -97,7 +98,7 @@ export function RoomPeakTimes({ room }) {
   const [open, setOpen] = useState(false);
   const [snapshot, setSnapshot] = useState(null);
   const [failed, setFailed] = useState(false);
-  const historyId = room.historyId;
+  const historyId = getRoomHistoryId(room);
 
   useEffect(() => {
     if (!open || !historyId || snapshot) return undefined;
@@ -110,7 +111,7 @@ export function RoomPeakTimes({ room }) {
     return () => { active = false; };
   }, [open, historyId, snapshot]);
 
-  const data = snapshot?.rooms[room.id];
+  const data = snapshot?.rooms[room.historyRoomId ?? room.id];
 
   return (
     <section className="mb-8 rounded-xl bg-white px-5 py-4 shadow-lg dark:bg-slate-800/70 sm:px-6">
@@ -123,6 +124,11 @@ export function RoomPeakTimes({ room }) {
         </button>
       </h3>
       <div id="room-peak-times" hidden={!open}>
+        {open && room.machineRange && (
+          <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
+            This chart combines Floors 6 and 7. The provider does not publish separate usage history by floor.
+          </p>
+        )}
         {open && data && <UsageChart {...data} capturedAt={snapshot.capturedAt} />}
         {open && historyId && !snapshot && !failed && <p role="status" className="mt-3 text-sm">Loading historical usage…</p>}
         {open && !data && (!historyId || snapshot || failed) && (
@@ -132,7 +138,7 @@ export function RoomPeakTimes({ room }) {
         )}
         {open && historyId && (
           <a className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-uvm-green hover:underline dark:text-uvm-gold"
-            target="_blank" rel="noopener noreferrer" href={`https://laundryconnectlive.com/live/${historyId}`}>
+            target="_blank" rel="noopener noreferrer" href={getOfficialRoomUrl(room)}>
             Open LaundryConnect Live <ExternalLink size={13} />
           </a>
         )}

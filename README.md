@@ -2,7 +2,7 @@
 
 LaundryLink is a static React app for checking UVM laundry rooms. The room directory is bundled with the app. When a room is open, the browser reads Wash Alert machine metadata and polls the provider for live status every 30 seconds while the tab is visible. The last successful snapshot stays available on the device if a refresh fails.
 
-Peak Times uses aggregated historical usage from LaundryConnect Live. GitHub Actions refreshes the snapshot twice daily and publishes the static build to GitHub Pages. Rooms without historical data still have live status. Machine cards link to the official reporting flow, where Automatic Laundry receives and handles service requests.
+Peak Times uses aggregated historical usage from LaundryConnect Live. GitHub Actions refreshes the snapshot twice daily and publishes the static build to GitHub Pages. Central Campus floors 6 and 7 display distinct machine ranges from the shared live feed. The historical chart is labeled with both floors because the provider publishes a combined aggregate. Machine cards link to the official reporting flow, where Automatic Laundry receives and handles service requests.
 
 ## Development
 
@@ -13,3 +13,9 @@ Peak Times uses aggregated historical usage from LaundryConnect Live. GitHub Act
 - `npm run build` creates the production site in `build/`.
 
 Production deploys from the Publish LaundryLink workflow on `main` and can also be triggered manually in GitHub Actions. The custom domain is `uvmlaundry.com`.
+
+## Push alerts
+
+The site registers browser push notifications through the Cloudflare Worker at `alerts.uvmlaundry.com`. Each Durable Object monitors an individual provider feed while it has pending alerts. An alert delivers once, can be cancelled from the device where it was created, and expires after four hours. The Worker stores the browser subscription while the alert is active.
+
+Deploy the Worker with Wrangler using `wrangler deploy --config alerts/wrangler.jsonc`. Provision stable `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` Worker secrets for the initial deployment. Changing the keys requires browsers to subscribe again. Run `node --test alerts/*.test.mjs` to check the push payload and endpoint validation.

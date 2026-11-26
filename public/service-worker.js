@@ -38,3 +38,31 @@ self.addEventListener('fetch', (event) => {
     return response;
   }));
 });
+
+self.addEventListener('push', (event) => {
+  let notification;
+  try {
+    notification = event.data?.json();
+  } catch {
+    return;
+  }
+  if (typeof notification?.title !== 'string') return;
+  event.waitUntil(self.registration.showNotification(notification.title, {
+    body: notification.body,
+    icon: '/logo192.png',
+    tag: notification.tag,
+    data: { path: notification.path },
+  }));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const path = event.notification.data?.path;
+  const url = new URL(typeof path === 'string' && path.startsWith('#room/') ? path : '/', self.location.origin + '/');
+  event.waitUntil((async () => {
+    const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const matching = windows.find((client) => client.url === url.href);
+    if (matching) return matching.focus();
+    return self.clients.openWindow(url.href);
+  })());
+});

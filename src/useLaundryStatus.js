@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-import { fetchRoomMachines, fetchRoomStatus, normalizeRoomStatus } from './laundryData';
+import { fetchRoomMachines, filterRoomMachines, fetchRoomStatus, normalizeRoomStatus } from './laundryData';
 
 const REFRESH_INTERVAL_MS = 30_000;
 const REQUEST_TIMEOUT_MS = 10_000;
 
-function readSnapshot(roomId) {
+function readSnapshot(room) {
   try {
-    const snapshot = JSON.parse(localStorage.getItem(`washAlertRoom-${roomId}`));
+    const stored = localStorage.getItem(`washAlertRoom-v2-${room.id}`)
+      ?? (room.machineRange ? null : localStorage.getItem(`washAlertRoom-${room.providerId}`));
+    const snapshot = JSON.parse(stored);
     if (Array.isArray(snapshot?.machines) && Number.isFinite(snapshot.checkedAt)) return snapshot;
   } catch {
     // Status still works if storage is unavailable.
@@ -15,14 +17,15 @@ function readSnapshot(roomId) {
 }
 
 export function useLaundryStatus(room) {
-  const roomId = room?.providerId;
+  const roomId = room?.id;
   const [state, setState] = useState(null);
   const refresh = useRef(null);
 
   useEffect(() => {
-    if (!roomId) return undefined;
+    if (!room?.providerId) return undefined;
 
-    let snapshot = readSnapshot(roomId);
+    const providerId = room.providerId;
+    let snapshot = readSnapshot(room);
     let catalog;
     let request;
     let active = true;
@@ -42,15 +45,15 @@ export function useLaundryStatus(room) {
 
       try {
         const [machines, payload] = await Promise.all([
-          catalog ?? fetchRoomMachines(roomId, controller.signal),
-          fetchRoomStatus(roomId, controller.signal),
+          catalog ?? fetchRoomMachines(providerId, controller.signal).then((machines) => filterRoomMachines(room, machines)),
+          fetchRoomStatus(providerId, controller.signal),
         ]);
         if (!active || controller.signal.aborted) return;
-        const normalized = normalizeRoomStatus(payload, roomId, machines);
+        const normalized = normalizeRoomStatus(payload, providerId, machines);
         catalog = machines;
         snapshot = { machines: normalized, checkedAt: Date.now() };
         try {
-          localStorage.setItem(`washAlertRoom-${roomId}`, JSON.stringify(snapshot));
+          localStorage.setItem(`washAlertRoom-v2-${roomId}`, JSON.stringify(snapshot));
         } catch {
           // An in-memory snapshot is available for this visit.
         }
@@ -87,7 +90,7 @@ export function useLaundryStatus(room) {
       document.removeEventListener('visibilitychange', resume);
       window.removeEventListener('online', update);
     };
-  }, [roomId]);
+  }, [room, roomId]);
 
   const current = roomId && state?.roomId === roomId ? state : null;
   return {
@@ -95,7 +98,7 @@ export function useLaundryStatus(room) {
     checkedAt: current?.snapshot?.checkedAt,
     stale: !!current?.stale,
     failed: !!current?.failed,
-    busy: !!roomId && (!current || current.busy),
+    busy: !!room?.providerId && (!current || current.busy),
     refresh: () => refresh.current?.(),
   };
 }

@@ -1,0 +1,14 @@
+{
+  "name": "uvmlaundry-alerts",
+  "main": "./worker.js",
+  "compatibility_date": "2026-11-25",
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [{ "pattern": "alerts.uvmlaundry.com", "custom_domain": true }],
+  "durable_objects": {
+    "bindings": [{ "name": "ROOM_ALERTS", "class_name": "RoomAlerts" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["RoomAlerts"] }],
+  "ratelimits": [{ "name": "ALERT_REQUESTS", "namespace_id": "405212247", "simple": { "limit": 10, "period": 60 } }],
+  "observability": { "enabled": true, "head_sampling_rate": 0.1 }
+}

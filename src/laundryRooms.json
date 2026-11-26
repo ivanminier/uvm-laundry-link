@@ -44,13 +44,18 @@
     "name": "Central Campus Flr 6",
     "url": "https://laundrytrackerconnect.com/UVM/central_campus_6.html",
     "providerId": "12247",
+    "machineRange": [45, 55],
     "historyId": "loc_44963c",
     "officialName": "Central Campus Residence Hall - 6th Floor"
   },
   {
     "id": "central_campus_7",
     "name": "Central Campus Flr 7",
-    "url": "https://laundrytrackerconnect.com/UVM/UVM.html"
+    "url": "https://laundrytrackerconnect.com/UVM/central_campus_7.html",
+    "providerId": "12247",
+    "machineRange": [56, 62],
+    "historyRoomId": "central_campus_6",
+    "officialName": "Central Campus Residence Hall - 7th Floor"
   },
   {
     "id": "christie",

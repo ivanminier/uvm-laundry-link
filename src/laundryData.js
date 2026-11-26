@@ -6,11 +6,16 @@ const ORGANIZATION_ID = '4052';
 
 export const laundryRooms = rooms;
 
-const roomKey = (value) => String(value).toLowerCase().replace(/[^a-z0-9]/g, '');
+const roomKey = (value) => String(value).toLowerCase().replace(/\bflr\b/g, 'floor').replace(/[^a-z0-9]/g, '');
 const roomAliases = new Map(
-  rooms.flatMap((room) => [room.id, room.providerId, room.name, room.officialName, room.historyId].filter(Boolean).map((key) => [roomKey(key), room]))
+  rooms.flatMap((room) => [room.id, room.name, room.officialName, room.historyId].filter(Boolean).map((key) => [roomKey(key), room]))
 );
+for (const room of rooms) {
+  if (room.providerId && !roomAliases.has(room.providerId)) roomAliases.set(room.providerId, room);
+}
 roomAliases.set('mccauleyhall', roomAliases.get('mcauley'));
+roomAliases.set('ccrh6', roomAliases.get('centralcampus6'));
+roomAliases.set('ccrh7', roomAliases.get('centralcampus7'));
 
 export function findLaundryRoom(value) {
   try {
@@ -18,6 +23,27 @@ export function findLaundryRoom(value) {
   } catch {
     return undefined;
   }
+}
+
+export function getRoomHistoryId(room) {
+  return room.historyId ?? findLaundryRoom(room.historyRoomId)?.historyId;
+}
+
+export function getOfficialRoomUrl(room) {
+  const historyId = getRoomHistoryId(room);
+  return historyId ? `https://laundryconnectlive.com/live/${historyId}` : room.url;
+}
+
+export function roomPath(room) {
+  return `#room/${room.name.toLowerCase().replace(/\s+/g, '-')}`;
+}
+
+export function filterRoomMachines(room, machines) {
+  if (!room.machineRange) return machines;
+  const [first, last] = room.machineRange;
+  const floorMachines = machines.filter(({ number }) => Number(number) >= first && Number(number) <= last);
+  if (floorMachines.length === 0) throw new Error('No machines found in this room’s range');
+  return floorMachines;
 }
 
 export async function fetchRoomMachines(roomId, signal) {
@@ -38,6 +64,7 @@ export async function fetchRoomMachines(roomId, signal) {
     const number = String(machine.machineNumber).replace(/^0+(?=\d)/, '');
     return {
       id: String(machine.id),
+      number,
       machineName: `${type} ${number}`,
       type,
       size: machine.machineType.typeName,
@@ -47,7 +74,11 @@ export async function fetchRoomMachines(roomId, signal) {
 
 const IN_USE = new Set(['IN_USE', 'ALMOST_DONE', 'LUCKY_CYCLE']);
 const FINISHED = new Set(['COMPLETE', 'END_OF_CYCLE', 'CYCLE_COMPLETE', 'CYCLE_FINISHED', 'CLOTHES_LEFT', 'EOC']);
-const OUT_OF_ORDER = new Set(['OUT_OF_ORDER', 'OUT_OF_SERVICE', 'OFFLINE', 'NETWORK_ERROR', 'UNAVAILABLE', 'ERROR', 'DOWN']);
+const OUT_OF_ORDER = new Set(['OUT_OF_ORDER', 'OUT_OF_SERVICE', 'ERROR']);
+const OFFLINE = new Set(['OFFLINE', 'NETWORK_ERROR', 'UNAVAILABLE', 'DOWN']);
+const OTHER_STATES = new Map([
+  ['READY_TO_START', 'Ready to Start'], ['DOOR_OPEN', 'Door Open'], ['RESERVED', 'Reserved'],
+]);
 
 export function normalizeRoomStatus(payload, roomId, catalog) {
   if (!payload?.room || String(payload.room.id) !== String(roomId) ||
@@ -66,13 +97,13 @@ export function normalizeRoomStatus(payload, roomId, catalog) {
     if (status === 'AVAILABLE') return { ...machine, status: 'Available', timeRemaining };
     if (IN_USE.has(status)) return {
       ...machine,
-      status: timeRemaining ? `${timeRemaining} min` : 'In Use',
+      status: timeRemaining ? `${timeRemaining} min` : (status === 'ALMOST_DONE' ? 'Finishing Soon' : 'In Use'),
       timeRemaining,
     };
-    if (['READY_TO_START', 'DOOR_OPEN', 'RESERVED'].includes(status)) return { ...machine, status: 'In Use', timeRemaining };
     if (FINISHED.has(status)) return { ...machine, status: 'Cycle Finished', timeRemaining };
     if (OUT_OF_ORDER.has(status)) return { ...machine, status: 'Out of Order', timeRemaining };
-    return { ...machine, status: 'Unknown', timeRemaining };
+    if (OFFLINE.has(status)) return { ...machine, status: 'Offline', timeRemaining };
+    return { ...machine, status: OTHER_STATES.get(status) ?? 'Unknown', timeRemaining };
   });
 }
 

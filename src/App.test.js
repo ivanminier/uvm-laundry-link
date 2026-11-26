@@ -1,7 +1,7 @@
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
-import { findLaundryRoom, laundryRooms, normalizeRoomStatus } from './laundryData';
+import { filterRoomMachines, findLaundryRoom, getRoomHistoryId, laundryRooms, normalizeRoomStatus } from './laundryData';
 
 const statusFixture = (entries) => ({
   room: { id: 12285 },
@@ -12,11 +12,11 @@ test('joins by provider machine ID and only displays timers for running cycles',
   const catalog = [1, 2, 3, 4, 5, 6].map((id) => ({ id: String(id) }));
   const payload = statusFixture([
     ['3', 'AVAILABLE', 1800], ['2', 'COMPLETE', 1800], ['1', 'IN_USE', 61],
-    ['4', 'UNAVAILABLE', 1800], ['6', 'UNKNOWN', 1800],
+    ['4', 'UNAVAILABLE', 1800], ['6', 'READY_TO_START', 1800],
   ]);
   const result = normalizeRoomStatus(payload, '12285', catalog);
   expect(result.map(({ status, timeRemaining }) => [status, timeRemaining])).toEqual([
-    ['2 min', 2], ['Cycle Finished', 0], ['Available', 0], ['Out of Order', 0], ['Unknown', 0], ['Unknown', 0],
+    ['2 min', 2], ['Cycle Finished', 0], ['Available', 0], ['Offline', 0], ['Unknown', 0], ['Ready to Start', 0],
   ]);
   expect(() => normalizeRoomStatus(payload, '12300', catalog)).toThrow('Invalid room status');
   expect(() => normalizeRoomStatus(statusFixture([]), '12285', catalog)).toThrow('Invalid room status');
@@ -26,7 +26,9 @@ test('the bundled room directory accepts known provider IDs and deep-link aliase
   expect(laundryRooms).toHaveLength(44);
   const liveRooms = laundryRooms.filter((room) => room.providerId);
   expect(new Set(liveRooms.map((room) => room.providerId)).size).toBe(43);
-  expect(findLaundryRoom('central-campus-flr-7').providerId).toBeUndefined();
+  expect(liveRooms).toHaveLength(44);
+  expect(findLaundryRoom('12247').id).toBe('central_campus_6');
+  expect(findLaundryRoom('ccrh 7').providerId).toBe('12247');
   expect(findLaundryRoom('12285')).toEqual(findLaundryRoom('wing-hall-1st-flr'));
   expect(findLaundryRoom('Living%20%26%20Learning%20D140')).toMatchObject({ id: 'lll_d140' });
   expect(findLaundryRoom('university-heights-north-2')).toMatchObject({ id: 'uheightsn2', historyId: 'loc_fe37ab' });
@@ -50,6 +52,61 @@ test('opens the room directory without a network request', async () => {
   } finally {
     act(() => root.unmount());
     container.remove();
+    delete global.IS_REACT_ACT_ENVIRONMENT;
+  }
+});
+
+
+test('CCRH uses the shared feed and selects only the machines assigned to each floor', () => {
+  const floor6 = findLaundryRoom('ccrh 6');
+  const floor7 = findLaundryRoom('ccrh 7');
+  const machines = Array.from({ length: 20 }, (_, index) => ({ number: String(index + 44) }));
+  expect(filterRoomMachines(floor6, machines).map(machine => Number(machine.number)))
+    .toEqual(Array.from({ length: 11 }, (_, index) => index + 45));
+  expect(filterRoomMachines(floor7, machines).map(machine => Number(machine.number)))
+    .toEqual(Array.from({ length: 7 }, (_, index) => index + 56));
+  expect(getRoomHistoryId(floor6)).toBe(getRoomHistoryId(floor7));
+});
+
+test('switching CCRH floors excludes the legacy combined cache and saves each floor separately', async () => {
+  global.IS_REACT_ACT_ENVIRONMENT = true;
+  window.matchMedia = jest.fn(() => ({ matches: false, addEventListener: jest.fn(), removeEventListener: jest.fn() }));
+  window.history.replaceState(null, '', '#room/central-campus-flr-6');
+  localStorage.clear();
+  localStorage.setItem('washAlertRoom-12247', JSON.stringify({
+    checkedAt: Date.now(),
+    machines: [{ id: '1', type: 'Dryer', machineName: 'Dryer 79', status: 'Available' }],
+  }));
+  const metadata = [45, 55, 56, 62].map((number) => ({
+    id: String(number), machineNumber: String(number).padStart(4, '0'), washAlertIsVisible: true,
+    machineType: { isWasher: number < 50 || number === 56, isDryer: number === 55 || number === 62 },
+  }));
+  const payload = { room: { id: 12247 }, machines: Object.fromEntries(
+    metadata.map(({ id }) => [id, { statusId: 'AVAILABLE' }])
+  ) };
+  global.fetch = jest.fn(async (url) => ({ ok: true, json: async () => url.includes('/machines/') ? metadata : payload }));
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  const root = createRoot(container);
+
+  try {
+    await act(async () => { root.render(<App />); });
+    const cards = () => [...container.querySelectorAll('[id^="machine-card-"] h3')].map(node => node.textContent);
+    expect(cards()).toEqual(['Washer 45', 'Dryer 55']);
+
+    await act(async () => {
+      window.history.replaceState(null, '', '#room/central-campus-flr-7');
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
+    });
+    expect(cards()).toEqual(['Washer 56', 'Dryer 62']);
+    const snapshot = (floor) => JSON.parse(localStorage.getItem(`washAlertRoom-v2-central_campus_${floor}`));
+    expect(snapshot(6).machines.map(({ number }) => Number(number)).sort()).toEqual([45, 55]);
+    expect(snapshot(7).machines.map(({ number }) => Number(number)).sort()).toEqual([56, 62]);
+  } finally {
+    act(() => root.unmount());
+    container.remove();
+    localStorage.clear();
+    window.history.replaceState(null, '', '/');
     delete global.IS_REACT_ACT_ENVIRONMENT;
   }
 });
