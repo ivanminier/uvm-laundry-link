@@ -36,6 +36,7 @@ export async function deliverPush(subscription, notification, env) {
     signal: AbortSignal.timeout(8_000),
   });
   await response.body?.cancel();
-  return response.ok || (response.status >= 400 && response.status < 500 &&
-    ![408, 425, 429].includes(response.status));
+  if (response.ok) return 'accepted';
+  if (response.status >= 400 && response.status < 500 && ![408, 425, 429].includes(response.status)) return 'failed';
+  return 'retry';
 }

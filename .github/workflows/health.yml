@@ -1,0 +1,27 @@
+name: LaundryLink public health
+
+on:
+  schedule:
+    - cron: "25 13 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Check public URLs and summarize
+        run: |
+          set -o pipefail
+          node scripts/check-public-pages.mjs https://uvmlaundry.com | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Check alert service
+        run: node --input-type=module -e 'const res=await fetch("https://alerts.uvmlaundry.com/config",{headers:{Origin:"https://uvmlaundry.com"},signal:AbortSignal.timeout(10000)}); const body=await res.json(); if(!res.ok||!body.publicKey) process.exit(1); console.log("Push configuration reachable. This is not a delivery test.");' | tee -a "$GITHUB_STEP_SUMMARY"

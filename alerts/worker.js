@@ -16,6 +16,18 @@ const FINISHED = new Set(['COMPLETE', 'END_OF_CYCLE', 'CYCLE_COMPLETE', 'CYCLE_F
 
 const validAlertId = (id) => typeof id === 'string' && /^[0-9a-f-]{36}$/.test(id);
 
+async function countMetric(db, metric, label) {
+  if (!db) return;
+  try {
+    await db.prepare(`
+      INSERT INTO daily_metrics(day, metric, label, events) VALUES (?, ?, ?, 1)
+      ON CONFLICT(day, metric, label) DO UPDATE SET events = events + 1
+    `).bind(new Date().toISOString().slice(0, 10), metric, label).run();
+  } catch {
+    console.warn('daily_metric_write_failed', { metric });
+  }
+}
+
 const rejected = (status, error) => ({ status, error });
 
 async function readJson(request) {
@@ -34,7 +46,7 @@ async function readJson(request) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const pathname = new URL(request.url).pathname;
     const origin = request.headers.get('Origin');
     const headers = new Headers({ 'Cache-Control': 'no-store', 'Vary': 'Origin' });
@@ -48,7 +60,7 @@ export default {
     }
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers });
 
-    if (pathname === '/referrals' && request.method === 'POST') {
+    if (['/referrals', '/metrics'].includes(pathname) && request.method === 'POST') {
       if (!origin || !env.REFERRALS) return new Response(null, { status: 403, headers });
       if (request.headers.get('Sec-GPC') === '1' || request.headers.get('DNT') === '1') {
         return new Response(null, { status: 204, headers });
@@ -63,6 +75,16 @@ export default {
         chunks.push(new TextDecoder().decode(chunk));
       }
       const params = new URLSearchParams(chunks.join(''));
+      if (pathname === '/metrics') {
+        const metric = params.get('metric');
+        const label = params.get('label');
+        const room = label && findLaundryRoom(label);
+        const valid = metric === 'page_view' && /^(tracker|directory|guide|faq|status|about|compare|hall:[a-z0-9-]{1,75})$/.test(label)
+          || metric === 'room_view' && room?.id === label;
+        if (!valid) return new Response(null, { status: 400, headers });
+        ctx.waitUntil(countMetric(env.REFERRALS, metric, label));
+        return new Response(null, { status: 204, headers });
+      }
       const category = params.get('category');
       const page = params.get('page');
       if (!REFERRERS.has(category) || !REFERRAL_PAGES.has(page)) {
@@ -128,7 +150,7 @@ export default {
     }
 
     try {
-      const result = await roomAlerts.register(room.id, data.machineId, data.machineName, data.machineId === NEXT_WASHER ? 0 : data.leadMinutes, subscription, data.washerIds);
+      const result = await roomAlerts.register(room.id, data.machineId, data.machineName, data.machineId === NEXT_WASHER ? 0 : data.leadMinutes, subscription, data.washerIds, request.headers.get('Sec-GPC') !== '1' && request.headers.get('DNT') !== '1');
       return reply(result, result.status ?? 200);
     } catch (failure) {
       console.warn('alert_registration_failed', { roomId: room.id, reason: String(failure.message).slice(0, 150) });
@@ -154,7 +176,7 @@ export class RoomAlerts extends DurableObject {
     `);
   }
 
-  async register(roomId, machineId, name, leadMinutes, subscription, washerIds) {
+  async register(roomId, machineId, name, leadMinutes, subscription, washerIds, countSubscription) {
     const room = findLaundryRoom(roomId);
     const now = Date.now();
     this.sql.exec('DELETE FROM alerts WHERE expires_at <= ?', now);
@@ -212,6 +234,7 @@ export class RoomAlerts extends DurableObject {
     const saved = inserted ?? this.sql.exec(
       'SELECT id, expires_at AS expiresAt FROM alerts WHERE dedupe_key = ?', dedupe
     ).toArray()[0];
+    if (inserted && countSubscription) this.ctx.waitUntil(countMetric(this.env.REFERRALS, 'subscription', watchRoom ? 'next_washer' : 'cycle'));
     if (!saved) return rejected(429, 'This room has reached its active alert limit. Try again shortly.');
     await this.arm();
     return saved;
@@ -268,9 +291,9 @@ export class RoomAlerts extends DurableObject {
       for (const { alert, title, machineId } of due.slice(0, 4)) {
         if (this.sql.exec('SELECT 1 FROM alerts WHERE id = ?', alert.id).toArray().length === 0) continue;
         const room = findLaundryRoom(alert.room_id);
-        let terminal = false;
+        let outcome = 'retry';
         try {
-          terminal = await deliverPush(JSON.parse(alert.subscription), {
+          outcome = await deliverPush(JSON.parse(alert.subscription), {
             title,
             body: roomLabel(room),
             path: machinePath(room, machineId),
@@ -279,7 +302,10 @@ export class RoomAlerts extends DurableObject {
         } catch {
           // A temporary push-provider failure can be retried on the next poll.
         }
-        if (terminal || alert.attempts >= 2) this.sql.exec('DELETE FROM alerts WHERE id = ?', alert.id);
+        if (outcome !== 'retry' || alert.attempts >= 2) {
+          this.sql.exec('DELETE FROM alerts WHERE id = ?', alert.id);
+          this.ctx.waitUntil(countMetric(this.env.REFERRALS, 'push_result', outcome === 'accepted' ? 'provider_accepted' : 'stopped_without_acceptance'));
+        }
         else this.sql.exec('UPDATE alerts SET attempts = attempts + 1 WHERE id = ?', alert.id);
       }
     } catch {

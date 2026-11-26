@@ -1,5 +1,18 @@
 (() => {
   if (navigator.globalPrivacyControl || navigator.doNotTrack === '1') return;
+  const pageLabel = {
+    '/': 'tracker', '/residence-halls/': 'directory', '/laundry-guide/': 'guide',
+    '/faq/': 'faq', '/status/': 'status', '/about/': 'about', '/compare/': 'compare',
+  }[location.pathname];
+  const hall = location.pathname.match(/^\/residence-halls\/([a-z0-9-]{1,75})\/$/);
+  const label = pageLabel ?? (hall && 'hall:' + hall[1]);
+  if (label) {
+    fetch('https://alerts.uvmlaundry.com/metrics', {
+      method: 'POST', body: new URLSearchParams({ metric: 'page_view', label }), keepalive: true,
+      credentials: 'omit', referrerPolicy: 'no-referrer',
+    }).catch(() => {});
+  }
+
   const tag = new URLSearchParams(location.search).get('utm_source')?.toLowerCase();
   let host = '';
   try { host = new URL(document.referrer).hostname.toLowerCase(); } catch {}

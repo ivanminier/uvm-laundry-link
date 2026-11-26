@@ -30,13 +30,15 @@ export function useLaundryStatus(room, { refreshInterval = REFRESH_INTERVAL_MS, 
     let request;
     let active = true;
     let failed = false;
+    let failures = 0;
+    let nextRetry = 0;
 
     function show(busy) {
       setState({ roomId, snapshot, busy, failed, stale: !!snapshot && (failed || Date.now() - snapshot.checkedAt > REFRESH_INTERVAL_MS * 2) });
     }
 
     async function update(force = false) {
-      if ((!force && document.hidden) || request) return;
+      if ((!force && (document.hidden || Date.now() < nextRetry)) || request) return;
 
       const controller = new AbortController();
       request = controller;
@@ -58,10 +60,14 @@ export function useLaundryStatus(room, { refreshInterval = REFRESH_INTERVAL_MS, 
           // An in-memory snapshot is available for this visit.
         }
         failed = false;
+        failures = 0;
+        nextRetry = 0;
         show(false);
       } catch {
         if (active) {
           failed = true;
+          failures += 1;
+          nextRetry = Date.now() + Math.min(300_000, refreshInterval * 2 ** Math.min(failures - 1, 4));
           show(false);
         }
       } finally {

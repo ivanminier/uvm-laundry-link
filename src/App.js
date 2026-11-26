@@ -446,7 +446,14 @@ const App = () => {
   // --- Effects ---
 
   useEffect(() => {
-    if (selectedRoomId) savePreference(LAST_ROOM_KEY, selectedRoomId);
+    if (!selectedRoomId) return;
+    savePreference(LAST_ROOM_KEY, selectedRoomId);
+    if (!['uvmlaundry.com', 'www.uvmlaundry.com'].includes(window.location.hostname) || navigator.globalPrivacyControl || navigator.doNotTrack === '1') return;
+    fetch('https://alerts.uvmlaundry.com/metrics', {
+      method: 'POST', body: new URLSearchParams({ metric: 'room_view', label: selectedRoomId }),
+      keepalive: true, credentials: 'omit', referrerPolicy: 'no-referrer',
+    }).catch(() => {});
+
   }, [selectedRoomId]);
 
   useEffect(() => {

@@ -79,7 +79,7 @@ const capture = ({ referrer = '', search = '', pathname = '/', privacy = false }
     location: { hostname: 'uvmlaundry.com', pathname, search },
     fetch: (url, options) => { calls.push([url, options]); return Promise.resolve(); },
   });
-  return calls;
+  return calls.filter(([url]) => url.endsWith('/referrals'));
 };
 const [[collector, visit]] = capture({ search: '?utm_source=chatgpt.com&private=value', pathname: '/residence-halls/wright-hall/' });
 assert.equal(collector, 'https://alerts.uvmlaundry.com/referrals');
