@@ -54,6 +54,20 @@ test('opens the room directory without a network request', async () => {
     expect(container.textContent).toContain('All Laundry Rooms');
     expect(container.textContent).toContain('Wing Hall');
     expect(container.querySelectorAll('h3')).toHaveLength(laundryRooms.length);
+    const campusGroup = container.querySelector('[aria-label="Filter rooms by campus"]');
+    const buttons = [...campusGroup.querySelectorAll('button')];
+    expect(buttons.map(button => button.textContent)).toEqual(['All', 'Redstone', 'Athletic', 'Central', 'Trinity/North']);
+    const cases = [
+      [1, 12, 'Wing Hall'], [2, 16, 'UHeights North'], [3, 7, 'CCRH'], [4, 9, 'The Cottages'],
+    ];
+    for (const [index, count, example] of cases) {
+      await act(async () => { buttons[index].click(); });
+      expect(buttons[index].getAttribute('aria-pressed')).toBe('true');
+      expect(container.querySelectorAll('h3')).toHaveLength(count);
+      expect([...container.querySelectorAll('h3')].some(heading => heading.textContent === example)).toBe(true);
+    }
+    await act(async () => { buttons[0].click(); });
+    expect(container.querySelectorAll('h3')).toHaveLength(44);
     expect(fetch).not.toHaveBeenCalled();
   } finally {
     act(() => root.unmount());

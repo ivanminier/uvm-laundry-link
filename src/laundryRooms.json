@@ -5,7 +5,8 @@
     "url": "https://laundrytrackerconnect.com/UVM/austin.html",
     "providerId": "12305",
     "historyId": "loc_2a8c9d",
-    "officialName": "Austin Hall"
+    "officialName": "Austin Hall",
+    "campus": "athletic"
   },
   {
     "id": "central_campus_2",
@@ -18,7 +19,8 @@
     "displayRange": [
       1,
       11
-    ]
+    ],
+    "campus": "central"
   },
   {
     "id": "central_campus_3",
@@ -31,7 +33,8 @@
     "displayRange": [
       12,
       20
-    ]
+    ],
+    "campus": "central"
   },
   {
     "id": "central_campus_4",
@@ -44,7 +47,8 @@
     "displayRange": [
       23,
       33
-    ]
+    ],
+    "campus": "central"
   },
   {
     "id": "central_campus_5",
@@ -57,7 +61,8 @@
     "displayRange": [
       34,
       44
-    ]
+    ],
+    "campus": "central"
   },
   {
     "id": "central_campus_6",
@@ -70,7 +75,8 @@
     ],
     "historyId": "loc_44963c",
     "officialName": "Central Campus Residence Hall - 6th Floor",
-    "displayName": "CCRH"
+    "displayName": "CCRH",
+    "campus": "central"
   },
   {
     "id": "central_campus_7",
@@ -83,7 +89,8 @@
     ],
     "historyRoomId": "central_campus_6",
     "officialName": "Central Campus Residence Hall - 7th Floor",
-    "displayName": "CCRH"
+    "displayName": "CCRH",
+    "campus": "central"
   },
   {
     "id": "christie",
@@ -92,7 +99,8 @@
     "providerId": "12250",
     "historyId": "loc_83f59f",
     "officialName": "Christie Hall",
-    "displayName": "Christie Hall"
+    "displayName": "Christie Hall",
+    "campus": "redstone"
   },
   {
     "id": "converse",
@@ -101,7 +109,8 @@
     "providerId": "12251",
     "historyId": "loc_716df4",
     "officialName": "Converse",
-    "displayName": "Converse Hall"
+    "displayName": "Converse Hall",
+    "campus": "central"
   },
   {
     "id": "coolidge",
@@ -109,7 +118,8 @@
     "url": "https://laundrytrackerconnect.com/UVM/coolidge.html",
     "providerId": "12252",
     "historyId": "loc_2dca51",
-    "officialName": "Coolidge Hall"
+    "officialName": "Coolidge Hall",
+    "campus": "redstone"
   },
   {
     "id": "cwp",
@@ -118,7 +128,8 @@
     "providerId": "12249",
     "historyId": "loc_499892",
     "officialName": "Wright Hall",
-    "displayName": "Wright Hall"
+    "displayName": "Wright Hall",
+    "campus": "redstone"
   },
   {
     "id": "davis",
@@ -127,7 +138,8 @@
     "providerId": "12254",
     "historyId": "loc_c578c6",
     "officialName": "Davis Hall 1st Floor",
-    "displayName": "Davis Hall"
+    "displayName": "Davis Hall",
+    "campus": "redstone"
   },
   {
     "id": "hamilton",
@@ -135,7 +147,8 @@
     "url": "https://laundrytrackerconnect.com/UVM/hamilton.html",
     "providerId": "12255",
     "historyId": "loc_00f73f",
-    "officialName": "Hamilton Hall"
+    "officialName": "Hamilton Hall",
+    "campus": "redstone"
   },
   {
     "id": "harris",
@@ -143,7 +156,8 @@
     "url": "https://laundrytrackerconnect.com/UVM/harris.html",
     "providerId": "12256",
     "historyId": "loc_a2a45a",
-    "officialName": "Harris Hall"
+    "officialName": "Harris Hall",
+    "campus": "athletic"
   },
   {
     "id": "hunt",
@@ -151,7 +165,8 @@
     "url": "https://laundrytrackerconnect.com/UVM/hunt.html",
     "providerId": "12257",
     "historyId": "loc_3bef2c",
-    "officialName": "Hunt Hall"
+    "officialName": "Hunt Hall",
+    "campus": "north"
   },
   {
     "id": "jeanne_mance",
@@ -159,7 +174,8 @@
     "url": "https://laundrytrackerconnect.com/UVM/jeanne_mance.html",
     "providerId": "12258",
     "historyId": "loc_e209d3",
-    "officialName": "Jeanne Mance Hall"
+    "officialName": "Jeanne Mance Hall",
+    "campus": "north"
   },
   {
     "id": "lll_140",
@@ -168,7 +184,8 @@
     "providerId": "12259",
     "historyId": "loc_0768af",
     "officialName": "Living & Learning Lounge A140",
-    "displayName": "L/L A140"
+    "displayName": "L/L A140",
+    "campus": "athletic"
   },
   {
     "id": "lll_180",
@@ -177,7 +194,8 @@
     "providerId": "12260",
     "historyId": "loc_beb029",
     "officialName": "Living & Learning Lounge A180",
-    "displayName": "L/L A180"
+    "displayName": "L/L A180",
+    "campus": "athletic"
   },
   {
     "id": "lll_b110",
@@ -186,7 +204,8 @@
     "providerId": "12261",
     "historyId": "loc_56a455",
     "officialName": "Living & Learning Lounge B110",
-    "displayName": "L/L B110"
+    "displayName": "L/L B110",
+    "campus": "athletic"
   },
   {
     "id": "lll_c131",
@@ -195,7 +214,8 @@
     "providerId": "12262",
     "historyId": "loc_a9714c",
     "officialName": "Living & Learning Lounge C131",
-    "displayName": "L/L C131"
+    "displayName": "L/L C131",
+    "campus": "athletic"
   },
   {
     "id": "lll_d110",
@@ -204,7 +224,8 @@
     "providerId": "12263",
     "historyId": "loc_0a4aec",
     "officialName": "Living & Learning Lounge D110",
-    "displayName": "L/L D110"
+    "displayName": "L/L D110",
+    "campus": "athletic"
   },
   {
     "id": "lll_d140",
@@ -213,7 +234,8 @@
     "providerId": "12264",
     "historyId": "loc_0bfea5",
     "officialName": "Living & Learning Lounge D140",
-    "displayName": "L/L D140"
+    "displayName": "L/L D140",
+    "campus": "athletic"
   },
   {
     "id": "lll_e110",
@@ -222,7 +244,8 @@
     "providerId": "12265",
     "historyId": "loc_1f1d23",
     "officialName": "Living & Learning Lounge E110",
-    "displayName": "L/L E110"
+    "displayName": "L/L E110",
+    "campus": "athletic"
   },
   {
     "id": "lll_e160",
@@ -231,7 +254,8 @@
     "providerId": "12266",
     "historyId": "loc_66909a",
     "officialName": "Living & Learning Lounge E160",
-    "displayName": "L/L E160"
+    "displayName": "L/L E160",
+    "campus": "athletic"
   },
   {
     "id": "mason",
@@ -240,7 +264,8 @@
     "providerId": "12267",
     "historyId": "loc_5a2657",
     "officialName": "Mason Hall 2nd Floor",
-    "displayName": "Mason Hall"
+    "displayName": "Mason Hall",
+    "campus": "redstone"
   },
   {
     "id": "mcauley",
@@ -248,7 +273,8 @@
     "url": "https://laundrytrackerconnect.com/UVM/mcauley.html",
     "providerId": "12268",
     "historyId": "loc_deb3a2",
-    "officialName": "McAuley Hall"
+    "officialName": "McAuley Hall",
+    "campus": "north"
   },
   {
     "id": "mccann",
@@ -256,7 +282,8 @@
     "url": "https://laundrytrackerconnect.com/UVM/mccann.html",
     "providerId": "12269",
     "historyId": "loc_368d75",
-    "officialName": "McCann Hall"
+    "officialName": "McCann Hall",
+    "campus": "north"
   },
   {
     "id": "mercy",
@@ -264,7 +291,8 @@
     "url": "https://laundrytrackerconnect.com/UVM/mercy.html",
     "providerId": "12270",
     "historyId": "loc_85c065",
-    "officialName": "Mercy Hall"
+    "officialName": "Mercy Hall",
+    "campus": "north"
   },
   {
     "id": "millis",
@@ -272,7 +300,8 @@
     "url": "https://laundrytrackerconnect.com/UVM/millis.html",
     "providerId": "12271",
     "historyId": "loc_e0a3e6",
-    "officialName": "Millis Hall"
+    "officialName": "Millis Hall",
+    "campus": "athletic"
   },
   {
     "id": "patterson",
@@ -281,7 +310,8 @@
     "providerId": "12272",
     "historyId": "loc_c226af",
     "officialName": "Patterson Hall 1st Floor",
-    "displayName": "Patterson Hall"
+    "displayName": "Patterson Hall",
+    "campus": "redstone"
   },
   {
     "id": "ready",
@@ -289,7 +319,8 @@
     "url": "https://laundrytrackerconnect.com/UVM/ready.html",
     "providerId": "12273",
     "historyId": "loc_6d14a2",
-    "officialName": "Ready Hall"
+    "officialName": "Ready Hall",
+    "campus": "north"
   },
   {
     "id": "redstone",
@@ -298,7 +329,8 @@
     "providerId": "12274",
     "historyId": "loc_269a6b",
     "officialName": "Redstone Hall Basement",
-    "displayName": "Redstone Hall"
+    "displayName": "Redstone Hall",
+    "campus": "redstone"
   },
   {
     "id": "richardson",
@@ -306,7 +338,8 @@
     "url": "https://laundrytrackerconnect.com/UVM/richardson.html",
     "providerId": "12275",
     "historyId": "loc_41d89d",
-    "officialName": "Richardson Hall"
+    "officialName": "Richardson Hall",
+    "campus": "north"
   },
   {
     "id": "sichel",
@@ -314,7 +347,8 @@
     "url": "https://laundrytrackerconnect.com/UVM/sichel.html",
     "providerId": "12276",
     "historyId": "loc_aa1e78",
-    "officialName": "Sichel Hall"
+    "officialName": "Sichel Hall",
+    "campus": "north"
   },
   {
     "id": "simpson",
@@ -323,7 +357,8 @@
     "providerId": "12277",
     "historyId": "loc_70e626",
     "officialName": "Simpson Hall - Lower Level",
-    "displayName": "Simpson Hall"
+    "displayName": "Simpson Hall",
+    "campus": "redstone"
   },
   {
     "id": "slade",
@@ -332,7 +367,8 @@
     "providerId": "12278",
     "historyId": "loc_8129eb",
     "officialName": "Slade Hall Basement",
-    "displayName": "Slade Hall"
+    "displayName": "Slade Hall",
+    "campus": "redstone"
   },
   {
     "id": "cottage256",
@@ -340,7 +376,8 @@
     "url": "https://laundrytrackerconnect.com/UVM/cottage256.html",
     "providerId": "12253",
     "historyId": "loc_32521b",
-    "officialName": "Cottage 256"
+    "officialName": "Cottage 256",
+    "campus": "north"
   },
   {
     "id": "tupper",
@@ -348,7 +385,8 @@
     "url": "https://laundrytrackerconnect.com/UVM/tupper.html",
     "providerId": "12279",
     "historyId": "loc_29f224",
-    "officialName": "Tupper Hall"
+    "officialName": "Tupper Hall",
+    "campus": "athletic"
   },
   {
     "id": "uheightsn1",
@@ -361,7 +399,8 @@
     "displayRange": [
       1,
       12
-    ]
+    ],
+    "campus": "athletic"
   },
   {
     "id": "uheightsn2",
@@ -374,7 +413,8 @@
     "displayRange": [
       13,
       27
-    ]
+    ],
+    "campus": "athletic"
   },
   {
     "id": "uheightss1",
@@ -387,7 +427,8 @@
     "displayRange": [
       1,
       12
-    ]
+    ],
+    "campus": "athletic"
   },
   {
     "id": "uheightss2",
@@ -400,7 +441,8 @@
     "displayRange": [
       13,
       27
-    ]
+    ],
+    "campus": "athletic"
   },
   {
     "id": "wilks",
@@ -408,7 +450,8 @@
     "url": "https://laundrytrackerconnect.com/UVM/wilks.html",
     "providerId": "12284",
     "historyId": "loc_687e75",
-    "officialName": "Wilks Hall"
+    "officialName": "Wilks Hall",
+    "campus": "redstone"
   },
   {
     "id": "wing",
@@ -417,6 +460,7 @@
     "providerId": "12285",
     "historyId": "loc_f2a015",
     "officialName": "Wing Hall - 1st Floor",
-    "displayName": "Wing Hall"
+    "displayName": "Wing Hall",
+    "campus": "redstone"
   }
 ]

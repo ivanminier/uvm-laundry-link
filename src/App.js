@@ -297,6 +297,13 @@ const RoomCard = React.memo(({ room, onSelectRoom, isFavorite, onToggleFavorite 
 ));
 
 const EMPTY_MACHINES = [];
+const CAMPUS_FILTERS = [
+  ['all', 'All'],
+  ['redstone', 'Redstone'],
+  ['athletic', 'Athletic'],
+  ['central', 'Central'],
+  ['north', 'Trinity/North'],
+];
 const REMEMBER_ROOM_KEY = 'uvmLaundryRememberRoom';
 const LAST_ROOM_KEY = 'uvmLaundryLastRoom';
 
@@ -350,6 +357,7 @@ const App = () => {
   const [savedFavorites, setFavorites] = usePreference('uvmLaundryFavorites', []);
   const favorites = useMemo(() => resolveFavoriteIds(savedFavorites), [savedFavorites]);
   const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
+  const [campus, setCampus] = useState('all');
 
   const currentRoom = findLaundryRoom(selectedRoomId);
   const roomStatus = useLaundryStatus(currentView === 'roomDetail' ? currentRoom : null);
@@ -456,7 +464,7 @@ const App = () => {
 
   // --- Memoized Selectors for Filtering and Derived Data ---
   const filteredHomeRooms = useMemo(() => {
-    let roomsToDisplay = laundryRooms;
+    let roomsToDisplay = campus === 'all' ? laundryRooms : laundryRooms.filter(room => room.campus === campus);
     if (showOnlyFavorites) roomsToDisplay = roomsToDisplay.filter(room => favorites.includes(room.id));
     if (homeSearchTerm.trim() !== '') {
       const lowerSearchTerm = homeSearchTerm.trim().toLowerCase();
@@ -465,7 +473,7 @@ const App = () => {
       ].some(label => label?.toLowerCase().includes(lowerSearchTerm)));
     }
     return roomsToDisplay;
-  }, [showOnlyFavorites, homeSearchTerm, favorites]);
+  }, [campus, showOnlyFavorites, homeSearchTerm, favorites]);
   
   const allWashers = useMemo(() => machines.filter(machine => machine.type === 'Washer'), [machines]);
   const allDryers = useMemo(() => machines.filter(machine => machine.type === 'Dryer'), [machines]);
@@ -511,14 +519,24 @@ const App = () => {
                 </button>
               </div>
             </div>
+            <div role="group" aria-label="Filter rooms by campus" className="mb-5 flex flex-wrap gap-2">
+              {CAMPUS_FILTERS.map(([id, label]) => (
+                <button type="button" key={id} aria-pressed={campus === id} onClick={() => setCampus(id)}
+                  className={`min-h-[44px] rounded-full border px-4 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-uvm-gold ${campus === id
+                    ? 'border-uvm-green bg-uvm-green text-white dark:border-uvm-gold dark:bg-uvm-gold dark:text-slate-900'
+                    : 'border-slate-300 bg-white text-slate-800 hover:border-uvm-green dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200'}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
             {filteredHomeRooms.length === 0 ? (
               <div className="text-center py-16 text-gray-500 dark:text-gray-400 bg-white dark:bg-slate-800/70 rounded-xl shadow-lg p-8">
                 <Info size={64} className="mx-auto opacity-50 mb-4 text-uvm-green dark:text-uvm-gold" />
                 <p className="mt-4 text-xl font-semibold">
-                  {homeSearchTerm.trim() !== '' ? 'No Rooms Match Your Search' : (showOnlyFavorites && laundryRooms.length > 0 ? "You Have No Favorite Rooms" : "No Laundry Rooms Found")}
+                  {homeSearchTerm.trim() !== '' ? 'No Rooms Match Your Search' : (showOnlyFavorites ? "No Favorite Rooms in This View" : "No Laundry Rooms Found")}
                 </p>
                 <p className="text-sm mt-2 opacity-80">
-                  {homeSearchTerm.trim() !== '' ? 'Try a different search term.' : (showOnlyFavorites && laundryRooms.length > 0 ? "Tap the star icon on a room card to add it to your favorites." : "We couldn't find any laundry rooms at the moment.")}
+                  {homeSearchTerm.trim() !== '' ? 'Try a different search term or choose All campuses.' : (showOnlyFavorites ? "Choose another campus or add a room to your favorites." : "We couldn't find any laundry rooms at the moment.")}
                 </p>
               </div>
             ) : (
