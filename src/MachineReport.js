@@ -8,8 +8,7 @@ export const SERVICE_REQUEST_URL = 'https://automaticlaundry.com/request-service
 function MachineDialog({ machine, room, mode, canSetAlert, onClose, onModeChange }) {
   const dialog = useRef(null);
   const [copyStatus, setCopyStatus] = useState('');
-  const label = room.officialName || room.name;
-  const details = `University of Vermont · ${label} · ${machine.machineName}`;
+  const details = `University of Vermont · ${room.name} · ${machine.machineName}`;
   const roomUrl = getOfficialRoomUrl(room);
   const reporting = mode === 'report';
   const texting = mode === 'sms';

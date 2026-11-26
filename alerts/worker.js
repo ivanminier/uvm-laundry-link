@@ -189,7 +189,7 @@ export class RoomAlerts extends DurableObject {
         try {
           terminal = await deliverPush(JSON.parse(alert.subscription), {
             title: `${alert.machine_name} ${status}`,
-            body: room.officialName ?? room.name,
+            body: room.name,
             path: roomPath(room),
             tag: alert.id,
           }, this.env);

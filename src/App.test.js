@@ -94,12 +94,16 @@ test('switching CCRH floors excludes the legacy combined cache and saves each fl
     await act(async () => { root.render(<App />); });
     const cards = () => [...container.querySelectorAll('[id^="machine-card-"] h3')].map(node => node.textContent);
     expect(cards()).toEqual(['Washer 45', 'Dryer 55']);
+    expect(container.querySelector('main h2').textContent).toBe('Central Campus Flr 6');
+    expect(container.querySelector('#room-switcher').selectedOptions[0].textContent).toBe('Central Campus Flr 6');
+    expect(container.querySelector('#room-switcher option[value="cottage256"]').textContent).toBe('The Cottages');
 
     await act(async () => {
       window.history.replaceState(null, '', '#room/central-campus-flr-7');
       window.dispatchEvent(new HashChangeEvent('hashchange'));
     });
     expect(cards()).toEqual(['Washer 56', 'Dryer 62']);
+    expect(container.querySelector('main h2').textContent).toBe('Central Campus Flr 7');
     const snapshot = (floor) => JSON.parse(localStorage.getItem(`washAlertRoom-v2-central_campus_${floor}`));
     expect(snapshot(6).machines.map(({ number }) => Number(number)).sort()).toEqual([45, 55]);
     expect(snapshot(7).machines.map(({ number }) => Number(number)).sort()).toEqual([56, 62]);
@@ -130,7 +134,7 @@ test('SMS setup uses the vendor embed and keeps the selected CCRH floor in the a
     const button = Array.from(container.querySelectorAll('button')).find((item) => item.textContent.trim() === 'Set Text Alert');
     await act(async () => { button.click(); });
     expect(container.querySelector('iframe').getAttribute('src')).toBe('https://laundryconnectlive.com/live/loc_44963c?embed=1');
-    expect(container.querySelector('dialog').textContent).toContain('7th Floor · Washer 56');
+    expect(container.querySelector('dialog').textContent).toContain('Central Campus Flr 7 · Washer 56');
     expect(container.querySelector('dialog').textContent).toContain('choose Text');
   } finally {
     act(() => root.unmount());

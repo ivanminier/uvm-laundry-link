@@ -484,9 +484,6 @@ const App = () => {
   const availableDryersInRoom = useMemo(() => allDryers.filter(m => getStatusDetails(m.status).actualStatus === 'Available').length, [allDryers]);
 
   const statusOptions = ['All', 'Available', 'Ready to Start', 'In Use', 'Finishing Soon', 'Cycle Finished', 'Door Open', 'Reserved', 'Out of Order', 'Offline', 'Status Unknown'];
-  const currentRoomName = currentRoom?.machineRange
-    ? currentRoom.name.replace('Flr', 'Floor')
-    : currentRoom?.name;
 
   const inputBaseClasses = "w-full p-3 border rounded-lg shadow-sm transition-colors duration-200 focus:outline-none focus:ring-2 dark:bg-slate-700 dark:text-white placeholder-gray-400 dark:placeholder-slate-400";
   const inputFocusClasses = "focus:ring-uvm-gold focus:border-uvm-gold";
@@ -537,7 +534,7 @@ const App = () => {
               <button onClick={() => handleGoHome()} className="inline-flex min-h-[44px] items-center gap-2 rounded-lg px-3 text-sm font-semibold text-gray-900 focus:ring-2 focus:ring-uvm-gold dark:text-white">
                 <ArrowLeft size={18} /> All Rooms
               </button>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white md:text-3xl">{currentRoomName}</h2>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white md:text-3xl">{currentRoom.name}</h2>
             </div>
             <RoomTools key={`tools-${currentRoom.id}`} room={currentRoom} onSelectRoom={handleSelectRoom} />
             {roomStatus.failed && (
