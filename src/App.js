@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Zap, CheckCircle, XCircle, AlertTriangle, Clock, RefreshCw, Settings, Star, ArrowLeft, ExternalLink, Droplet, Wind, Eye, EyeOff, Info, Search, Sun, Moon, LayoutGrid } from 'lucide-react';
 
-import { findLaundryRoom, laundryRooms, roomPath } from './laundryData';
+import { findLaundryRoom, laundryRooms, roomDisplayName, roomLabel, roomMachineLabel, roomPath } from './laundryData';
 import { useLaundryStatus } from './useLaundryStatus';
 import { RoomTools } from './RoomTools';
 import { LaundryHelp } from './LaundryHelp';
@@ -281,7 +281,8 @@ const RoomCard = React.memo(({ room, onSelectRoom, isFavorite, onToggleFavorite 
     >
         <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
         <div className="relative z-10 flex-grow">
-            <h3 className="text-xl sm:text-2xl font-bold mb-2 text-white group-hover:text-yellow-400 transition-colors">{String(room.name)}</h3>
+            <h3 className="text-xl sm:text-2xl font-bold mb-2 text-white group-hover:text-yellow-400 transition-colors">{roomDisplayName(room)}</h3>
+            {roomMachineLabel(room) && <p className="text-sm text-green-100">{roomMachineLabel(room)}</p>}
         </div>
         <div className="flex items-center justify-end mt-auto pt-3 relative z-10">
             <button
@@ -459,7 +460,7 @@ const App = () => {
     if (showOnlyFavorites) roomsToDisplay = roomsToDisplay.filter(room => favorites.includes(room.id));
     if (homeSearchTerm.trim() !== '') {
       const lowerSearchTerm = homeSearchTerm.trim().toLowerCase();
-      roomsToDisplay = roomsToDisplay.filter(room => [room.name, room.officialName,
+      roomsToDisplay = roomsToDisplay.filter(room => [roomLabel(room), room.name, room.officialName,
         room.id.startsWith('central_campus_') ? `CCRH ${room.id.split('_').pop()}` : '',
       ].some(label => label?.toLowerCase().includes(lowerSearchTerm)));
     }
@@ -534,7 +535,10 @@ const App = () => {
               <button onClick={() => handleGoHome()} className="inline-flex min-h-[44px] items-center gap-2 rounded-lg px-3 text-sm font-semibold text-gray-900 focus:ring-2 focus:ring-uvm-gold dark:text-white">
                 <ArrowLeft size={18} /> All Rooms
               </button>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white md:text-3xl">{currentRoom.name}</h2>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white md:text-3xl">{roomDisplayName(currentRoom)}</h2>
+                {roomMachineLabel(currentRoom) && <p className="text-sm text-slate-600 dark:text-slate-300">{roomMachineLabel(currentRoom)}</p>}
+              </div>
             </div>
             <RoomTools key={`tools-${currentRoom.id}`} room={currentRoom} onSelectRoom={handleSelectRoom} />
             {roomStatus.failed && (

@@ -1,5 +1,5 @@
 import { DurableObject } from 'cloudflare:workers';
-import { fetchRoomStatus, filterRoomMachines, findLaundryRoom, roomPath } from '../src/laundryData';
+import { fetchRoomStatus, filterRoomMachines, findLaundryRoom, roomDisplayName, roomPath } from '../src/laundryData';
 import { deliverPush, parseSubscription } from './push';
 import ccrhMachines from './ccrh-machines.json';
 
@@ -189,7 +189,7 @@ export class RoomAlerts extends DurableObject {
         try {
           terminal = await deliverPush(JSON.parse(alert.subscription), {
             title: `${alert.machine_name} ${status}`,
-            body: room.name,
+            body: roomDisplayName(room),
             path: roomPath(room),
             tag: alert.id,
           }, this.env);

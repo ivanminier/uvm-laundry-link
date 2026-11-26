@@ -126,7 +126,7 @@ export function RoomPeakTimes({ room }) {
       <div id="room-peak-times" hidden={!open}>
         {open && room.machineRange && (
           <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
-            This chart combines Floors 6 and 7. The provider does not publish separate usage history by floor.
+            This chart combines CCRH machines 45–62. The provider publishes one usage history for both rooms.
           </p>
         )}
         {open && data && <UsageChart {...data} capturedAt={snapshot.capturedAt} />}

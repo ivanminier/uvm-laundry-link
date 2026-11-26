@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ExternalLink, Share2 } from 'lucide-react';
-import { getOfficialRoomUrl, laundryRooms, roomPath } from './laundryData';
+import { getOfficialRoomUrl, laundryRooms, roomLabel, roomPath } from './laundryData';
 
 export function RoomTools({ room, onSelectRoom }) {
   const [shareStatus, setShareStatus] = useState('');
@@ -13,7 +13,7 @@ export function RoomTools({ room, onSelectRoom }) {
 
     if (navigator.share) {
       try {
-        await navigator.share({ title: `${room.name} · UVM LaundryLink`, url });
+        await navigator.share({ title: `${roomLabel(room)} · UVM LaundryLink`, url });
         return;
       } catch (error) {
         if (error.name === 'AbortError') return;
@@ -34,7 +34,7 @@ export function RoomTools({ room, onSelectRoom }) {
         <label htmlFor="room-switcher" className="sr-only">Switch room</label>
         <select id="room-switcher" value={room.id} onChange={(event) => onSelectRoom(event.target.value)}
           className="min-h-[44px] w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-900 focus:ring-2 focus:ring-uvm-green dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:ring-uvm-gold sm:w-auto">
-          {laundryRooms.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}
+          {laundryRooms.map((option) => <option key={option.id} value={option.id}>{roomLabel(option)}</option>)}
         </select>
         <button type="button" onClick={shareRoom}
           className="inline-flex min-h-[44px] items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-uvm-green hover:bg-green-50 dark:border-slate-600 dark:bg-slate-800 dark:text-uvm-gold dark:hover:bg-slate-700">

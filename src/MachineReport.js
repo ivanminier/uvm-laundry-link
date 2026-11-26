@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Bell, ExternalLink, Smartphone, Wrench, XCircle } from 'lucide-react';
-import { getOfficialRoomUrl, getRoomHistoryId } from './laundryData';
+import { getOfficialRoomUrl, getRoomHistoryId, roomDisplayName } from './laundryData';
 import { hasPushAlert, PushAlertForm } from './PushAlertForm';
 
 export const SERVICE_REQUEST_URL = 'https://automaticlaundry.com/request-service/';
@@ -8,7 +8,7 @@ export const SERVICE_REQUEST_URL = 'https://automaticlaundry.com/request-service
 function MachineDialog({ machine, room, mode, canSetAlert, onClose, onModeChange }) {
   const dialog = useRef(null);
   const [copyStatus, setCopyStatus] = useState('');
-  const details = `University of Vermont · ${room.name} · ${machine.machineName}`;
+  const details = `University of Vermont · ${roomDisplayName(room)} · ${machine.machineName}`;
   const roomUrl = getOfficialRoomUrl(room);
   const reporting = mode === 'report';
   const texting = mode === 'sms';
@@ -45,7 +45,7 @@ function MachineDialog({ machine, room, mode, canSetAlert, onClose, onModeChange
       </p>
       {(reporting || texting) && room.machineRange && (
         <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-          The official page lists machines from both floors under Floor 6.
+          The official page lists CCRH machines 45–62 together.
         </p>
       )}
       {!reporting && !texting && (

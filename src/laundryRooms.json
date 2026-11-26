@@ -13,7 +13,12 @@
     "url": "https://laundrytrackerconnect.com/UVM/central_campus_2.html",
     "providerId": "12241",
     "historyId": "loc_399394",
-    "officialName": "Central Campus Residence Hall - 2nd Floor"
+    "officialName": "Central Campus Residence Hall - 2nd Floor",
+    "displayName": "CCRH",
+    "displayRange": [
+      1,
+      11
+    ]
   },
   {
     "id": "central_campus_3",
@@ -21,7 +26,12 @@
     "url": "https://laundrytrackerconnect.com/UVM/central_campus_3.html",
     "providerId": "12244",
     "historyId": "loc_1c5701",
-    "officialName": "Central Campus Residence Hall - 3rd Floor"
+    "officialName": "Central Campus Residence Hall - 3rd Floor",
+    "displayName": "CCRH",
+    "displayRange": [
+      12,
+      20
+    ]
   },
   {
     "id": "central_campus_4",
@@ -29,7 +39,12 @@
     "url": "https://laundrytrackerconnect.com/UVM/central_campus_4.html",
     "providerId": "12245",
     "historyId": "loc_419336",
-    "officialName": "Central Campus Residence Hall - 4th Floor"
+    "officialName": "Central Campus Residence Hall - 4th Floor",
+    "displayName": "CCRH",
+    "displayRange": [
+      23,
+      33
+    ]
   },
   {
     "id": "central_campus_5",
@@ -37,25 +52,38 @@
     "url": "https://laundrytrackerconnect.com/UVM/central_campus_5.html",
     "providerId": "12246",
     "historyId": "loc_a4686c",
-    "officialName": "Central Campus Residence Hall - 5thFloor"
+    "officialName": "Central Campus Residence Hall - 5thFloor",
+    "displayName": "CCRH",
+    "displayRange": [
+      34,
+      44
+    ]
   },
   {
     "id": "central_campus_6",
     "name": "Central Campus Flr 6",
     "url": "https://laundrytrackerconnect.com/UVM/central_campus_6.html",
     "providerId": "12247",
-    "machineRange": [45, 55],
+    "machineRange": [
+      45,
+      55
+    ],
     "historyId": "loc_44963c",
-    "officialName": "Central Campus Residence Hall - 6th Floor"
+    "officialName": "Central Campus Residence Hall - 6th Floor",
+    "displayName": "CCRH"
   },
   {
     "id": "central_campus_7",
     "name": "Central Campus Flr 7",
     "url": "https://laundrytrackerconnect.com/UVM/central_campus_7.html",
     "providerId": "12247",
-    "machineRange": [56, 62],
+    "machineRange": [
+      56,
+      62
+    ],
     "historyRoomId": "central_campus_6",
-    "officialName": "Central Campus Residence Hall - 7th Floor"
+    "officialName": "Central Campus Residence Hall - 7th Floor",
+    "displayName": "CCRH"
   },
   {
     "id": "christie",
@@ -63,7 +91,8 @@
     "url": "https://laundrytrackerconnect.com/UVM/christie.html",
     "providerId": "12250",
     "historyId": "loc_83f59f",
-    "officialName": "Christie Hall"
+    "officialName": "Christie Hall",
+    "displayName": "Christie Hall"
   },
   {
     "id": "converse",
@@ -71,7 +100,8 @@
     "url": "https://laundrytrackerconnect.com/UVM/converse.html",
     "providerId": "12251",
     "historyId": "loc_716df4",
-    "officialName": "Converse"
+    "officialName": "Converse",
+    "displayName": "Converse Hall"
   },
   {
     "id": "coolidge",
@@ -87,7 +117,8 @@
     "url": "https://laundrytrackerconnect.com/UVM/cwp.html",
     "providerId": "12249",
     "historyId": "loc_499892",
-    "officialName": "Wright Hall"
+    "officialName": "Wright Hall",
+    "displayName": "Wright Hall"
   },
   {
     "id": "davis",
@@ -95,7 +126,8 @@
     "url": "https://laundrytrackerconnect.com/UVM/davis.html",
     "providerId": "12254",
     "historyId": "loc_c578c6",
-    "officialName": "Davis Hall 1st Floor"
+    "officialName": "Davis Hall 1st Floor",
+    "displayName": "Davis Hall"
   },
   {
     "id": "hamilton",
@@ -135,7 +167,8 @@
     "url": "https://laundrytrackerconnect.com/UVM/LLL_140.html",
     "providerId": "12259",
     "historyId": "loc_0768af",
-    "officialName": "Living & Learning Lounge A140"
+    "officialName": "Living & Learning Lounge A140",
+    "displayName": "L/L A140"
   },
   {
     "id": "lll_180",
@@ -143,7 +176,8 @@
     "url": "https://laundrytrackerconnect.com/UVM/LLL_180.html",
     "providerId": "12260",
     "historyId": "loc_beb029",
-    "officialName": "Living & Learning Lounge A180"
+    "officialName": "Living & Learning Lounge A180",
+    "displayName": "L/L A180"
   },
   {
     "id": "lll_b110",
@@ -151,7 +185,8 @@
     "url": "https://laundrytrackerconnect.com/UVM/LLL_B110.html",
     "providerId": "12261",
     "historyId": "loc_56a455",
-    "officialName": "Living & Learning Lounge B110"
+    "officialName": "Living & Learning Lounge B110",
+    "displayName": "L/L B110"
   },
   {
     "id": "lll_c131",
@@ -159,7 +194,8 @@
     "url": "https://laundrytrackerconnect.com/UVM/LLL_C131.html",
     "providerId": "12262",
     "historyId": "loc_a9714c",
-    "officialName": "Living & Learning Lounge C131"
+    "officialName": "Living & Learning Lounge C131",
+    "displayName": "L/L C131"
   },
   {
     "id": "lll_d110",
@@ -167,7 +203,8 @@
     "url": "https://laundrytrackerconnect.com/UVM/LLL_D110.html",
     "providerId": "12263",
     "historyId": "loc_0a4aec",
-    "officialName": "Living & Learning Lounge D110"
+    "officialName": "Living & Learning Lounge D110",
+    "displayName": "L/L D110"
   },
   {
     "id": "lll_d140",
@@ -175,7 +212,8 @@
     "url": "https://laundrytrackerconnect.com/UVM/LLL_D140.html",
     "providerId": "12264",
     "historyId": "loc_0bfea5",
-    "officialName": "Living & Learning Lounge D140"
+    "officialName": "Living & Learning Lounge D140",
+    "displayName": "L/L D140"
   },
   {
     "id": "lll_e110",
@@ -183,7 +221,8 @@
     "url": "https://laundrytrackerconnect.com/UVM/LLL_E110.html",
     "providerId": "12265",
     "historyId": "loc_1f1d23",
-    "officialName": "Living & Learning Lounge E110"
+    "officialName": "Living & Learning Lounge E110",
+    "displayName": "L/L E110"
   },
   {
     "id": "lll_e160",
@@ -191,7 +230,8 @@
     "url": "https://laundrytrackerconnect.com/UVM/LLL_E160.html",
     "providerId": "12266",
     "historyId": "loc_66909a",
-    "officialName": "Living & Learning Lounge E160"
+    "officialName": "Living & Learning Lounge E160",
+    "displayName": "L/L E160"
   },
   {
     "id": "mason",
@@ -199,7 +239,8 @@
     "url": "https://laundrytrackerconnect.com/UVM/mason.html",
     "providerId": "12267",
     "historyId": "loc_5a2657",
-    "officialName": "Mason Hall 2nd Floor"
+    "officialName": "Mason Hall 2nd Floor",
+    "displayName": "Mason Hall"
   },
   {
     "id": "mcauley",
@@ -239,7 +280,8 @@
     "url": "https://laundrytrackerconnect.com/UVM/patterson.html",
     "providerId": "12272",
     "historyId": "loc_c226af",
-    "officialName": "Patterson Hall 1st Floor"
+    "officialName": "Patterson Hall 1st Floor",
+    "displayName": "Patterson Hall"
   },
   {
     "id": "ready",
@@ -255,7 +297,8 @@
     "url": "https://laundrytrackerconnect.com/UVM/redstone.html",
     "providerId": "12274",
     "historyId": "loc_269a6b",
-    "officialName": "Redstone Hall Basement"
+    "officialName": "Redstone Hall Basement",
+    "displayName": "Redstone Hall"
   },
   {
     "id": "richardson",
@@ -279,7 +322,8 @@
     "url": "https://laundrytrackerconnect.com/UVM/simpson.html",
     "providerId": "12277",
     "historyId": "loc_70e626",
-    "officialName": "Simpson Hall - Lower Level"
+    "officialName": "Simpson Hall - Lower Level",
+    "displayName": "Simpson Hall"
   },
   {
     "id": "slade",
@@ -287,7 +331,8 @@
     "url": "https://laundrytrackerconnect.com/UVM/slade.html",
     "providerId": "12278",
     "historyId": "loc_8129eb",
-    "officialName": "Slade Hall Basement"
+    "officialName": "Slade Hall Basement",
+    "displayName": "Slade Hall"
   },
   {
     "id": "cottage256",
@@ -311,7 +356,12 @@
     "url": "https://laundrytrackerconnect.com/UVM/uheightsn1.html",
     "providerId": "12280",
     "historyId": "loc_a8e4e8",
-    "officialName": "University Heights North 1"
+    "officialName": "University Heights North 1",
+    "displayName": "UHeights North",
+    "displayRange": [
+      1,
+      12
+    ]
   },
   {
     "id": "uheightsn2",
@@ -319,7 +369,12 @@
     "url": "https://laundrytrackerconnect.com/UVM/uheightsn2.html",
     "providerId": "12281",
     "historyId": "loc_fe37ab",
-    "officialName": "University Heights North 2"
+    "officialName": "University Heights North 2",
+    "displayName": "UHeights North",
+    "displayRange": [
+      13,
+      27
+    ]
   },
   {
     "id": "uheightss1",
@@ -327,7 +382,12 @@
     "url": "https://laundrytrackerconnect.com/UVM/uheightss1.html",
     "providerId": "12282",
     "historyId": "loc_e7b03b",
-    "officialName": "University Heights South 1"
+    "officialName": "University Heights South 1",
+    "displayName": "UHeights South",
+    "displayRange": [
+      1,
+      12
+    ]
   },
   {
     "id": "uheightss2",
@@ -335,7 +395,12 @@
     "url": "https://laundrytrackerconnect.com/UVM/uheightss2.html",
     "providerId": "12283",
     "historyId": "loc_1a2fdd",
-    "officialName": "University Heights South 2"
+    "officialName": "University Heights South 2",
+    "displayName": "UHeights South",
+    "displayRange": [
+      13,
+      27
+    ]
   },
   {
     "id": "wilks",
@@ -351,6 +416,7 @@
     "url": "https://laundrytrackerconnect.com/UVM/wing.html",
     "providerId": "12285",
     "historyId": "loc_f2a015",
-    "officialName": "Wing Hall - 1st Floor"
+    "officialName": "Wing Hall - 1st Floor",
+    "displayName": "Wing Hall"
   }
 ]

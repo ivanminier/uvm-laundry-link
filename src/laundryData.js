@@ -4,11 +4,26 @@ const STATUS_BASE_URL = 'https://vxpjcrk7iorjzymtfpuy5csrzm0rwugg.lambda-url.us-
 const MACHINE_BASE_URL = 'https://api.sqinsights.com/washAlert/machines';
 const ORGANIZATION_ID = '4052';
 
-export const laundryRooms = rooms;
+export function roomDisplayName(room) {
+  return room.displayName ?? room.name;
+}
+
+export function roomMachineLabel(room) {
+  const range = room.machineRange ?? room.displayRange;
+  return range ? `Machines ${range[0]}–${range[1]}` : null;
+}
+
+export function roomLabel(room) {
+  return [roomDisplayName(room), roomMachineLabel(room)].filter(Boolean).join(' · ');
+}
+
+export const laundryRooms = [...rooms].sort((first, second) =>
+  roomLabel(first).localeCompare(roomLabel(second), undefined, { numeric: true })
+);
 
 const roomKey = (value) => String(value).toLowerCase().replace(/\bflr\b/g, 'floor').replace(/[^a-z0-9]/g, '');
 const roomAliases = new Map(
-  rooms.flatMap((room) => [room.id, room.name, room.officialName, room.historyId].filter(Boolean).map((key) => [roomKey(key), room]))
+  rooms.flatMap((room) => [room.id, room.name, room.officialName, room.historyId, roomLabel(room)].filter(Boolean).map((key) => [roomKey(key), room]))
 );
 for (const room of rooms) {
   if (room.providerId && !roomAliases.has(room.providerId)) roomAliases.set(room.providerId, room);
