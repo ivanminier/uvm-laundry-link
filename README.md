@@ -2,7 +2,7 @@
 
 LaundryLink is a static React app for checking UVM laundry rooms. The room directory is bundled with the app. When a room is open, the browser reads Wash Alert machine metadata and polls the provider for live status every 30 seconds while the tab is visible. The last successful snapshot stays available on the device if a refresh fails.
 
-Peak Times uses aggregated historical usage from LaundryConnect Live. GitHub Actions refreshes the snapshot twice daily and publishes the static build to GitHub Pages. Central Campus floors 6 and 7 display distinct machine ranges from the shared live feed. The historical chart is labeled with both floors because the provider publishes a combined aggregate. Machine cards link to the official reporting flow, where Automatic Laundry receives and handles service requests.
+Peak Times uses aggregated historical usage from LaundryConnect Live. GitHub Actions schedules the daily snapshot refresh for midnight Eastern time (America/New_York) and publishes the static build to GitHub Pages. Central Campus floors 6 and 7 display distinct machine ranges from the shared live feed. The historical chart is labeled with both floors because the provider publishes a combined aggregate. Machine cards link to the official reporting flow, where Automatic Laundry receives and handles service requests.
 
 ## Development
 
