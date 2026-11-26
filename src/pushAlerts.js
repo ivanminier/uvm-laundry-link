@@ -2,7 +2,7 @@ import { findLaundryRoom } from './laundryData';
 
 const ALERTS_API = 'https://alerts.uvmlaundry.com';
 const alertPrefix = 'uvmLaundryPushAlert-';
-export const recordKey = (room, machine) => `${alertPrefix}${room.id}-${machine.id}`;
+export const recordKey = (room, machineId) => `${alertPrefix}${room.id}-${machineId}`;
 
 export function getSavedAlert(key) {
   try {
@@ -14,7 +14,7 @@ export function getSavedAlert(key) {
 }
 
 export function hasPushAlert(room, machine) {
-  return !!getSavedAlert(recordKey(room, machine));
+  return !!getSavedAlert(recordKey(room, machine.id));
 }
 
 export function saveAlert(key, alert) {

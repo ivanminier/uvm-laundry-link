@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
-import { machinePath, roomLabel } from './laundryData';
+import { machinePath, roomLabel, roomPath, NEXT_WASHER, NEXT_WASHER_LABEL } from './laundryData';
 import { alertsRequest, listSavedAlerts, removeSavedAlert } from './pushAlerts';
 import { useLaundryStatus } from './useLaundryStatus';
 
@@ -23,8 +23,9 @@ async function checkSavedAlerts(alerts, signal) {
 function AlertRow({ alert, roomStatus, onOpenMachine, onCancel }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const watchRoom = alert.machineId === NEXT_WASHER;
   const machine = roomStatus.machines?.find(({ id }) => id === alert.machineId);
-  const machineName = machine?.machineName ?? alert.machineName ?? `Machine ${alert.machineId}`;
+  const machineName = watchRoom ? NEXT_WASHER_LABEL : machine?.machineName ?? alert.machineName ?? `Machine ${alert.machineId}`;
 
   async function cancel() {
     setBusy(true);
@@ -41,8 +42,8 @@ function AlertRow({ alert, roomStatus, onOpenMachine, onCancel }) {
   return (
     <li className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 p-4 dark:border-slate-700">
       <div>
-        <a href={machinePath(alert.room, alert.machineId)}
-          onClick={(event) => onOpenMachine(event, alert.room, alert.machineId)}
+        <a href={watchRoom ? roomPath(alert.room) : machinePath(alert.room, alert.machineId)}
+          onClick={(event) => onOpenMachine(event, alert.room, watchRoom ? null : alert.machineId)}
           className="font-semibold text-uvm-green underline underline-offset-4 dark:text-uvm-gold">
           {machineName}
         </a>
@@ -50,7 +51,7 @@ function AlertRow({ alert, roomStatus, onOpenMachine, onCancel }) {
           {roomLabel(alert.room)}{!roomStatus.stale && machine?.timeRemaining > 0 && ` · About ${machine.timeRemaining} min left`}
         </p>
         <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
-          {alert.leadMinutes ? 'Push about 5 min before the cycle ends' : 'Push when the cycle ends'}
+          {watchRoom ? 'One push when a washer opens' : alert.leadMinutes ? 'Push about 5 min before the cycle ends' : 'Push when the cycle ends'}
         </p>
         {error && <p role="alert" className="mt-1 text-sm text-red-700 dark:text-red-300">{error}</p>}
       </div>
@@ -146,9 +147,9 @@ export function MyLaundry({ onBack, onOpenMachine }) {
         <ul className="space-y-3" aria-busy={checking}>
           {Array.from(rooms, ([id, group]) => <RoomAlerts key={id} alerts={group} onOpenMachine={onOpenMachine} onCancel={cancelAlert} />)}
         </ul>
-      ) : <p className="text-sm text-slate-700 dark:text-slate-200">No active push alerts. Set one on a running machine to get a notification.</p>}
+      ) : <p className="text-sm text-slate-700 dark:text-slate-200">No active push alerts. Set one on a running machine or when a room has no free washers.</p>}
       <p className="mt-5 border-t border-slate-200 pt-4 text-sm text-slate-600 dark:border-slate-700 dark:text-slate-300">
-        LaundryConnect sends SMS alerts. Manage those alerts from the original text message if it includes instructions.
+        Automatic Laundry handles text and email alerts.
       </p>
     </section>
   );

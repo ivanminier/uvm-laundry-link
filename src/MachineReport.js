@@ -11,8 +11,8 @@ function MachineDialog({ machine, room, mode, canSetAlert, onClose, onModeChange
   const details = `University of Vermont · ${roomLabel(room)} · ${machine.machineName}`;
   const roomUrl = getOfficialRoomUrl(room);
   const reporting = mode === 'report';
-  const texting = mode === 'sms';
-  const canShowText = canSetAlert && !!getRoomHistoryId(room);
+  const contactAlert = mode === 'contactAlert';
+  const canShowContactAlert = canSetAlert && !!getRoomHistoryId(room);
   const title = reporting ? `Report ${machine.machineName}` : `Alerts for ${machine.machineName}`;
 
   useEffect(() => { dialog.current.showModal(); }, []);
@@ -28,7 +28,7 @@ function MachineDialog({ machine, room, mode, canSetAlert, onClose, onModeChange
 
   return (
     <dialog ref={dialog} onClose={onClose} aria-label={title}
-      className={`w-[calc(100%-2rem)] rounded-xl bg-white p-5 text-slate-900 shadow-xl backdrop:bg-black/60 dark:bg-slate-800 dark:text-slate-100 sm:p-6 ${texting ? 'max-w-3xl' : 'max-w-md'}`}>
+      className={`w-[calc(100%-2rem)] rounded-xl bg-white p-5 text-slate-900 shadow-xl backdrop:bg-black/60 dark:bg-slate-800 dark:text-slate-100 sm:p-6 ${contactAlert ? 'max-w-3xl' : 'max-w-md'}`}>
       <div className="flex items-start justify-between gap-4">
         <h3 className="text-xl font-bold">{title}</h3>
         <form method="dialog">
@@ -39,33 +39,33 @@ function MachineDialog({ machine, room, mode, canSetAlert, onClose, onModeChange
       <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
         {reporting
           ? `Select ${machine.machineName} on the official room page, then choose Report a problem.`
-          : texting
-            ? `In the Automatic Laundry panel below, select ${machine.machineName}, choose Text, and enter your number. Automatic Laundry sends the text directly.`
-            : 'LaundryLink can send you a push notification even after you close this page.'}
+          : contactAlert
+            ? `Select ${machine.machineName} below, then choose Text or Email. Automatic Laundry sends the alert.`
+            : 'Push alerts work even after you close LaundryLink.'}
       </p>
-      {(reporting || texting) && room.machineRange && (
+      {(reporting || contactAlert) && room.machineRange && (
         <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
           The official page lists CCRH Floors 6 and 7 together under Floor 6.
         </p>
       )}
-      {!reporting && !texting && (
+      {!reporting && !contactAlert && (
         <>
           <PushAlertForm machine={machine} room={room} canSetAlert={canSetAlert} />
-          {canShowText && (
-            <button type="button" onClick={() => onModeChange('sms')}
+          {canShowContactAlert && (
+            <button type="button" onClick={() => onModeChange('contactAlert')}
               className="mt-4 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-lg border border-slate-300 px-3 text-sm font-semibold text-uvm-green hover:bg-green-50 dark:border-slate-600 dark:text-uvm-gold dark:hover:bg-slate-700">
-              <Smartphone size={16} /> Set Text Alert
+              <Smartphone size={16} /> Text or Email Alert
             </button>
           )}
         </>
       )}
-      {texting && (
+      {contactAlert && (
         <>
           <button type="button" onClick={() => onModeChange('alerts')}
             className="my-2 inline-flex min-h-[44px] items-center gap-2 rounded px-2 text-sm font-semibold text-uvm-green dark:text-uvm-gold">
             <ArrowLeft size={16} /> Back to push alerts
           </button>
-          <iframe src={`${roomUrl}?embed=1`} title="Automatic Laundry text alert setup"
+          <iframe src={`${roomUrl}?embed=1`} title="Automatic Laundry text or email alert setup"
             sandbox="allow-scripts allow-forms allow-same-origin"
             className="block h-[min(55dvh,32rem)] min-h-[18rem] w-full rounded-lg border border-slate-300 bg-white dark:border-slate-600" />
         </>

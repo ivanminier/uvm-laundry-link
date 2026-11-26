@@ -26,3 +26,6 @@ yarn-error.log*
 .wrangler/
 .dev.vars
 .dev.vars.*
+
+# Generated service status snapshot
+/public/service-health.json

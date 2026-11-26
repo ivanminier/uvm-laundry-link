@@ -48,6 +48,13 @@ export function roomPath(room) {
   return `#room/${room.name.toLowerCase().replace(/\s+/g, '-')}`;
 }
 
+export const NEXT_WASHER = 'nextWasher';
+export const NEXT_WASHER_LABEL = 'Next available washer';
+
+export function canWatchNextWasher(washers) {
+  return washers.length > 0 && washers.every(({ status }) => status !== 'Available' && status !== 'Unknown');
+}
+
 export function machinePath(room, machineId) {
   return `${roomPath(room)}?machine=${encodeURIComponent(machineId)}`;
 }

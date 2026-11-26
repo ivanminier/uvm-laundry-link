@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Zap, CheckCircle, XCircle, AlertTriangle, Clock, RefreshCw, Settings, Star, ArrowLeft, ExternalLink, Droplet, Wind, Eye, EyeOff, Info, Search, Sun, Moon, LayoutGrid, Bell } from 'lucide-react';
+import { Zap, CheckCircle, XCircle, AlertTriangle, Clock, RefreshCw, Settings, Star, ArrowLeft, ExternalLink, Droplet, Wind, Eye, EyeOff, Info, Search, Sun, Moon, LayoutGrid, Bell, X } from 'lucide-react';
 
-import { findLaundryRoom, laundryRooms, roomDisplayName, roomLabel, roomPath, machinePath } from './laundryData';
+import { findLaundryRoom, laundryRooms, roomDisplayName, roomLabel, roomPath, machinePath, canWatchNextWasher } from './laundryData';
 import { useLaundryStatus } from './useLaundryStatus';
 import { RoomTools } from './RoomTools';
 import { MyLaundry } from './MyLaundry';
+import { PushAlertForm } from './PushAlertForm';
 import { LaundryHelp } from './LaundryHelp';
 import { RoomPeakTimes } from './RoomPeakTimes';
 import { MachineReport, SERVICE_REQUEST_URL } from './MachineReport';
@@ -268,6 +269,38 @@ const MachineCard = React.memo(({ machine, room, stale }) => {
   );
 });
 
+function NextWasherAlert({ room, washers, eligible }) {
+  const dialog = useRef(null);
+  const [open, setOpen] = useState(false);
+
+  function showAlert() {
+    dialog.current.showModal();
+    setOpen(true);
+  }
+
+  return (
+    <>
+      {eligible && (
+        <button type="button" onClick={showAlert}
+          className="mt-3 inline-flex min-h-[44px] items-center gap-2 rounded-lg border border-slate-300 px-3 text-sm font-semibold text-uvm-green hover:bg-green-50 dark:border-slate-600 dark:text-uvm-gold dark:hover:bg-slate-700">
+          <Bell size={16} /> Notify me when a washer opens
+        </button>
+      )}
+      <dialog ref={dialog} onClose={() => setOpen(false)} aria-label="Next available washer"
+        className="w-[calc(100%-2rem)] max-w-md rounded-xl bg-white p-5 text-slate-900 shadow-xl backdrop:bg-black/60 dark:bg-slate-800 dark:text-slate-100">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-xl font-bold">Next available washer</h3>
+          <form method="dialog">
+            <button type="submit" aria-label="Close washer alert" className="rounded p-2 focus-visible:ring-2"><X size={20} /></button>
+          </form>
+        </div>
+        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{roomLabel(room)}</p>
+        {open && <PushAlertForm room={room} washers={washers} canSetAlert={eligible} />}
+      </dialog>
+    </>
+  );
+}
+
 function FavoriteAvailability({ room }) {
   const container = useRef(null);
   const [nearViewport, setNearViewport] = useState(() => !('IntersectionObserver' in window));
@@ -510,11 +543,13 @@ const App = () => {
   const openMachine = (event, room, machineId) => {
     if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
-    const path = machinePath(room, machineId);
+    const path = machineId ? machinePath(room, machineId) : roomPath(room);
     if (window.location.hash !== path) window.history.pushState(null, '', path);
     handleSelectRoom(room.id, false);
-    setShowMachineList(true);
-    setMachineScrollTarget(`machine-card-${machineId}`);
+    if (machineId) {
+      setShowMachineList(true);
+      setMachineScrollTarget(`machine-card-${machineId}`);
+    }
   };
 
   const handleScrollToMachine = (machineCardId) => {
@@ -549,6 +584,8 @@ const App = () => {
   }, [campus, showOnlyFavorites, homeSearchTerm, favorites]);
   
   const allWashers = useMemo(() => machines.filter(machine => machine.type === 'Washer'), [machines]);
+  const unknownMachines = machines.filter(({ status }) => status === 'Unknown').length;
+  const hasUsableStatus = machines.length > unknownMachines;
   const allDryers = useMemo(() => machines.filter(machine => machine.type === 'Dryer'), [machines]);
 
   const filterMachineList = useCallback((list) => list.filter(machine => {
@@ -577,6 +614,9 @@ const App = () => {
       case 'home':
         return (
           <div key="home" className="animate-fadeIn">
+            <p className="mb-4 text-sm text-slate-600 dark:text-slate-300">
+              Check University of Vermont washers and dryers with this independent, student-created laundry tracker.
+            </p>
             <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
               <h2 className={`text-3xl lg:text-4xl font-bold ${effectiveDarkMode ? 'text-white' : 'text-gray-900'} md:mb-0 mb-3 whitespace-nowrap`}>
                 {showOnlyFavorites ? "Favorite Rooms" : "All Laundry Rooms"}
@@ -634,13 +674,19 @@ const App = () => {
             <RoomTools key={`tools-${currentRoom.id}`} room={currentRoom} onSelectRoom={handleSelectRoom} />
             {roomStatus.failed && (
               <div role="status" className="mb-6 rounded-md border-l-4 border-yellow-500 bg-yellow-100 p-4 text-yellow-900 dark:bg-yellow-700/30 dark:text-yellow-200">
-                {roomStatus.stale ? 'Live refresh failed. Showing the last saved machine statuses.' : 'Live machine status unavailable. Try refreshing or open the official status page.'}
+                {roomStatus.stale ? 'Live refresh failed. Showing the last saved machine statuses.' : 'Live machine status is unavailable. Try refreshing or open the official room page.'}
+                {' '}<a className="font-semibold underline" href="/status/">Service status</a>
               </div>
             )}
             {roomStatus.busy && !roomStatus.checkedAt && (
               <p role="status" className="mb-6 text-gray-600 dark:text-slate-300">Loading live machine status…</p>
             )}
             <RoomPeakTimes key={`peak-${currentRoom.id}`} room={currentRoom} />
+            {roomStatus.checkedAt && !hasUsableStatus && (
+              <p role="status" className="mb-6 rounded-lg bg-amber-100 p-4 text-amber-900 dark:bg-amber-950 dark:text-amber-200">
+                The provider returned no usable machine statuses. <a className="font-semibold underline" href="/status/">Service status</a>
+              </p>
+            )}
             {roomStatus.checkedAt && <>
             <div className="mb-8 p-5 sm:p-6 bg-white dark:bg-slate-800/70 rounded-xl shadow-xl">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-end">
@@ -658,11 +704,18 @@ const App = () => {
                   </select>
                 </div>
               </div>
-              <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm text-gray-700 dark:text-slate-300">
+              {hasUsableStatus && <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm text-gray-700 dark:text-slate-300">
                 <p>Washers: <span className="font-semibold text-uvm-green dark:text-uvm-gold">{availableWashersInRoom}</span> Available / <span className="font-semibold">{allWashers.length}</span> Total</p>
                 <p>Dryers: <span className="font-semibold text-uvm-green dark:text-uvm-gold">{availableDryersInRoom}</span> Available / <span className="font-semibold">{allDryers.length}</span> Total</p>
-              </div>
-              <p className={`text-xs mt-4 text-right ${roomStatus.stale ? 'text-yellow-700 dark:text-yellow-400' : 'text-gray-500 dark:text-slate-400'}`}>{roomStatus.stale ? 'Saved snapshot' : 'Last checked'} · {new Date(roomStatus.checkedAt).toLocaleString()}</p>
+              </div>}
+              {hasUsableStatus && unknownMachines > 0 && (
+                <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                  Status unavailable for {unknownMachines} {unknownMachines === 1 ? 'machine' : 'machines'}.
+                </p>
+              )}
+              <NextWasherAlert key={currentRoom.id} room={currentRoom} washers={allWashers}
+                eligible={!roomStatus.stale && canWatchNextWasher(allWashers)} />
+              <p className={`text-xs mt-4 text-right ${roomStatus.stale ? 'text-yellow-700 dark:text-yellow-400' : 'text-gray-500 dark:text-slate-400'}`}>{roomStatus.stale ? 'Saved snapshot' : hasUsableStatus ? 'Live · Last checked' : 'Last checked'} · <time dateTime={new Date(roomStatus.checkedAt).toISOString()}>{new Date(roomStatus.checkedAt).toLocaleString()}</time></p>
             </div>
 
             {machines.length > 0 && (
@@ -797,6 +850,14 @@ const App = () => {
 
       <footer className="mt-20 py-10 border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center text-gray-500 dark:text-slate-400 text-sm">
+          <nav aria-label="Site resources" className="mb-4 flex flex-wrap justify-center gap-x-4 gap-y-2">
+            <a className="underline" href="/residence-halls/">Laundry directory</a>
+            <a className="underline" href="/laundry-guide/">Laundry guide</a>
+            <a className="underline" href="/faq/">FAQ</a>
+            <a className="underline" href="/status/">Service status</a>
+            <a className="underline" href="/about/">About</a>
+            <a className="underline" href="/compare/">Compare trackers</a>
+          </nav>
           <p>&copy; {new Date().getFullYear()} UVM LaundryLink. Created by Ivan Minier.</p>
            <p className="mt-1">Not affiliated with the University of Vermont. Machine status provided by UVM’s Wash Alert pages.</p>
         </div>

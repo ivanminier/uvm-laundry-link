@@ -108,7 +108,7 @@ test('switching CCRH floors excludes the legacy combined cache and saves each fl
     machineType: { isWasher: number < 50 || number === 56, isDryer: number === 55 || number === 62 },
   }));
   const payload = { room: { id: 12247 }, machines: Object.fromEntries(
-    metadata.map(({ id }) => [id, { statusId: 'AVAILABLE' }])
+    metadata.map(({ id }) => [id, { statusId: id === '56' ? 'IN_USE' : 'AVAILABLE' }])
   ) };
   global.fetch = jest.fn(async (url) => ({ ok: true, json: async () => url.includes('/machines/') ? metadata : payload }));
   const container = document.createElement('div');
@@ -119,6 +119,7 @@ test('switching CCRH floors excludes the legacy combined cache and saves each fl
     await act(async () => { root.render(<App />); });
     const cards = () => [...container.querySelectorAll('[id^="machine-card-"] h3')].map(node => node.textContent);
     expect(cards()).toEqual(['Washer 45', 'Dryer 55']);
+    expect(container.textContent).not.toContain('Notify me when a washer opens');
     expect(container.querySelector('main h2').textContent).toBe('CCRH');
     expect(container.querySelector('#room-switcher').selectedOptions[0].textContent).toBe('CCRH · Floor 6');
     expect(container.querySelector('#room-switcher option[value="cottage256"]').textContent).toBe('The Cottages');
@@ -128,6 +129,7 @@ test('switching CCRH floors excludes the legacy combined cache and saves each fl
       window.dispatchEvent(new HashChangeEvent('hashchange'));
     });
     expect(cards()).toEqual(['Washer 56', 'Dryer 62']);
+    expect(container.textContent).toContain('Notify me when a washer opens');
     expect(document.activeElement.id).toBe('machine-card-62');
     expect(container.querySelector('[aria-label="Link to Dryer 62"]').getAttribute('href')).toBe('#room/central-campus-flr-7?machine=62');
     expect(container.querySelector('main h2').textContent).toBe('CCRH');
@@ -145,7 +147,7 @@ test('switching CCRH floors excludes the legacy combined cache and saves each fl
 });
 
 
-test('SMS setup uses the vendor embed and keeps the selected CCRH floor in the alert dialog', async () => {
+test('text and email setup uses the vendor embed and keeps the selected CCRH floor in the alert dialog', async () => {
   global.IS_REACT_ACT_ENVIRONMENT = true;
   const originalShowModal = HTMLDialogElement.prototype.showModal;
   HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', ''); };
@@ -159,11 +161,11 @@ test('SMS setup uses the vendor embed and keeps the selected CCRH floor in the a
       root.render(<MachineReport machine={{ id: '99', machineName: 'Washer 56' }} room={room} canSetAlert />);
     });
     await act(async () => { container.querySelector('[aria-label="Set Cycle Alert for Washer 56"]').click(); });
-    const button = Array.from(container.querySelectorAll('button')).find((item) => item.textContent.trim() === 'Set Text Alert');
+    const button = Array.from(container.querySelectorAll('button')).find((item) => item.textContent.trim() === 'Text or Email Alert');
     await act(async () => { button.click(); });
     expect(container.querySelector('iframe').getAttribute('src')).toBe('https://laundryconnectlive.com/live/loc_44963c?embed=1');
     expect(container.querySelector('dialog').textContent).toContain('CCRH · Floor 7 · Washer 56');
-    expect(container.querySelector('dialog').textContent).toContain('choose Text');
+    expect(container.querySelector('dialog').textContent).toContain('choose Text or Email');
   } finally {
     act(() => root.unmount());
     container.remove();

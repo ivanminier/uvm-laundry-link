@@ -1,10 +1,13 @@
 import { DurableObject } from 'cloudflare:workers';
-import { fetchRoomStatus, filterRoomMachines, findLaundryRoom, roomLabel, machinePath } from '../src/laundryData';
+import { fetchRoomStatus, filterRoomMachines, findLaundryRoom, roomLabel, machinePath, normalizeRoomStatus, canWatchNextWasher, NEXT_WASHER, NEXT_WASHER_LABEL } from '../src/laundryData';
 import { deliverPush, parseSubscription } from './push';
 import ccrhMachines from './ccrh-machines.json';
+import roomWashers from './room-washers.json';
 
 const LISTEN_ORIGIN = 'https://uvmlaundry.com';
 const ORIGINS = new Set([LISTEN_ORIGIN, 'https://www.uvmlaundry.com']);
+const REFERRERS = new Set(['chatgpt', 'perplexity', 'gemini', 'copilot', 'claude', 'google', 'bing', 'duckduckgo', 'other']);
+const REFERRAL_PAGES = new Set(['tracker', 'hall', 'information']);
 const POLL_INTERVAL = 30_000;
 const ALERT_LIFETIME = 4 * 60 * 60 * 1000;
 const MAX_ALERTS_PER_ROOM = 60;
@@ -45,6 +48,27 @@ export default {
     }
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers });
 
+    if (pathname === '/referrals' && request.method === 'POST') {
+      if (!origin || !env.REFERRALS) return new Response(null, { status: 403, headers });
+      const limit = await env.REFERRAL_REQUESTS.limit({ key: request.headers.get('CF-Connecting-IP') ?? 'unknown' });
+      if (!limit.success) return new Response(null, { status: 429, headers });
+      const chunks = [];
+      let size = 0;
+      for await (const chunk of request.body ?? []) {
+        size += chunk.byteLength;
+        if (size > 96) return new Response(null, { status: 400, headers });
+        chunks.push(new TextDecoder().decode(chunk));
+      }
+      const params = new URLSearchParams(chunks.join(''));
+      const category = params.get('category');
+      const page = params.get('page');
+      if (!REFERRERS.has(category) || !REFERRAL_PAGES.has(page)) {
+        return new Response(null, { status: 400, headers });
+      }
+      env.REFERRALS.writeDataPoint({ indexes: [category], blobs: [category, page] });
+      return new Response(null, { status: 204, headers });
+    }
+
     if (pathname === '/config' && request.method === 'GET') {
       return reply({ publicKey: env.VAPID_PUBLIC_KEY ?? null });
     }
@@ -84,20 +108,30 @@ export default {
       return reply({ cancelled: true });
     }
     const subscription = parseSubscription(data.subscription);
-    if (!subscription || typeof data.machineId !== 'string' || !/^\d{1,15}$/.test(data.machineId) ||
+    if (data.machineId === NEXT_WASHER) {
+      if (!subscription || !Array.isArray(data.washerIds) ||
+          data.washerIds.length < 1 || data.washerIds.length > 128 ||
+          data.washerIds.some((id) => typeof id !== 'string' || !/^\d{1,15}$/.test(id))) {
+        return reply({ error: 'Invalid washer list or browser subscription.' }, 400);
+      }
+    } else if (!subscription || typeof data.machineId !== 'string' || !/^\d{1,15}$/.test(data.machineId) ||
         ![0, 5].includes(data.leadMinutes)) {
       return reply({ error: 'Invalid machine or browser subscription.' }, 400);
     }
 
     try {
-      const result = await roomAlerts.register(room.id, data.machineId, data.machineName, data.leadMinutes, subscription);
+      const result = await roomAlerts.register(room.id, data.machineId, data.machineName, data.machineId === NEXT_WASHER ? 0 : data.leadMinutes, subscription, data.washerIds);
       return reply(result, result.status ?? 200);
     } catch (failure) {
       console.warn('alert_registration_failed', { roomId: room.id, reason: String(failure.message).slice(0, 150) });
-      return reply({ error: 'The alert service could not check this machine. Try again shortly.' }, 503);
+      return reply({ error: 'Could not check live availability. Try again shortly.' }, 503);
     }
   },
 };
+
+function verifiedWashers(room) {
+  return (roomWashers[room.id] ?? []).map(([id, number]) => ({ id, machineName: `Washer ${number}` }));
+}
 
 export class RoomAlerts extends DurableObject {
   constructor(ctx, env) {
@@ -112,7 +146,7 @@ export class RoomAlerts extends DurableObject {
     `);
   }
 
-  async register(roomId, machineId, name, leadMinutes, subscription) {
+  async register(roomId, machineId, name, leadMinutes, subscription, washerIds) {
     const room = findLaundryRoom(roomId);
     const now = Date.now();
     this.sql.exec('DELETE FROM alerts WHERE expires_at <= ?', now);
@@ -125,22 +159,38 @@ export class RoomAlerts extends DurableObject {
       return existing;
     }
 
-    const mappedMachine = room.machineRange && filterRoomMachines(room, ccrhMachines).find(({ id }) => id === machineId);
-    if (room.machineRange && !mappedMachine) return rejected(404, 'Machine not found in this room.');
+    const watchRoom = machineId === NEXT_WASHER;
+    const mappedMachine = !watchRoom && room.machineRange && filterRoomMachines(room, ccrhMachines).find(({ id }) => id === machineId);
+    if (!watchRoom && room.machineRange && !mappedMachine) return rejected(404, 'Machine not found in this room.');
 
     const payload = await fetchRoomStatus(room.providerId, AbortSignal.timeout(8_000));
     if (String(payload?.room?.id) !== room.providerId || !payload.machines) {
       return rejected(503, 'The provider could not verify this room.');
     }
-    if (!Object.prototype.hasOwnProperty.call(payload.machines, machineId)) {
-      return rejected(404, 'Machine not found in this room.');
+    let machineName = NEXT_WASHER_LABEL;
+    if (watchRoom) {
+      const catalog = verifiedWashers(room);
+      const ids = new Set(washerIds);
+      if (ids.size !== catalog.length || !catalog.every(({ id }) => ids.has(id))) {
+        return rejected(503, 'The washer list changed. This room alert is temporarily unavailable.');
+      }
+      const washers = normalizeRoomStatus(payload, room.providerId, catalog);
+      if (!canWatchNextWasher(washers)) {
+        return rejected(409, washers.some(({ status }) => status === 'Available')
+          ? 'A washer is free now. Refresh the room to see which one.'
+          : 'Could not confirm that all washers are unavailable. Try again shortly.');
+      }
+    } else {
+      if (!Object.prototype.hasOwnProperty.call(payload.machines, machineId)) {
+        return rejected(404, 'Machine not found in this room.');
+      }
+      if (!RUNNING.has(payload.machines[machineId]?.statusId)) {
+        return rejected(409, 'This machine is no longer running. Refresh the room to check its current status.');
+      }
+      machineName = mappedMachine
+        ? `${mappedMachine.type} ${mappedMachine.number}`
+        : (typeof name === 'string' && /^(Washer|Dryer) [0-9]{1,6}[A-Za-z]?$/.test(name) ? name : 'Your laundry machine');
     }
-    if (!RUNNING.has(payload.machines[machineId]?.statusId)) {
-      return rejected(409, 'This machine is no longer running. Refresh the room to check its current status.');
-    }
-    const machineName = mappedMachine
-      ? `${mappedMachine.type} ${mappedMachine.number}`
-      : (typeof name === 'string' && /^(Washer|Dryer) [0-9]{1,6}[A-Za-z]?$/.test(name) ? name : 'Your laundry machine');
 
     const id = crypto.randomUUID();
     const expiresAt = now + ALERT_LIFETIME;
@@ -187,28 +237,35 @@ export class RoomAlerts extends DurableObject {
       const payload = await fetchRoomStatus(providerId, AbortSignal.timeout(8_000));
       if (String(payload?.room?.id) !== providerId || !payload.machines) return;
 
-      const due = alerts.map((alert) => {
+      const due = alerts.flatMap((alert) => {
+        if (alert.machine_id === NEXT_WASHER) {
+          const room = findLaundryRoom(alert.room_id);
+          const open = verifiedWashers(room).find(({ id }) => payload.machines[id]?.statusId === 'AVAILABLE');
+          return open ? [{ alert, title: `${open.machineName} just opened`, machineId: open.id }] : [];
+        }
+
         const data = payload.machines[alert.machine_id];
         const minutes = Math.ceil(data?.remainingSeconds / 60);
-        let status;
-        if (FINISHED.has(data?.statusId)) status = 'has finished';
-        else if (data?.statusId === 'AVAILABLE') status = 'is now available';
+        const name = alert.machine_name;
+        let title;
+        if (FINISHED.has(data?.statusId)) title = `${name} is done`;
+        else if (data?.statusId === 'AVAILABLE') title = `${name} is free`;
         else if (alert.lead_minutes && RUNNING.has(data?.statusId) && minutes > 0 && minutes <= alert.lead_minutes) {
-          status = `has about ${minutes} min left`;
+          title = `${name} · About ${minutes} min left`;
         }
-        return { alert, status };
-      }).filter(({ status }) => status);
+        return title ? [{ alert, title, machineId: alert.machine_id }] : [];
+      });
 
       // Bound concurrent outbound deliveries. Remaining alerts are picked up on the next poll.
-      for (const { alert, status } of due.slice(0, 4)) {
+      for (const { alert, title, machineId } of due.slice(0, 4)) {
         if (this.sql.exec('SELECT 1 FROM alerts WHERE id = ?', alert.id).toArray().length === 0) continue;
         const room = findLaundryRoom(alert.room_id);
         let terminal = false;
         try {
           terminal = await deliverPush(JSON.parse(alert.subscription), {
-            title: `${alert.machine_name} ${status}`,
+            title,
             body: roomLabel(room),
-            path: machinePath(room, alert.machine_id),
+            path: machinePath(room, machineId),
             tag: alert.id,
           }, this.env);
         } catch {

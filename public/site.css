@@ -1,0 +1,14 @@
+.public-page{color-scheme:light dark;--paper:#f5f7f5;--text:#1d2622;--muted:#4b5951;--card:#fff;--line:#d8e2da;--link:#154734;--accent:#154734;background:var(--paper);color:var(--text);font:1rem/1.65 system-ui,sans-serif;min-height:100vh;margin:0}
+@media(prefers-color-scheme:dark){.public-page{--paper:#101a16;--text:#edf6ef;--muted:#bac9bf;--card:#18251e;--line:#374a3e;--link:#f3cd63}}
+.public-page *{box-sizing:border-box}
+.public-page a{color:var(--link);text-decoration:underline;text-underline-offset:.18em}
+.public-page a:focus-visible{outline:2px solid currentColor;outline-offset:4px}
+.site-wrap{width:min(68rem,calc(100% - 2rem));margin-inline:auto}
+.site-header{background:#154734;color:#fff;padding:1rem 0}
+.site-header .site-wrap{display:flex;align-items:center;justify-content:space-between;gap:.5rem 1.5rem;flex-wrap:wrap}
+.site-header a{color:#fff}.site-brand{font-size:1.15rem;font-weight:750;text-decoration:none!important}
+.site-nav,.site-footer nav,.crumbs{display:flex;gap:.35rem 1.15rem;flex-wrap:wrap;align-items:center}
+.site-main{padding-block:2.75rem 3.5rem}.site-copy{max-width:47rem}.site-main h1{font-size:clamp(2rem,5vw,3.4rem);line-height:1.12;letter-spacing:-.035em;margin:.6rem 0 1rem}.site-main h2{font-size:1.35rem;line-height:1.3;margin:2rem 0 .6rem}.site-main p{margin:.7rem 0 1.2rem}.site-intro{color:var(--muted);font-size:1.1rem;max-width:44rem}
+.crumbs{font-size:.875rem;color:var(--muted)}.campus-grid,.hall-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,15.5rem),1fr));gap:.75rem;list-style:none;margin:1rem 0 1.5rem;padding:0}
+.campus-grid>li,.hall-grid>li{background:var(--card);border:1px solid var(--line);border-radius:.7rem;padding:1rem}.hall-grid h3{margin:0 0 .45rem;font-weight:750}.hall-grid p{margin:.4rem 0}.hall-grid a{display:inline-block;padding-block:.3rem}.site-note{background:var(--card);border-inline-start:3px solid var(--link);padding:.65rem 1rem}
+.site-footer{border-top:1px solid var(--line);padding:1.5rem 0 2.5rem;color:var(--muted);font-size:.9rem}.site-footer p{margin:.8rem 0 0}

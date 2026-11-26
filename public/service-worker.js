@@ -1,4 +1,4 @@
-const CACHE_NAME = 'laundrylink-static-v2';
+const CACHE_NAME = 'laundrylink-static-v3';
 const SHELL_URLS = ['/index.html', '/manifest.json', '/favicon.ico', '/logo192.png', '/logo512.png'];
 
 self.addEventListener('install', (event) => {
@@ -22,12 +22,25 @@ self.addEventListener('fetch', (event) => {
     if (request.mode === 'navigate') {
       try {
         const response = await fetch(request);
-        if (response.ok && new URL(request.url).pathname === '/') {
-          await cache.put('/index.html', response.clone());
+        if (response.ok && response.headers.get('content-type')?.includes('text/html')) {
+          const path = new URL(request.url).pathname;
+          await cache.put(path === '/' ? '/index.html' : path, response.clone());
         }
         return response;
       } catch {
-        return await cache.match('/index.html') || Response.error();
+        const path = new URL(request.url).pathname;
+        return await cache.match(path === '/' ? '/index.html' : path) || Response.error();
+      }
+    }
+
+    const path = new URL(request.url).pathname;
+    if (['/site.css', '/referrals.js', '/robots.txt', '/sitemap.xml'].includes(path)) {
+      try {
+        const response = await fetch(request);
+        if (response.ok) await cache.put(request, response.clone());
+        return response;
+      } catch {
+        return await cache.match(request) || Response.error();
       }
     }
 

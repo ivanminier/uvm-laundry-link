@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
+import { NEXT_WASHER, NEXT_WASHER_LABEL } from './laundryData';
 import { alertsRequest, getSavedAlert, recordKey, removeSavedAlert, saveAlert } from './pushAlerts';
 
 export { hasPushAlert } from './pushAlerts';
@@ -9,8 +10,11 @@ function decodeApplicationKey(base64url) {
   return Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
 }
 
-export function PushAlertForm({ machine, room, canSetAlert }) {
-  const key = recordKey(room, machine);
+export function PushAlertForm({ machine, room, canSetAlert, washers }) {
+  const watchRoom = !machine;
+  const machineId = machine?.id ?? NEXT_WASHER;
+  const machineName = machine?.machineName ?? NEXT_WASHER_LABEL;
+  const key = recordKey(room, machineId);
   const [saved, setSaved] = useState(() => getSavedAlert(key));
   const [leadMinutes, setLeadMinutes] = useState(0);
   const [publicKey, setPublicKey] = useState(null);
@@ -78,12 +82,13 @@ export function PushAlertForm({ machine, room, canSetAlert }) {
       setDeviceSubscription(subscription);
       const alert = await alertsRequest('/alerts', {
         roomId: room.id,
-        machineId: machine.id,
-        machineName: machine.machineName,
+        machineId,
+        machineName,
+        ...(watchRoom && { washerIds: washers.map(({ id }) => id) }),
         leadMinutes,
         subscription: subscription.toJSON(),
       });
-      const savedAlert = { ...alert, machineName: machine.machineName, leadMinutes };
+      const savedAlert = { ...alert, machineName, leadMinutes };
       saveAlert(key, savedAlert);
       setSaved(savedAlert);
     } catch (failure) {
@@ -124,7 +129,9 @@ export function PushAlertForm({ machine, room, canSetAlert }) {
       {saved ? (
         <>
           <p role="status" className="text-sm font-medium">
-            Alert set for this device {saved.leadMinutes ? 'about 5 minutes before the cycle ends' : 'when the cycle ends'}.
+            {watchRoom
+              ? 'You’ll get one push when a washer opens in this room.'
+              : `You’ll get a push ${saved.leadMinutes ? 'about 5 minutes before the cycle ends' : 'when the cycle ends'}.`}
           </p>
           <button type="button" onClick={cancel} disabled={busy || !publicKey}
             className="min-h-[44px] rounded-lg border border-slate-300 px-3 text-sm font-semibold dark:border-slate-600 disabled:opacity-50">
@@ -133,18 +140,24 @@ export function PushAlertForm({ machine, room, canSetAlert }) {
         </>
       ) : canSetAlert ? (
         <>
-          <label htmlFor="alert-timing" className="block text-sm font-medium">Send a push notification</label>
-          <select id="alert-timing" value={leadMinutes} onChange={(event) => setLeadMinutes(Number(event.target.value))}
-            className="min-h-[44px] w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-600 dark:bg-slate-700">
-            <option value={0}>When the cycle ends</option>
-            <option value={5}>About 5 minutes early</option>
-          </select>
+          {!watchRoom && (
+            <>
+              <label htmlFor="alert-timing" className="block text-sm font-medium">Send a push notification</label>
+              <select id="alert-timing" value={leadMinutes} onChange={(event) => setLeadMinutes(Number(event.target.value))}
+                className="min-h-[44px] w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-600 dark:bg-slate-700">
+                <option value={0}>When the cycle ends</option>
+                <option value={5}>About 5 minutes early</option>
+              </select>
+            </>
+          )}
           <button type="button" onClick={subscribe} disabled={busy || !publicKey}
             className="min-h-[44px] w-full rounded-lg bg-uvm-green px-3 text-sm font-semibold text-white hover:bg-green-900 disabled:opacity-50">
-            {busy ? 'Setting alert…' : 'Set Push Alert'}
+            {busy ? 'Setting alert…' : watchRoom ? 'Notify me' : 'Set Push Alert'}
           </button>
         </>
-      ) : <p role="status" className="text-sm">There is no pending alert for this machine.</p>}
+      ) : <p role="status" className="text-sm">
+        {watchRoom ? 'A room alert is available when no washers are free.' : 'There is no pending alert for this machine.'}
+      </p>}
       {error && <p role="alert" className="text-sm text-red-700 dark:text-red-300">{error}</p>}
     </div>
   );
