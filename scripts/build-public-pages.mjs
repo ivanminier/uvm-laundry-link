@@ -1,12 +1,13 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { checkSources } from './check-sources.mjs';
 import { articles, handbook, service } from './site-content.mjs';
 
 const origin = 'https://uvmlaundry.com';
 const build = new URL('../build/', import.meta.url);
 const rooms = JSON.parse(await readFile(new URL('../src/laundryRooms.json', import.meta.url)));
 const history = JSON.parse(await readFile(new URL('../src/peakTimesSnapshot.json', import.meta.url)));
-const health = await readFile(new URL('../public/service-health.json', import.meta.url), 'utf8')
-  .then(JSON.parse).catch(() => null);
+const health = process.env.SITE_CHECK_SOURCES === '1' ? await checkSources()
+  : JSON.parse(await readFile(new URL('../src/serviceHealthSnapshot.json', import.meta.url)));
 const campusNames = { redstone: 'Redstone', athletic: 'Athletic', central: 'Central', north: 'Trinity / North' };
 const navLinks = [['/residence-halls/', 'Laundry directory'], ['/laundry-guide/', 'Laundry guide'], ['/faq/', 'FAQ'], ['/status/', 'Service status'], ['/about/', 'About'], ['/compare/', 'Compare trackers']];
 const escape = (value) => String(value).replace(/[&<>"']/g, (character) =>
@@ -138,11 +139,11 @@ const status = {
   description: 'See when UVM laundry sources were last checked, how to recognize saved machine status, and where to go during an outage.',
   intro: 'These checks are snapshots from the site build. The room tracker shows when your browser last retrieved machine status.', trail: siteTrail,
   html: `<div class="site-copy"><h2>Last automated checks</h2>
-    ${health ? `<p>Checked ${time(health.checkedAt)}.</p><ul>
+    <p>Checked ${time(health.checkedAt)}.</p><ul>
       <li>Machine status feed responded with status data for ${health.checkedFeeds} of ${health.totalFeeds} provider rooms.</li>
       <li>Sample machine directory request ${health.directory ? 'returned a usable machine list' : 'did not return a usable machine list'} from the build environment.</li>
       <li>Push configuration endpoint ${health.pushConfiguration ? 'responded for LaundryLink' : 'could not be verified'}. This check does not test delivery.</li>
-    </ul>` : '<p>There is no automated check snapshot for this build.</p>'}
+    </ul>
     <p>Peak Times data fetched ${time(history.capturedAt)}. It describes historical usage.</p>
     <h2>Read live, saved, and unavailable status</h2><p><strong>Live:</strong> the tracker retrieved provider status at the time shown. <strong>Saved snapshot:</strong> the data is from an earlier check on this device. <strong>Unavailable:</strong> the tracker cannot show usable machine data. Check again or use the official room link from the ${link('/residence-halls/', 'laundry directory')}.</p>
     <h2>Alerts and repairs</h2><p>Push alerts depend on browser permissions and the live room feed. Automatic Laundry delivers the text and email options in its embedded form. To report an equipment issue, ${link(service, 'contact Automatic Laundry')}.</p></div>`,

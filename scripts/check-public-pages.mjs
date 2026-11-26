@@ -53,6 +53,10 @@ for (let index = 0; index < routes.length; index += 6) {
   }));
 }
 
+const status = await read('/status/');
+assert.match(status, /Machine status feed responded with status data for \d+ of \d+ provider rooms\./);
+assert.match(status, /<time datetime="\d{4}-\d{2}-\d{2}T/);
+
 const robots = await read('/robots.txt');
 assert.match(robots, /User-agent: \*\s+Allow: \/\s+Sitemap: https:\/\/uvmlaundry\.com\/sitemap\.xml/);
 assert.doesNotMatch(robots, /Disallow: \/(?:\s|$)/);
