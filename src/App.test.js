@@ -33,7 +33,12 @@ test('the bundled room directory accepts known provider IDs and deep-link aliase
   expect(findLaundryRoom('12285')).toEqual(findLaundryRoom('wing-hall-1st-flr'));
   expect(findLaundryRoom('Living%20%26%20Learning%20D140')).toMatchObject({ id: 'lll_d140' });
   expect(findLaundryRoom('university-heights-north-2')).toMatchObject({ id: 'uheightsn2', historyId: 'loc_fe37ab' });
-  expect(roomLabel(findLaundryRoom('university-heights-north-2'))).toBe('UHeights North · Machines 13–27');
+  expect(roomLabel(findLaundryRoom('university-heights-north-2'))).toBe('UHeights North · Towers 2+3');
+  expect(roomLabel(findLaundryRoom('uheightsn1'))).toBe('UHeights North · Tower 1');
+  expect(roomLabel(findLaundryRoom('uheightss1'))).toBe('UHeights South · Tower 1');
+  expect(roomLabel(findLaundryRoom('uheightss2'))).toBe('UHeights South · Towers 2+3');
+  expect(laundryRooms.filter(room => room.displayName === 'CCRH').map(roomLabel))
+    .toEqual([2, 3, 4, 5, 6, 7].map(floor => `CCRH · Floor ${floor}`));
   expect(roomLabel(findLaundryRoom('L/L D140'))).toBe('L/L D140');
   expect(roomLabel(findLaundryRoom('wing-hall-1st-flr'))).toBe('Wing Hall');
   expect(roomPath(findLaundryRoom('ccrh 7'))).toBe('#room/central-campus-flr-7');
@@ -114,7 +119,7 @@ test('switching CCRH floors excludes the legacy combined cache and saves each fl
     const cards = () => [...container.querySelectorAll('[id^="machine-card-"] h3')].map(node => node.textContent);
     expect(cards()).toEqual(['Washer 45', 'Dryer 55']);
     expect(container.querySelector('main h2').textContent).toBe('CCRH');
-    expect(container.querySelector('#room-switcher').selectedOptions[0].textContent).toBe('CCRH · Machines 45–55');
+    expect(container.querySelector('#room-switcher').selectedOptions[0].textContent).toBe('CCRH · Floor 6');
     expect(container.querySelector('#room-switcher option[value="cottage256"]').textContent).toBe('The Cottages');
 
     await act(async () => {
@@ -123,7 +128,7 @@ test('switching CCRH floors excludes the legacy combined cache and saves each fl
     });
     expect(cards()).toEqual(['Washer 56', 'Dryer 62']);
     expect(container.querySelector('main h2').textContent).toBe('CCRH');
-    expect(container.querySelector('#room-switcher').selectedOptions[0].textContent).toBe('CCRH · Machines 56–62');
+    expect(container.querySelector('#room-switcher').selectedOptions[0].textContent).toBe('CCRH · Floor 7');
     const snapshot = (floor) => JSON.parse(localStorage.getItem(`washAlertRoom-v2-central_campus_${floor}`));
     expect(snapshot(6).machines.map(({ number }) => Number(number)).sort()).toEqual([45, 55]);
     expect(snapshot(7).machines.map(({ number }) => Number(number)).sort()).toEqual([56, 62]);
@@ -154,7 +159,7 @@ test('SMS setup uses the vendor embed and keeps the selected CCRH floor in the a
     const button = Array.from(container.querySelectorAll('button')).find((item) => item.textContent.trim() === 'Set Text Alert');
     await act(async () => { button.click(); });
     expect(container.querySelector('iframe').getAttribute('src')).toBe('https://laundryconnectlive.com/live/loc_44963c?embed=1');
-    expect(container.querySelector('dialog').textContent).toContain('CCRH · Washer 56');
+    expect(container.querySelector('dialog').textContent).toContain('CCRH · Floor 7 · Washer 56');
     expect(container.querySelector('dialog').textContent).toContain('choose Text');
   } finally {
     act(() => root.unmount());

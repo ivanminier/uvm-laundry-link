@@ -8,13 +8,8 @@ export function roomDisplayName(room) {
   return room.displayName ?? room.name;
 }
 
-export function roomMachineLabel(room) {
-  const range = room.machineRange ?? room.displayRange;
-  return range ? `Machines ${range[0]}–${range[1]}` : null;
-}
-
 export function roomLabel(room) {
-  return [roomDisplayName(room), roomMachineLabel(room)].filter(Boolean).join(' · ');
+  return [roomDisplayName(room), room.locationLabel].filter(Boolean).join(' · ');
 }
 
 export const laundryRooms = [...rooms].sort((first, second) =>

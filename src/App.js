@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Zap, CheckCircle, XCircle, AlertTriangle, Clock, RefreshCw, Settings, Star, ArrowLeft, ExternalLink, Droplet, Wind, Eye, EyeOff, Info, Search, Sun, Moon, LayoutGrid } from 'lucide-react';
 
-import { findLaundryRoom, laundryRooms, roomDisplayName, roomLabel, roomMachineLabel, roomPath } from './laundryData';
+import { findLaundryRoom, laundryRooms, roomDisplayName, roomLabel, roomPath } from './laundryData';
 import { useLaundryStatus } from './useLaundryStatus';
 import { RoomTools } from './RoomTools';
 import { LaundryHelp } from './LaundryHelp';
@@ -282,7 +282,7 @@ const RoomCard = React.memo(({ room, onSelectRoom, isFavorite, onToggleFavorite 
         <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
         <div className="relative z-10 flex-grow">
             <h3 className="text-xl sm:text-2xl font-bold mb-2 text-white group-hover:text-yellow-400 transition-colors">{roomDisplayName(room)}</h3>
-            {roomMachineLabel(room) && <p className="text-sm text-green-100">{roomMachineLabel(room)}</p>}
+            {room.locationLabel && <p className="text-sm text-green-100">{room.locationLabel}</p>}
         </div>
         <div className="flex items-center justify-end mt-auto pt-3 relative z-10">
             <button
@@ -555,7 +555,7 @@ const App = () => {
               </button>
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white md:text-3xl">{roomDisplayName(currentRoom)}</h2>
-                {roomMachineLabel(currentRoom) && <p className="text-sm text-slate-600 dark:text-slate-300">{roomMachineLabel(currentRoom)}</p>}
+                {currentRoom.locationLabel && <p className="text-sm text-slate-600 dark:text-slate-300">{currentRoom.locationLabel}</p>}
               </div>
             </div>
             <RoomTools key={`tools-${currentRoom.id}`} room={currentRoom} onSelectRoom={handleSelectRoom} />

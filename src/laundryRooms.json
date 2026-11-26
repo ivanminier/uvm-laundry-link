@@ -16,11 +16,8 @@
     "historyId": "loc_399394",
     "officialName": "Central Campus Residence Hall - 2nd Floor",
     "displayName": "CCRH",
-    "displayRange": [
-      1,
-      11
-    ],
-    "campus": "central"
+    "campus": "central",
+    "locationLabel": "Floor 2"
   },
   {
     "id": "central_campus_3",
@@ -30,11 +27,8 @@
     "historyId": "loc_1c5701",
     "officialName": "Central Campus Residence Hall - 3rd Floor",
     "displayName": "CCRH",
-    "displayRange": [
-      12,
-      20
-    ],
-    "campus": "central"
+    "campus": "central",
+    "locationLabel": "Floor 3"
   },
   {
     "id": "central_campus_4",
@@ -44,11 +38,8 @@
     "historyId": "loc_419336",
     "officialName": "Central Campus Residence Hall - 4th Floor",
     "displayName": "CCRH",
-    "displayRange": [
-      23,
-      33
-    ],
-    "campus": "central"
+    "campus": "central",
+    "locationLabel": "Floor 4"
   },
   {
     "id": "central_campus_5",
@@ -58,11 +49,8 @@
     "historyId": "loc_a4686c",
     "officialName": "Central Campus Residence Hall - 5thFloor",
     "displayName": "CCRH",
-    "displayRange": [
-      34,
-      44
-    ],
-    "campus": "central"
+    "campus": "central",
+    "locationLabel": "Floor 5"
   },
   {
     "id": "central_campus_6",
@@ -76,7 +64,8 @@
     "historyId": "loc_44963c",
     "officialName": "Central Campus Residence Hall - 6th Floor",
     "displayName": "CCRH",
-    "campus": "central"
+    "campus": "central",
+    "locationLabel": "Floor 6"
   },
   {
     "id": "central_campus_7",
@@ -90,7 +79,8 @@
     "historyRoomId": "central_campus_6",
     "officialName": "Central Campus Residence Hall - 7th Floor",
     "displayName": "CCRH",
-    "campus": "central"
+    "campus": "central",
+    "locationLabel": "Floor 7"
   },
   {
     "id": "christie",
@@ -396,11 +386,8 @@
     "historyId": "loc_a8e4e8",
     "officialName": "University Heights North 1",
     "displayName": "UHeights North",
-    "displayRange": [
-      1,
-      12
-    ],
-    "campus": "athletic"
+    "campus": "athletic",
+    "locationLabel": "Tower 1"
   },
   {
     "id": "uheightsn2",
@@ -410,11 +397,8 @@
     "historyId": "loc_fe37ab",
     "officialName": "University Heights North 2",
     "displayName": "UHeights North",
-    "displayRange": [
-      13,
-      27
-    ],
-    "campus": "athletic"
+    "campus": "athletic",
+    "locationLabel": "Towers 2+3"
   },
   {
     "id": "uheightss1",
@@ -424,11 +408,8 @@
     "historyId": "loc_e7b03b",
     "officialName": "University Heights South 1",
     "displayName": "UHeights South",
-    "displayRange": [
-      1,
-      12
-    ],
-    "campus": "athletic"
+    "campus": "athletic",
+    "locationLabel": "Tower 1"
   },
   {
     "id": "uheightss2",
@@ -438,11 +419,8 @@
     "historyId": "loc_1a2fdd",
     "officialName": "University Heights South 2",
     "displayName": "UHeights South",
-    "displayRange": [
-      13,
-      27
-    ],
-    "campus": "athletic"
+    "campus": "athletic",
+    "locationLabel": "Towers 2+3"
   },
   {
     "id": "wilks",
