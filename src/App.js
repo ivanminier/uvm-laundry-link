@@ -271,7 +271,7 @@ const MachineCard = React.memo(({ machine, room, stale }) => {
 function FavoriteAvailability({ room }) {
   const container = useRef(null);
   const [nearViewport, setNearViewport] = useState(() => !('IntersectionObserver' in window));
-  const { machines, checkedAt, stale, failed } = useLaundryStatus(nearViewport ? room : null, 60_000);
+  const { machines, checkedAt, stale, failed } = useLaundryStatus(nearViewport ? room : null, { refreshInterval: 60_000, visibleOnly: true });
 
   useEffect(() => {
     if (!('IntersectionObserver' in window)) return;

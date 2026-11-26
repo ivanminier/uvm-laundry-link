@@ -16,7 +16,7 @@ function readSnapshot(room) {
   return null;
 }
 
-export function useLaundryStatus(room, refreshInterval = REFRESH_INTERVAL_MS) {
+export function useLaundryStatus(room, { refreshInterval = REFRESH_INTERVAL_MS, visibleOnly = false } = {}) {
   const roomId = room?.id;
   const [state, setState] = useState(null);
   const refresh = useRef(null);
@@ -35,8 +35,8 @@ export function useLaundryStatus(room, refreshInterval = REFRESH_INTERVAL_MS) {
       setState({ roomId, snapshot, busy, failed, stale: !!snapshot && (failed || Date.now() - snapshot.checkedAt > REFRESH_INTERVAL_MS * 2) });
     }
 
-    async function update() {
-      if (document.hidden || request) return;
+    async function update(force = false) {
+      if ((!force && document.hidden) || request) return;
 
       const controller = new AbortController();
       request = controller;
@@ -76,11 +76,11 @@ export function useLaundryStatus(room, refreshInterval = REFRESH_INTERVAL_MS) {
     };
 
     show(true);
-    refresh.current = update;
-    update();
-    const poll = setInterval(update, refreshInterval);
+    refresh.current = () => update(true);
+    update(!visibleOnly);
+    const poll = setInterval(() => update(), refreshInterval);
     document.addEventListener('visibilitychange', resume);
-    window.addEventListener('online', update);
+    window.addEventListener('online', resume);
 
     return () => {
       active = false;
@@ -88,9 +88,9 @@ export function useLaundryStatus(room, refreshInterval = REFRESH_INTERVAL_MS) {
       refresh.current = null;
       clearInterval(poll);
       document.removeEventListener('visibilitychange', resume);
-      window.removeEventListener('online', update);
+      window.removeEventListener('online', resume);
     };
-  }, [room, roomId, refreshInterval]);
+  }, [room, roomId, refreshInterval, visibleOnly]);
 
   const current = roomId && state?.roomId === roomId ? state : null;
   return {
