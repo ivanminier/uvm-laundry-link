@@ -59,9 +59,13 @@ assert.doesNotMatch(robots, /Disallow: \/(?:\s|$)/);
 if (endpoint) {
   const missing = await read('/this-laundrylink-page-does-not-exist/', 404);
   assert.match(missing, /Page not found/);
-  for (const userAgent of ['Googlebot', 'bingbot', 'OAI-SearchBot', 'PerplexityBot', 'Google-Extended']) {
+  for (const userAgent of ['Googlebot', 'bingbot', 'OAI-SearchBot', 'Google-Extended']) {
     assert.match(await read('/', 200, userAgent), /UVM residence hall laundry tracker/);
   }
+  const perplexity = await fetch(origin + '/', {
+    headers: { 'User-Agent': 'PerplexityBot' }, redirect: 'manual', signal: AbortSignal.timeout(10_000),
+  });
+  console.log(`PerplexityBot header-only probe: HTTP ${perplexity.status}. Cloudflare may evaluate actual crawler identity separately.`);
 }
 const referrals = await read('/referrals.js');
 const capture = ({ referrer = '', search = '', pathname = '/', privacy = false }) => {

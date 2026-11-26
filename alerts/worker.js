@@ -50,6 +50,9 @@ export default {
 
     if (pathname === '/referrals' && request.method === 'POST') {
       if (!origin || !env.REFERRALS) return new Response(null, { status: 403, headers });
+      if (request.headers.get('Sec-GPC') === '1' || request.headers.get('DNT') === '1') {
+        return new Response(null, { status: 204, headers });
+      }
       const limit = await env.REFERRAL_REQUESTS.limit({ key: request.headers.get('CF-Connecting-IP') ?? 'unknown' });
       if (!limit.success) return new Response(null, { status: 429, headers });
       const chunks = [];
@@ -65,7 +68,12 @@ export default {
       if (!REFERRERS.has(category) || !REFERRAL_PAGES.has(page)) {
         return new Response(null, { status: 400, headers });
       }
-      env.REFERRALS.writeDataPoint({ indexes: [category], blobs: [category, page] });
+      const day = new Date().toISOString().slice(0, 10);
+      await env.REFERRALS.prepare(`
+        INSERT INTO referral_counts (day, source, page, landings)
+        VALUES (?, ?, ?, 1)
+        ON CONFLICT (day, source, page) DO UPDATE SET landings = landings + 1
+      `).bind(day, category, page).run();
       return new Response(null, { status: 204, headers });
     }
 

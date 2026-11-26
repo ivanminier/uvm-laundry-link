@@ -9,7 +9,11 @@
     "bindings": [{ "name": "ROOM_ALERTS", "class_name": "RoomAlerts" }]
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["RoomAlerts"] }],
-  "analytics_engine_datasets": [{ "binding": "REFERRALS", "dataset": "laundrylink_referrals" }],
+  "d1_databases": [{
+    "binding": "REFERRALS",
+    "database_name": "laundrylink-referrals",
+    "database_id": "0830008c-ecad-4ffc-b31e-b5943ad04ec3"
+  }],
   "ratelimits": [
     { "name": "ALERT_REQUESTS", "namespace_id": "405212247", "simple": { "limit": 10, "period": 60 } },
     { "name": "REFERRAL_REQUESTS", "namespace_id": "405212248", "simple": { "limit": 40, "period": 60 } }
