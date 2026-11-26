@@ -1,17 +1,19 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Bell, ExternalLink, Wrench, XCircle } from 'lucide-react';
-import { getOfficialRoomUrl } from './laundryData';
+import { ArrowLeft, Bell, ExternalLink, Smartphone, Wrench, XCircle } from 'lucide-react';
+import { getOfficialRoomUrl, getRoomHistoryId } from './laundryData';
 import { hasPushAlert, PushAlertForm } from './PushAlertForm';
 
 export const SERVICE_REQUEST_URL = 'https://automaticlaundry.com/request-service/';
 
-function MachineDialog({ machine, room, mode, canSetAlert, onClose }) {
+function MachineDialog({ machine, room, mode, canSetAlert, onClose, onModeChange }) {
   const dialog = useRef(null);
   const [copyStatus, setCopyStatus] = useState('');
   const label = room.officialName || room.name;
   const details = `University of Vermont · ${label} · ${machine.machineName}`;
   const roomUrl = getOfficialRoomUrl(room);
   const reporting = mode === 'report';
+  const texting = mode === 'sms';
+  const canShowText = canSetAlert && !!getRoomHistoryId(room);
   const title = reporting ? `Report ${machine.machineName}` : `Alerts for ${machine.machineName}`;
 
   useEffect(() => { dialog.current.showModal(); }, []);
@@ -27,7 +29,7 @@ function MachineDialog({ machine, room, mode, canSetAlert, onClose }) {
 
   return (
     <dialog ref={dialog} onClose={onClose} aria-label={title}
-      className="w-[calc(100%-2rem)] max-w-md rounded-xl bg-white p-5 text-slate-900 shadow-xl backdrop:bg-black/60 dark:bg-slate-800 dark:text-slate-100 sm:p-6">
+      className={`w-[calc(100%-2rem)] rounded-xl bg-white p-5 text-slate-900 shadow-xl backdrop:bg-black/60 dark:bg-slate-800 dark:text-slate-100 sm:p-6 ${texting ? 'max-w-3xl' : 'max-w-md'}`}>
       <div className="flex items-start justify-between gap-4">
         <h3 className="text-xl font-bold">{title}</h3>
         <form method="dialog">
@@ -38,14 +40,37 @@ function MachineDialog({ machine, room, mode, canSetAlert, onClose }) {
       <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
         {reporting
           ? `Select ${machine.machineName} on the official room page, then choose Report a problem.`
-          : 'LaundryLink can send you a push notification even after you close this page.'}
+          : texting
+            ? `In the Automatic Laundry panel below, select ${machine.machineName}, choose Text, and enter your number. Automatic Laundry sends the text directly.`
+            : 'LaundryLink can send you a push notification even after you close this page.'}
       </p>
-      {reporting && room.machineRange && (
+      {(reporting || texting) && room.machineRange && (
         <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
           The official page lists machines from both floors under Floor 6.
         </p>
       )}
-      {!reporting && <PushAlertForm machine={machine} room={room} canSetAlert={canSetAlert} />}
+      {!reporting && !texting && (
+        <>
+          <PushAlertForm machine={machine} room={room} canSetAlert={canSetAlert} />
+          {canShowText && (
+            <button type="button" onClick={() => onModeChange('sms')}
+              className="mt-4 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-lg border border-slate-300 px-3 text-sm font-semibold text-uvm-green hover:bg-green-50 dark:border-slate-600 dark:text-uvm-gold dark:hover:bg-slate-700">
+              <Smartphone size={16} /> Set Text Alert
+            </button>
+          )}
+        </>
+      )}
+      {texting && (
+        <>
+          <button type="button" onClick={() => onModeChange('alerts')}
+            className="my-2 inline-flex min-h-[44px] items-center gap-2 rounded px-2 text-sm font-semibold text-uvm-green dark:text-uvm-gold">
+            <ArrowLeft size={16} /> Back to push alerts
+          </button>
+          <iframe src={`${roomUrl}?embed=1`} title="Automatic Laundry text alert setup"
+            sandbox="allow-scripts allow-forms allow-same-origin"
+            className="block h-[min(55dvh,32rem)] min-h-[18rem] w-full rounded-lg border border-slate-300 bg-white dark:border-slate-600" />
+        </>
+      )}
       {reporting && <>
       <a href={roomUrl} target="_blank" rel="noopener noreferrer"
         className="mt-5 flex items-center justify-center gap-2 rounded-lg bg-uvm-green px-3 py-3 text-sm font-semibold text-white hover:bg-green-900">
@@ -78,7 +103,7 @@ export function MachineReport({ machine, room, canSetAlert }) {
         className="mt-2 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-uvm-green hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-uvm-green dark:text-uvm-gold dark:hover:bg-slate-700 dark:focus-visible:ring-uvm-gold">
         <Wrench size={16} /> Report a problem
       </button>
-      {mode && <MachineDialog machine={machine} room={room} mode={mode} canSetAlert={canSetAlert} onClose={() => setMode(null)} />}
+      {mode && <MachineDialog machine={machine} room={room} mode={mode} canSetAlert={canSetAlert} onModeChange={setMode} onClose={() => setMode(null)} />}
     </>
   );
 }

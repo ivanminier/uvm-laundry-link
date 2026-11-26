@@ -1,6 +1,7 @@
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
+import { MachineReport } from './MachineReport';
 import { filterRoomMachines, findLaundryRoom, getRoomHistoryId, laundryRooms, normalizeRoomStatus } from './laundryData';
 
 const statusFixture = (entries) => ({
@@ -107,6 +108,35 @@ test('switching CCRH floors excludes the legacy combined cache and saves each fl
     container.remove();
     localStorage.clear();
     window.history.replaceState(null, '', '/');
+    delete global.IS_REACT_ACT_ENVIRONMENT;
+  }
+});
+
+
+test('SMS setup uses the vendor embed and keeps the selected CCRH floor in the alert dialog', async () => {
+  global.IS_REACT_ACT_ENVIRONMENT = true;
+  const originalShowModal = HTMLDialogElement.prototype.showModal;
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', ''); };
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  const root = createRoot(container);
+
+  try {
+    const room = findLaundryRoom('ccrh 7');
+    await act(async () => {
+      root.render(<MachineReport machine={{ id: '99', machineName: 'Washer 56' }} room={room} canSetAlert />);
+    });
+    await act(async () => { container.querySelector('[aria-label="Set Cycle Alert for Washer 56"]').click(); });
+    const button = Array.from(container.querySelectorAll('button')).find((item) => item.textContent.trim() === 'Set Text Alert');
+    await act(async () => { button.click(); });
+    expect(container.querySelector('iframe').getAttribute('src')).toBe('https://laundryconnectlive.com/live/loc_44963c?embed=1');
+    expect(container.querySelector('dialog').textContent).toContain('7th Floor · Washer 56');
+    expect(container.querySelector('dialog').textContent).toContain('choose Text');
+  } finally {
+    act(() => root.unmount());
+    container.remove();
+    if (originalShowModal) HTMLDialogElement.prototype.showModal = originalShowModal;
+    else delete HTMLDialogElement.prototype.showModal;
     delete global.IS_REACT_ACT_ENVIRONMENT;
   }
 });

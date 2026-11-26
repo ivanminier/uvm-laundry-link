@@ -4,7 +4,7 @@ import { SERVICE_REQUEST_URL } from './MachineReport';
 
 const topics = [
   ['How do I know when a machine is free?', 'Available means the machine can be used. A finished cycle may still have laundry inside. Check the room’s last refresh time before relying on the list.'],
-  ['Can I get a reminder when my laundry finishes?', 'Open Set Cycle Alert on a running machine to set a push notification on this device. On iPhone or iPad, open LaundryLink from your Home Screen first.'],
+  ['Can I get a reminder when my laundry finishes?', 'Open Set Cycle Alert on a running machine. LaundryLink sends browser push alerts, and Automatic Laundry handles text alerts in the panel on this page. For push on iPhone or iPad, open LaundryLink from your Home Screen.'],
   ['What should I include when reporting a problem?', 'Use the report action on the machine card. Include the residence hall, floor or room, machine number, and any error code shown on the display.'],
   ['What if a machine accepted payment but did not start?', 'Contact Automatic Laundry through its service form. Include the machine number and the time it happened so the vendor can investigate.'],
 ];
