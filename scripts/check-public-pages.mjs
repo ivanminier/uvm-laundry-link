@@ -2,11 +2,14 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { hallGuidePath, roomPath } from '../src/roomLinks.mjs';
 import { locationLine, roomLocations } from '../src/roomLocations.mjs';
+import { CAMPUS_SECTIONS, groupCampusRooms } from '../src/campusDirectory.mjs';
 import { independenceDisclosure, informationDisclosure, machineStatusDefinitions, informationPath, informationQuestions } from '../src/informationContent.mjs';
 import { readFile } from 'node:fs/promises';
 import { runInNewContext } from 'node:vm';
 
 const laundryRooms = JSON.parse(await readFile(new URL('../src/laundryRooms.json', import.meta.url)));
+const complexTitles = new Map(CAMPUS_SECTIONS.flatMap(([campus]) => groupCampusRooms(laundryRooms.filter((room) => room.campus === campus), campus)
+  .flatMap(({ title, rooms: group }) => group.map((room) => [room.id, title]))));
 
 const canonicalOrigin = 'https://uvmlaundry.com';
 const endpoint = process.argv[2];
@@ -158,6 +161,12 @@ for (const room of laundryRooms) {
   assert.ok(page.includes(`${washers} washer${washers === 1 ? '' : 's'} · ${dryers} dryer${dryers === 1 ? '' : 's'}`), `${guide} inventory for ${room.id}`);
 }
 assert.equal(hallPages.size, 30, 'Thirty hall guides');
+// Complex pages show each room's location line next to its existing tracker link.
+for (const room of laundryRooms) {
+  const complexPage = await read(`/residence-halls/complexes/${room.campus}-${(complexTitles.get(room.id) ?? 'Other Buildings').toLowerCase().replace(/[^a-z0-9]+/g, '-')}/`);
+  assert.ok(complexPage.includes(locationLine(room)), `Complex page lists ${room.id} ${locationLine(room)}`);
+  assert.ok(complexPage.includes(`href="/${roomPath(room)}"`), `Complex page links ${room.id}`);
+}
 for (const [guide, page] of hallPages) {
   assert.doesNotMatch(page, /\?view=[a-z-]+#room|public(?:ly)? access/i, guide);
   assert.match(page, /Residence hall laundry rooms are for authorized residents\./, guide);

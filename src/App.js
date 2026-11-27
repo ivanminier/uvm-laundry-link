@@ -104,6 +104,17 @@ const getStatusDetails = (status) => {
   return { icon: iconElement, textColor, bgColor, actualStatus: String(actualStatusOutput), borderColor, statusColorHex };
 };
 
+// "Frontload Washer" → "Frontload washer"; lowercases only the machine-type word.
+export const machineDescription = ({ type, size }) => {
+  const text = String(size ?? '').trim();
+  if (!text) return type || 'Machine';
+  if (!type) return text;
+  const typeWord = new RegExp(`\\b${type}\\b`, 'gi');
+  return typeWord.test(text)
+    ? text.replace(typeWord, (word, offset) => offset === 0 ? type : type.toLowerCase())
+    : `${text} ${type.toLowerCase()}`;
+};
+
 const formatTime = (minutes) => {
   if (!minutes || minutes <= 0) return '';
   const h = Math.floor(minutes / 60);
@@ -254,7 +265,7 @@ const MachineCard = React.memo(({ machine, room, stale, checkedAt }) => {
             </h3>
             <div className="flex items-center text-sm text-gray-500 dark:text-slate-300 mt-1">
                <MachineTypeIcon size={16} className="mr-1.5 flex-shrink-0" />
-              <span>{String(machine.type || 'N/A')} - {String(machine.size || 'N/A')}</span>
+              <span>{machineDescription(machine)}</span>
             </div>
           </div>
         </div>
@@ -947,7 +958,7 @@ const App = () => {
                 </div>
                 <button type="button" aria-pressed={showOnlyFavorites} onClick={() => setShowOnlyFavorites(!showOnlyFavorites)} className="ll-favorites-toggle w-full whitespace-nowrap px-4 py-3 sm:w-auto">
                     <Star size={18} className={showOnlyFavorites ? 'fill-current' : ''} />
-                    {showOnlyFavorites ? "Show All" : "Show Favorites"}
+                    {showOnlyFavorites ? "Show all" : "Show Favorites"}
                 </button>
               </div>
             </div>
@@ -995,7 +1006,7 @@ const App = () => {
         return (
           <div key="roomDetail" className="animate-fadeIn">
             <div className="ll-room-header">
-              <BackButton onClick={() => handleGoHome()} ariaLabel="All Rooms"><span>All Rooms</span></BackButton>
+              <BackButton onClick={() => handleGoHome()} ariaLabel="All rooms"><span>All rooms</span></BackButton>
               <RoomSwitcher room={currentRoom} onSelectRoom={handleSelectRoom} />
               <RoomTools key={`tools-${currentRoom.id}`} room={currentRoom} />
             </div>
@@ -1116,7 +1127,7 @@ const App = () => {
                 <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-5 border-b pb-3 border-gray-200 dark:border-slate-700">Display</h2>
                 <div className="space-y-5">
                   <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-700/60 rounded-lg">
-                    <label htmlFor="systemThemeToggle" className="text-gray-700 dark:text-slate-200 flex items-center text-sm sm:text-base cursor-pointer"><span className="mr-2.5">{useSystemTheme ? <Eye size={20} className="text-uvm-green dark:text-uvm-gold" /> : <EyeOff size={20} className="text-gray-500 dark:text-slate-300" />}</span>Use System Theme</label>
+                    <label htmlFor="systemThemeToggle" className="text-gray-700 dark:text-slate-200 flex items-center text-sm sm:text-base cursor-pointer"><span className="mr-2.5">{useSystemTheme ? <Eye size={20} className="text-uvm-green dark:text-uvm-gold" /> : <EyeOff size={20} className="text-gray-500 dark:text-slate-300" />}</span>Use system theme</label>
                     <button id="systemThemeToggle" role="switch" aria-checked={useSystemTheme} onClick={() => setUseSystemTheme(!useSystemTheme)} className={`relative inline-flex items-center h-7 rounded-full w-12 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-uvm-gold ${useSystemTheme ? 'bg-green-600 dark:bg-green-600' : 'bg-gray-300 dark:bg-slate-500'}`}><span className={`inline-block w-5 h-5 transform bg-white rounded-full transition-transform ${useSystemTheme ? 'translate-x-6' : 'translate-x-1'}`} /></button>
                   </div>
                   {!useSystemTheme && (<div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-700/60 rounded-lg animate-fadeIn">
@@ -1136,7 +1147,7 @@ const App = () => {
                 ]],
                 ['Room Preferences', [
                   ['rememberRoomToggle', 'Open my last room on startup', DoorIcon, rememberRoom, () => setRememberRoom(value => !value)],
-                  ['visualLayoutToggle', 'Expand Visual Room Layout by default', LayoutGrid, expandRoomLayout, () => setExpandRoomLayout(value => !value)],
+                  ['visualLayoutToggle', 'Expand Room Layout by default', LayoutGrid, expandRoomLayout, () => setExpandRoomLayout(value => !value)],
                   ['peakTimesToggle', 'Expand Peak Times by default', Clock, expandPeakTimes, () => setExpandPeakTimes(value => !value)],
                 ]],
               ].map(([heading, preferences]) => (
@@ -1165,7 +1176,7 @@ const App = () => {
                         If you encounter a broken machine, please report it to Automatic Laundry.
                     </p>
                     <a href={SERVICE_REQUEST_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 rounded-lg text-sm font-semibold transition-colors text-white focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-uvm-gold shadow-sm" style={{backgroundColor: BRAND_GREEN}}>
-                        <ExternalLink size={18} className="mr-2" /> Report a Broken Machine
+                        <ExternalLink size={18} className="mr-2" /> Report a broken machine
                     </a>
                 </div>
               </section>

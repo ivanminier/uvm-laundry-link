@@ -43,7 +43,7 @@ function CalendarReminder({ machine, room, checkedAt }) {
         <>
           <button type="button" onClick={download}
             className="mt-3 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-lg border border-slate-300 px-3 text-sm font-semibold text-uvm-green hover:bg-green-50 dark:border-slate-600 dark:text-uvm-gold dark:hover:bg-slate-700">
-            <CalendarPlus size={16} aria-hidden="true" /> Add to Calendar
+            <CalendarPlus size={16} aria-hidden="true" /> Add to calendar
           </button>
           <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">
             Calendar reminders use the current finish estimate and won’t update if the cycle changes.
@@ -104,7 +104,7 @@ function MachineDialog({ machine, room, mode, canSetAlert, checkedAt, onClose, o
           {canShowContactAlert && (
             <button type="button" onClick={() => onModeChange('contactAlert')}
               className="mt-4 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-lg border border-slate-300 px-3 text-sm font-semibold text-uvm-green hover:bg-green-50 dark:border-slate-600 dark:text-uvm-gold dark:hover:bg-slate-700">
-              <Smartphone size={16} /> Text or Email Alert
+              <Smartphone size={16} /> Text or email alert
             </button>
           )}
           <CalendarReminder machine={machine} room={room} checkedAt={checkedAt} />
@@ -126,12 +126,12 @@ function MachineDialog({ machine, room, mode, canSetAlert, checkedAt, onClose, o
         <>
           <a href={roomUrl} target="_blank" rel="noopener noreferrer" onClick={copy}
             className="mt-5 flex items-center justify-center gap-2 rounded-lg bg-uvm-green px-3 py-3 text-center text-sm font-semibold text-white hover:bg-green-900">
-            Copy Details &amp; Open Reporting <ExternalLink size={16} aria-hidden="true" />
+            Copy details &amp; open reporting <ExternalLink size={16} aria-hidden="true" />
           </a>
           <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm font-semibold text-uvm-green dark:text-uvm-gold">
-            <a href={roomUrl} target="_blank" rel="noopener noreferrer" className="underline">Open Room Reporting</a>
-            <a href={SERVICE_REQUEST_URL} target="_blank" rel="noopener noreferrer" className="underline">Full Service Request</a>
-            <button type="button" className="underline" onClick={copy}>Copy Machine Details</button>
+            <a href={roomUrl} target="_blank" rel="noopener noreferrer" className="underline">Open room reporting</a>
+            <a href={SERVICE_REQUEST_URL} target="_blank" rel="noopener noreferrer" className="underline">Full service request</a>
+            <button type="button" className="underline" onClick={copy}>Copy machine details</button>
           </div>
         </>
       )}
@@ -145,7 +145,7 @@ export function MachineReport({ machine, room, canSetAlert, checkedAt }) {
   const launchControl = useRef(null);
   const reportButton = useRef(null);
   const existingAlert = hasPushAlert(room, machine);
-  const buttonTitle = existingAlert ? 'Manage Cycle Alert' : 'Set Cycle Alert';
+  const buttonTitle = existingAlert ? 'Manage cycle alert' : 'Set cycle alert';
 
   function open(event, nextMode) {
     launchControl.current = event.currentTarget;

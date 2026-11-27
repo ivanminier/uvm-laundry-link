@@ -35,3 +35,10 @@ yarn-error.log*
 .wrangler/
 .dev.vars
 .dev.vars.*
+
+# Retired local backup copies (removed from the repository)
+/src/App.js.bak
+/src/App.js.save
+/src/index.js.bak
+/package.json.bak
+/old-package.json

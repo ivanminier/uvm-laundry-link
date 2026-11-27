@@ -248,7 +248,7 @@ export function PushAlertForm({ machine, room, canSetAlert, watchType, machines 
           </p>
           <button type="button" onClick={cancel} disabled={busy || !publicKey}
             className="min-h-[44px] rounded-lg border border-slate-300 px-3 text-sm font-semibold dark:border-slate-600 disabled:opacity-50">
-            Cancel Alert
+            Cancel alert
           </button>
         </>
       ) : canSetAlert ? (
@@ -256,7 +256,7 @@ export function PushAlertForm({ machine, room, canSetAlert, watchType, machines 
           {!watchRoom && <TimingSelect value={leadMinutes} onChange={setLeadMinutes} />}
           <button type="button" onClick={subscribe} disabled={busy || !publicKey}
             className="min-h-[44px] w-full rounded-lg bg-uvm-green px-3 text-sm font-semibold text-white hover:bg-green-900 disabled:opacity-50">
-            {busy ? 'Setting alert…' : watchRoom ? 'Notify me' : 'Set Push Alert'}
+            {busy ? 'Setting alert…' : watchRoom ? 'Notify me' : 'Set push alert'}
           </button>
         </>
       ) : <p role="status" className="text-sm">

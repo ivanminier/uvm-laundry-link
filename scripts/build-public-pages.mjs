@@ -205,6 +205,11 @@ const campusPages = directoryCampuses.map(({ id, path, complexes }) => {
     html: `<section aria-labelledby="campus-complexes"><h2 class="ll-campus-section__title" id="campus-complexes">Complexes</h2>${complexCards(complexes)}</section>`,
   };
 });
+// Complex cards add the room's floor and number, keeping tower or cottage labels the line doesn't repeat.
+const complexRoomDetail = (room) => {
+  const line = locationLine(room);
+  return !room.locationLabel || line.includes(room.locationLabel) ? line : `${room.locationLabel} · ${line}`;
+};
 const complexPages = directoryCampuses.flatMap(({ id, name, path: campusPath, complexes }) => complexes.map(complex => {
   const otherBuildings = complex.title === 'Other Buildings';
   const complexName = complex.title.replace(/^The /, '').replace(/ Complex$/, '');
@@ -217,7 +222,7 @@ const complexPages = directoryCampuses.flatMap(({ id, name, path: campusPath, co
     html: `<section aria-labelledby="complex-rooms">
       <h2 class="ll-campus-section__title" id="complex-rooms">Laundry rooms</h2>
       <ul class="ll-room-grid site-complex-grid">${complex.rooms.map(room =>
-        entryCard(trackerLink(room), room.displayName ?? room.name, room.locationLabel, 'View room', hallByRoom.get(room.id))).join('')}</ul>
+        entryCard(trackerLink(room), room.displayName ?? room.name, complexRoomDetail(room), 'View room', hallByRoom.get(room.id))).join('')}</ul>
     </section>`,
   };
 }));

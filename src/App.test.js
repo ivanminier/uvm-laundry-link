@@ -521,7 +521,7 @@ test('main views share the same back control', async () => {
     await act(async () => { const traversal = historyTraversal(); backButton().click(); await traversal; });
 
     await act(async () => { container.querySelector('.ll-room-card__title').click(); });
-    expect(backButton().textContent.trim()).toBe('All Rooms');
+    expect(backButton().textContent.trim()).toBe('All rooms');
   } finally {
     act(() => root.unmount());
     container.remove();
@@ -661,8 +661,8 @@ test('text and email setup uses the vendor embed and keeps the selected CCRH flo
     await act(async () => {
       root.render(<MachineReport machine={{ id: '99', machineName: 'Washer 56' }} room={room} canSetAlert />);
     });
-    await act(async () => { container.querySelector('[aria-label="Set Cycle Alert for Washer 56"]').click(); });
-    const button = Array.from(container.querySelectorAll('button')).find((item) => item.textContent.trim() === 'Text or Email Alert');
+    await act(async () => { container.querySelector('[aria-label="Set cycle alert for Washer 56"]').click(); });
+    const button = Array.from(container.querySelectorAll('button')).find((item) => item.textContent.trim() === 'Text or email alert');
     await act(async () => { button.click(); });
     expect(container.querySelector('.ll-back-button').textContent.trim()).toBe('Back to push alerts');
     expect(container.querySelector('iframe').getAttribute('src')).toBe('https://laundryconnectlive.com/live/loc_44963c?embed=1');
@@ -846,7 +846,7 @@ test.each([true, false])('combined reporting keeps native navigation with clipbo
     await act(async () => { container.querySelector('[aria-label="Report Washer 56"]').click(); });
     expect(writeText).not.toHaveBeenCalled();
     const [combined, direct, service] = [...container.querySelectorAll('dialog a')];
-    expect(combined.textContent).toContain('Copy Details & Open Reporting');
+    expect(combined.textContent).toContain('Copy details & open reporting');
     expect(combined.href).toBe('https://laundryconnectlive.com/live/loc_44963c');
     expect(combined.getAttribute('rel')).toBe('noopener noreferrer');
     expect(combined.target).toBe('_blank');
@@ -859,7 +859,7 @@ test.each([true, false])('combined reporting keeps native navigation with clipbo
       expect(writeText).toHaveBeenCalledWith('University of Vermont · CCRH · Floor 7 · Washer 56');
     });
     expect(container.querySelector('[role="status"]').textContent).toMatch(success ? /details copied/ : /couldn’t be copied/);
-    const copyButton = [...container.querySelectorAll('dialog button')].find(item => item.textContent === 'Copy Machine Details');
+    const copyButton = [...container.querySelectorAll('dialog button')].find(item => item.textContent === 'Copy machine details');
     await act(async () => { copyButton.click(); });
     expect(writeText).toHaveBeenCalledTimes(2);
   } finally {

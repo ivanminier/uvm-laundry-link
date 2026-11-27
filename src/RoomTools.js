@@ -156,8 +156,8 @@ export function RoomTools({ room }) {
 
   return (
     <div className="ll-room-tools">
-      <button type="button" onClick={shareRoom} className="ll-room-share-button" aria-label="Share Room">
-        <Share2 size={16} aria-hidden="true" /> <span>Share Room</span>
+      <button type="button" onClick={shareRoom} className="ll-room-share-button" aria-label="Share room">
+        <Share2 size={16} aria-hidden="true" /> <span>Share room</span>
       </button>
     </div>
   );
