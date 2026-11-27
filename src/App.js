@@ -282,6 +282,7 @@ const MachineCard = React.memo(({ machine, room, stale, checkedAt }) => {
 
 function NextMachineAlert({ room, type, machines, eligible }) {
   const dialog = useRef(null);
+  const trigger = useRef(null);
   const [open, setOpen] = useState(false);
   const isWasher = type === 'Washer';
   const machineLabel = isWasher ? NEXT_WASHER_LABEL : NEXT_DRYER_LABEL;
@@ -291,15 +292,21 @@ function NextMachineAlert({ room, type, machines, eligible }) {
     setOpen(true);
   }
 
+  function closeAlert() {
+    setOpen(false);
+    const control = trigger.current ?? document.getElementById('room-switcher');
+    control?.focus({ preventScroll: true });
+  }
+
   return (
     <>
       {eligible && (
-        <button type="button" onClick={showAlert}
+        <button type="button" ref={trigger} onClick={showAlert}
           className="mb-4 inline-flex min-h-[44px] items-center gap-2 rounded-lg border border-slate-300 px-3 text-sm font-semibold text-uvm-green hover:bg-green-50 dark:border-slate-600 dark:text-uvm-gold dark:hover:bg-slate-700">
           <Bell size={16} /> Notify me when a {type.toLowerCase()} opens
         </button>
       )}
-      <dialog ref={dialog} onClose={() => setOpen(false)} aria-label={machineLabel}
+      <dialog ref={dialog} onClose={closeAlert} aria-label={machineLabel}
         className="ll-dialog w-[calc(100%-2rem)] max-w-md rounded-xl p-5 shadow-xl backdrop:bg-black/60">
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-xl font-bold">{machineLabel}</h3>

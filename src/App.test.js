@@ -437,6 +437,15 @@ test('switching CCRH floors excludes the legacy combined cache and saves each fl
     expect(window.location.hash).toBe('#room/ccrh-floor-7?machine=62');
     expect(container.textContent).toContain('Notify me when a washer opens');
     expect(document.activeElement.id).toBe('machine-card-62');
+    const nextWasher = [...container.querySelectorAll('button')].find(button => button.textContent.includes('Notify me when a washer opens'));
+    const nextWasherDialog = container.querySelector('dialog[aria-label="Next available washer"]');
+    nextWasherDialog.showModal = jest.fn();
+    await act(async () => { nextWasher.click(); });
+    expect(nextWasherDialog.showModal).toHaveBeenCalledTimes(1);
+    const focus = jest.spyOn(nextWasher, 'focus');
+    await act(async () => { nextWasherDialog.dispatchEvent(new Event('close', { bubbles: true })); });
+    expect(focus).toHaveBeenCalledWith({ preventScroll: true });
+    expect(document.activeElement).toBe(nextWasher);
     const summary = container.querySelector('[aria-label="Machine availability"]');
     expect(summary.textContent).toContain('Next reported washer finish in ~6 min');
     expect(summary.textContent).not.toContain('Next reported dryer finish');

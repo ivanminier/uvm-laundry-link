@@ -1,6 +1,7 @@
-const CACHE_NAME = 'laundrylink-static-v3';
+const CACHE_NAME = 'laundrylink-static-v4';
 const APP_ENTRYPOINTS = [];
-const SHELL_URLS = ['/index.html', '/manifest.json', '/favicon.ico', '/favicon.svg', '/apple-touch-icon.png',
+// Production redirects /index.html to /. Precache the canonical navigation response.
+const SHELL_URLS = ['/', '/manifest.json', '/favicon.ico', '/favicon.svg', '/apple-touch-icon.png',
   '/logo192.png', '/logo512.png', '/brand-mark.svg',
   '/status/', '/site.css', '/room-directory.css', '/scroll-edge.js'];
 
@@ -28,12 +29,12 @@ self.addEventListener('fetch', (event) => {
         const response = await fetch(request);
         if (response.ok && response.headers.get('content-type')?.includes('text/html')) {
           const path = new URL(request.url).pathname;
-          await cache.put(path === '/' ? '/index.html' : path, response.clone());
+          await cache.put(path, response.clone());
         }
         return response;
       } catch {
         const path = new URL(request.url).pathname;
-        return await cache.match(path === '/' ? '/index.html' : path) || Response.error();
+        return await cache.match(path) || Response.error();
       }
     }
 
