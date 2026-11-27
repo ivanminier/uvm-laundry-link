@@ -53,8 +53,7 @@ export const articles = [
   },
 ];
 
-// Set to the actual publication date in the approved release commit.
-const legalEffectiveDate = 'Effective date will be set at publication.';
+const legalEffectiveDate = 'Effective November 27, 2026.';
 
 export const legalArticles = [
   {
@@ -63,7 +62,7 @@ export const legalArticles = [
     description: 'How UVM LaundryLink uses browser storage, push alert data, and aggregate site analytics.',
     intro: legalEffectiveDate,
     html: `<h2>Who runs LaundryLink</h2>
-      <p>UVM LaundryLink is an independent student project created and maintained by Ivan Minier. It operates independently of the University of Vermont and Automatic Laundry. You can use the tracker without an account, name, email address, or phone number.</p>
+      <p>UVM LaundryLink is an independent student project created and maintained by Ivan Minier. It is not affiliated with the University of Vermont or Automatic Laundry. You can use the tracker without an account, name, email address, or phone number.</p>
       <h2>What stays in your browser</h2>
       <p>Your browser stores favorites, room and appearance preferences, saved alert IDs and expiration times, and the last saved machine statuses. The service worker caches site files so the tracker can open offline after it has been downloaded. To remove this information, clear the site data for uvmlaundry.com in your browser. Clearing site data removes the saved alert ID from your browser. A pending alert can still be active on the alerts service. Cancel pending alerts in My Laundry before clearing site data. You can change notification permission separately in your browser settings.</p>
       <h2>Browser push alerts</h2>
@@ -87,7 +86,7 @@ export const legalArticles = [
     description: 'The intended use of UVM LaundryLink and the limits of its data, estimates, and reminders.',
     intro: legalEffectiveDate,
     html: `<h2>Using LaundryLink</h2>
-      <p>UVM LaundryLink is a free, independent student project by Ivan Minier for UVM residence hall students and other people authorized to use campus laundry facilities. It is separate from UVM and Automatic Laundry and has no official endorsement. Follow <a href="${handbook}">UVM’s residence hall and facility rules</a>. Access to the website gives you no additional access to residence halls or laundry rooms.</p>
+      <p>UVM LaundryLink is a free, independent student project by Ivan Minier for UVM residence hall students and other people authorized to use campus laundry facilities. It is not affiliated with the University of Vermont or Automatic Laundry and has no official endorsement. Follow <a href="${handbook}">UVM’s residence hall and facility rules</a>. Access to the website gives you no additional access to residence halls or laundry rooms.</p>
       <h2>Reported data and estimates</h2>
       <p>LaundryLink shows machine status from third-party reports. A status may be delayed, inaccurate, or unavailable. A machine shown as free may still be occupied or contain laundry. Check the machine when you arrive. Estimated cycle finish times can change. Peak Times summarize past usage and current availability can differ.</p>
       <h2>Alerts and reminders</h2>
