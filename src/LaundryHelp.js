@@ -58,7 +58,11 @@ export function LaundryHelp({ onBack }) {
             <li key={url}>
               <a href={url} target={external ? '_blank' : undefined} rel={external ? 'noopener noreferrer' : undefined}
                 className="inline-flex items-center gap-2 font-medium text-uvm-green underline dark:text-uvm-gold">
-                {label} {external && <ExternalLink size={15} />}
+                {label}
+                {external && <>
+                  <ExternalLink size={15} aria-hidden="true" />
+                  <span className="sr-only">(opens in a new tab)</span>
+                </>}
               </a>
             </li>
           ))}

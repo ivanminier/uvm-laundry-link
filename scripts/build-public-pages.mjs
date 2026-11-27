@@ -80,6 +80,7 @@ const directoryCampuses = CAMPUS_SECTIONS.map(([id, name]) => {
 const campusById = new Map(directoryCampuses.map(campus => [campus.id, campus]));
 const directoryComplexes = directoryCampuses.flatMap(({ complexes }) => complexes);
 const complexByRoom = new Map(directoryComplexes.flatMap(complex => complex.rooms.map(room => [room.id, complex])));
+const externalIcon = '<svg class="site-external-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg>';
 const arrow = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>';
 const roomLinkLabel = (room) => room.id.startsWith('lll_')
   ? [room.displayName, room.locationLabel].filter(Boolean).join(' · ')
@@ -359,7 +360,9 @@ const information = {
         ${afterHomeScreenSteps ? `<ol>${homeScreenSteps.map(step => `<li>${informationParts(step)}</li>`).join('')}</ol><p>${escape(afterHomeScreenSteps)}</p>` : ''}
       </div></details>`).join('')}
     <h2>More Resources</h2>
-    ${list(informationResources.map(([label, href]) => link(href, label)), 'site-information-resources')}
+    ${list(informationResources.map(([label, href, external]) => external
+      ? `<a href="${escape(href)}" target="_blank" rel="noopener noreferrer">${escape(label)}${externalIcon}<span class="site-visually-hidden">(opens in a new tab)</span></a>`
+      : link(href, label)), 'site-information-resources')}
     <p>For urgent machine issues, call ${link(urgentMachineTel, urgentMachinePhone)}.</p>
     <p class="site-information-disclosure">${informationParts(informationDisclosure)}</p>
   </section>`,
@@ -370,17 +373,17 @@ const sitemapPage = {
   intro: 'Find every public page, residence hall, and individual room in UVM LaundryLink.',
   layout: 'directory', trail: siteTrail,
   html: `<section class="site-panel site-map-pages"><h2>Key pages</h2>${list([
-    link('/about/', 'About UVM LaundryLink'),
-    link('/residence-halls/', 'Campus laundry directory'),
-    link('/compare/', 'Compare trackers'),
-    link(informationPath, 'Information'),
-    link('/', 'Laundry tracker home'),
-    link('/?view=my-laundry', 'My Laundry'),
-    link('/status/', 'Service status'),
-    link('/privacy/', 'Privacy Policy'),
-    link('/terms/', 'Terms of Use'),
-    link('/?view=settings', 'Settings'),
-  ], 'site-map-key-links')}</section>${campusDirectory(true)}`,
+    ['/about/', 'About UVM LaundryLink'],
+    ['/residence-halls/', 'Campus laundry directory'],
+    ['/compare/', 'Compare trackers'],
+    [informationPath, 'Information'],
+    ['/', 'Laundry tracker home'],
+    ['/?view=my-laundry', 'My Laundry'],
+    ['/status/', 'Service status'],
+    ['/privacy/', 'Privacy Policy'],
+    ['/terms/', 'Terms of Use'],
+    ['/?view=settings', 'Settings'],
+  ].sort(([, first], [, second]) => first.localeCompare(second)).map(([href, label]) => link(href, label)), 'site-map-key-links')}</section>${campusDirectory(true)}`,
 };
 const pages = [home, directory, ...campusPages, ...complexPages, ...hallPages, ...articlePages, status, information, sitemapPage];
 

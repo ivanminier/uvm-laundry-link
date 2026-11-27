@@ -467,7 +467,7 @@ test('static-page header routes open the app overlays', async () => {
         expect(container.querySelector('a[href="/sitemap/"]')).not.toBeNull();
         expect(container.querySelector('a[href="/status/"]')).not.toBeNull();
         expect(Array.from(container.querySelectorAll('section li a:is([href="/compare/"], [href="/status/"], [href="/sitemap/"])'), (anchor) => anchor.textContent.trim()))
-          .toEqual(['Compare trackers', 'Service status', 'Site map']);
+          .toEqual(['Site map', 'Service status', 'Compare trackers']);
       }
     } finally {
       act(() => root.unmount());

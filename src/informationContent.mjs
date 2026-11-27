@@ -62,11 +62,12 @@ export const informationDisclosure = [
   { href: '/about/', label: 'About LaundryLink' },
 ];
 
+// Site navigation, then policies, then outside resources (marked external).
 export const informationResources = [
-  ['Campus Laundry Directory', '/residence-halls/'],
-  ['Compare trackers', '/compare/'],
-  ['Service status', '/status/'],
+  ['Campus laundry directory', '/residence-halls/'],
   ['Site map', '/sitemap/'],
+  ['Service status', '/status/'],
+  ['Compare trackers', '/compare/'],
   ['Privacy Policy', '/privacy/'],
   ['Terms of Use', '/terms/'],
   ['Request service', requestService, true],

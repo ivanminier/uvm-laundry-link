@@ -715,3 +715,23 @@ html.dark .site-directory .site-room-info {
 .site-information-resources li + li {
   margin-top: 0.5rem;
 }
+
+.site-information-resources a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.site-external-icon {
+  flex: none;
+}
+
+.site-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
