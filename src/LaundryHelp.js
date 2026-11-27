@@ -29,7 +29,7 @@ const resources = [
 
 export function LaundryHelp({ onBack }) {
   return (
-    <div className="ll-panel mx-auto max-w-2xl p-5 sm:p-7">
+    <div className="ll-panel mx-auto max-w-2xl p-5 sm:p-7 animate-fadeIn">
       <header className="mb-6 flex items-center justify-between gap-4">
         <h2 className="text-3xl lg:text-4xl font-bold">Information</h2>
         <BackButton onClick={onBack} />
