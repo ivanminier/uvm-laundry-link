@@ -63,7 +63,7 @@ for (let index = 0; index < routes.length; index += 6) {
       const targetPath = new URL(target, canonicalOrigin).pathname;
       assert.ok(paths.has(targetPath), `Broken link on ${pathname}: ${target}`);
     }
-    if (pathname.startsWith('/residence-halls/') && pathname !== '/residence-halls/') {
+    if (pathname.startsWith('/residence-halls/') && pathname !== '/residence-halls/' && !pathname.includes('/campuses/')) {
       assert.match(body, /href="\/#room\//, pathname);
     }
   }));
@@ -82,6 +82,12 @@ for (const [path, text] of [
   ['/about/', await read('/about/')], ['/compare/', await read('/compare/')],
 ]) assert.match(text, /<main class="[^"]*animate-fadeIn"/, path);
 assert.match(await read('/room-directory.css'), /@keyframes ll-fade-in/);
+const campusPaths = [...paths].filter(path => path.startsWith('/residence-halls/campuses/'));
+assert.equal(campusPaths.length, 4);
+for (const path of campusPaths) {
+  assert.ok(directoryPage.includes(`href="${path}"`), `Directory entry for ${path}`);
+  assert.match(await read(path), /href="\/residence-halls\/complexes\//, path);
+}
 const complexPaths = [...paths].filter(path => path.startsWith('/residence-halls/complexes/'));
 assert.ok(complexPaths.length, 'Complex pages are indexed');
 for (const path of complexPaths) {
