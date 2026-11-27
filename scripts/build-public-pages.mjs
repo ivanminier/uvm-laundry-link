@@ -1,7 +1,7 @@
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { CAMPUS_SECTIONS, groupCampusRooms } from '../src/campusDirectory.mjs';
 import { roomPath } from '../src/roomLinks.mjs';
-import { independenceDisclosure, trackerTitle, homeScreenSteps, informationPath, informationQuestions, informationResources, urgentMachinePhone, urgentMachineTel } from '../src/informationContent.mjs';
+import { independenceDisclosure, trackerTitle, homeScreenSteps, informationDisclosure, informationPath, informationQuestions, informationResources, urgentMachinePhone, urgentMachineTel } from '../src/informationContent.mjs';
 import { checkSources } from './check-sources.mjs';
 import { articles, legalArticles, service } from './site-content.mjs';
 
@@ -332,6 +332,7 @@ const information = {
     <h2>More Resources</h2>
     ${list(informationResources.map(([label, href]) => link(href, label)), 'site-information-resources')}
     <p>For urgent machine issues, call ${link(urgentMachineTel, urgentMachinePhone)}.</p>
+    <p class="site-information-disclosure">${informationParts(informationDisclosure)}</p>
   </section>`,
 };
 const sitemapPage = {

@@ -8,7 +8,7 @@ import { CAMPUS_SECTIONS, campusHeading, groupCampusRooms, roomDirectorySearchTe
 import { RoomSwitcher, RoomTools } from './RoomTools';
 import { MyLaundry } from './MyLaundry';
 import { PushAlertForm } from './PushAlertForm';
-import { independenceDisclosure, trackerTitle } from './informationContent.mjs';
+import { trackerTitle } from './informationContent.mjs';
 import { LaundryHelp } from './LaundryHelp';
 import { HomeScreenPrompt } from './HomeScreenHelp';
 import { BackButton } from './BackButton';
@@ -854,10 +854,6 @@ const App = () => {
                 </button>
               </div>
             </div>
-            <p className="-mt-5 mb-5 text-xs text-slate-600 dark:text-slate-300">
-              {independenceDisclosure}{' '}
-              <a href="/about/" className="text-uvm-green underline dark:text-uvm-gold">About LaundryLink</a>
-            </p>
             {favoriteSummaryEnabled && filteredHomeRooms.length > 0 && (
               <FavoriteSummary rooms={filteredHomeRooms} statuses={favoriteStatuses} offline={isOffline} onSelectRoom={handleSelectRoom} />
             )}

@@ -55,9 +55,13 @@ export const informationQuestions = [
   ]],
 ];
 
+export const informationDisclosure = [
+  'LaundryLink is an independent student project and is not affiliated with UVM or Automatic Laundry. ',
+  { href: '/about/', label: 'About LaundryLink' },
+];
+
 export const informationResources = [
   ['Campus Laundry Directory', '/residence-halls/'],
-  ['About UVM LaundryLink', '/about/'],
   ['Compare trackers', '/compare/'],
   ['Service status', '/status/'],
   ['Site map', '/sitemap/'],

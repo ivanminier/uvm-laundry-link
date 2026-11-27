@@ -3,7 +3,7 @@ import { ChevronRight, ExternalLink } from 'lucide-react';
 import { BackButton } from './BackButton';
 import { HomeScreenSteps } from './HomeScreenHelp';
 
-import { informationQuestions, informationResources, urgentMachinePhone, urgentMachineTel } from './informationContent.mjs';
+import { informationDisclosure, informationQuestions, informationResources, urgentMachinePhone, urgentMachineTel } from './informationContent.mjs';
 
 function Question({ question, answer, afterHomeScreenSteps, definitions }) {
   const [open, setOpen] = useState(false);
@@ -64,6 +64,10 @@ export function LaundryHelp({ onBack }) {
           ))}
         </ul>
         <p className="mt-4 text-sm">For urgent machine issues, call <a href={urgentMachineTel} className="underline">{urgentMachinePhone}</a>.</p>
+        <p className="mt-4 text-sm text-slate-600 dark:text-slate-300">
+          {informationDisclosure[0]}
+          <a href={informationDisclosure[1].href} className="text-uvm-green underline dark:text-uvm-gold">{informationDisclosure[1].label}</a>
+        </p>
       </section>
     </div>
   );
