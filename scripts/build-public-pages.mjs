@@ -3,7 +3,7 @@ import { CAMPUS_SECTIONS, groupCampusRooms } from '../src/campusDirectory.mjs';
 import { roomPath } from '../src/roomLinks.mjs';
 import { independenceDisclosure, trackerTitle, homeScreenSteps, informationPath, informationQuestions, informationResources, urgentMachinePhone, urgentMachineTel } from '../src/informationContent.mjs';
 import { checkSources } from './check-sources.mjs';
-import { articles, service } from './site-content.mjs';
+import { articles, legalArticles, service } from './site-content.mjs';
 
 const origin = 'https://uvmlaundry.com';
 const development = process.argv.includes('--dev');
@@ -308,7 +308,7 @@ const status = {
     </section>
   </div>`,
 };
-const articlePages = articles.map((page) => ({
+const articlePages = [...articles, ...legalArticles].map((page) => ({
   ...page, path: `/${page.slug}/`, heading: page.title, title: `${page.title} | UVM LaundryLink`,
   trail: siteTrail, html: page.layout ? page.html : `<div class="site-copy">${page.html}</div>`,
 }));
@@ -347,6 +347,8 @@ const sitemapPage = {
     link('/', 'Laundry tracker home'),
     link('/?view=my-laundry', 'My Laundry'),
     link('/status/', 'Service status'),
+    link('/privacy/', 'Privacy Policy'),
+    link('/terms/', 'Terms of Use'),
     link('/?view=settings', 'Settings'),
   ], 'site-map-key-links')}</section>${campusDirectory(true)}`,
 };

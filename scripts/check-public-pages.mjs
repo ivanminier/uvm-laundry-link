@@ -24,8 +24,9 @@ async function read(path, expectedStatus = 200, userAgent) {
 const routes = Array.from((await read('/sitemap.xml')).matchAll(/<loc>(.*?)<\/loc>/g), (match) => new URL(match[1]));
 const paths = new Set(routes.map(({ pathname }) => pathname));
 assert.equal(routes.length, paths.size, 'Unique sitemap entries');
+assert.equal(paths.size, 55, 'Canonical public routes');
 assert.ok(!paths.has('/laundry-guide/') && !paths.has('/faq/'), 'Retired pages have no sitemap entry');
-for (const path of ['/', '/residence-halls/', '/residence-halls/wright-hall/', '/residence-halls/marsh-and-austin-hall/', '/residence-halls/living-learning/', '/status/', '/about/', '/compare/', '/sitemap/', informationPath]) {
+for (const path of ['/', '/residence-halls/', '/residence-halls/wright-hall/', '/residence-halls/marsh-and-austin-hall/', '/residence-halls/living-learning/', '/status/', '/about/', '/compare/', '/sitemap/', '/privacy/', '/terms/', informationPath]) {
   assert.ok(paths.has(path), path);
 }
 const titles = new Set();
@@ -81,7 +82,15 @@ if (protectedEmail) {
   feedbackAddress = Buffer.from(bytes.map(byte => byte ^ key)).toString('utf8');
 }
 assert.equal(feedbackAddress, 'ivan.minier@uvm.edu');
-assert.match(about, /Alerts expire after four hours/);
+const privacy = await read('/privacy/');
+const terms = await read('/terms/');
+assert.match(privacy, /Alerts expire after four hours/);
+assert.match(terms, /Reasonable use and availability/);
+for (const text of [about, await read(informationPath), await read('/sitemap/')]) {
+  assert.match(text, /href="\/privacy\/">Privacy Policy<\/a>/);
+  assert.match(text, /href="\/terms\/">Terms of Use<\/a>/);
+}
+for (const text of [privacy, terms]) assert.match(text, /href="\/about\/">About UVM LaundryLink<\/a>/);
 assert.doesNotMatch(await read('/compare/'), /filter by campus|search for a machine number|filter by status/);
 const status = await read('/status/');
 assert.match(status, /Machine status feed responded with status data for \d+ of \d+ provider rooms\./);

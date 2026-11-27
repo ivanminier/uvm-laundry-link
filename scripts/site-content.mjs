@@ -23,9 +23,7 @@ export const articles = [
       </section>
       <section class="site-panel">
         <h2>Privacy</h2>
-        <p>Your room preferences and saved alert IDs stay in this browser. LaundryLink stores your browser’s push subscription with each alert and removes that record after cancellation, expiration, successful handoff to the push service, or the last failed delivery attempt. Alerts expire after four hours.</p>
-        <p>Cancel a pending alert in My Laundry using the browser where you set it. Manage notification permission separately in your browser settings. Automatic Laundry receives the details you enter in its text and email form.</p>
-        <p>LaundryLink counts page views, room views, broad referral sources, and push service outcomes in aggregate. The analytics totals contain no cookies, account IDs, or full referrer URLs.</p>
+        <p>Read the <a href="/privacy/">Privacy Policy</a> for information about browser storage, alerts, and analytics. The <a href="/terms/">Terms of Use</a> cover using the tracker and its reported data.</p>
       </section>
     </div>`,
   },
@@ -52,5 +50,49 @@ export const articles = [
         <h2>${task}</h2><dl><div><dt>UVM LaundryLink</dt><dd>${laundryLink}</dd></div><div><dt>LaundryConnect</dt><dd>${laundryConnect}</dd></div></dl>
       </section>`).join('')}
     </div>`,
+  },
+];
+
+// Set to the actual publication date in the approved release commit.
+const legalEffectiveDate = 'Effective date will be set at publication.';
+
+export const legalArticles = [
+  {
+    slug: 'privacy',
+    title: 'Privacy Policy',
+    description: 'How UVM LaundryLink uses browser storage, push alert data, and aggregate site analytics.',
+    intro: legalEffectiveDate,
+    html: `<h2>Who runs LaundryLink</h2>
+      <p>UVM LaundryLink is an independent student project created and maintained by Ivan Minier. It operates independently of the University of Vermont and Automatic Laundry. You can use the tracker without an account, name, email address, or phone number.</p>
+      <h2>What stays in your browser</h2>
+      <p>Your browser stores favorites, room and appearance preferences, saved alert IDs and expiration times, and the last saved machine statuses. The service worker caches site files so the tracker can open offline after it has been downloaded. To remove this information, clear the site data for uvmlaundry.com in your browser. To stop a pending push alert, cancel it in My Laundry before clearing site data. You can change notification permission separately in your browser settings.</p>
+      <h2>Browser push alerts</h2>
+      <p>When you set a push alert, the alerts service stores your browser’s push subscription endpoint and keys, the room and relevant machine IDs, the requested timing or availability condition, and an alert ID and expiration time. Cancel pending alerts from the browser where you set them. Alerts expire after four hours. The service deletes the alert record after successful cancellation, when it checks for expired alerts, after handoff to the push service, or when delivery attempts end. The browser’s push service handles delivery. A successful handoff does not guarantee that your device shows the alert.</p>
+      <h2>Analytics and hosting</h2>
+      <p>LaundryLink stores daily aggregate counts for page and room views, broad referral categories, alert registrations, and push service outcomes. The aggregate tables contain counts and labels, without browser cookies, account IDs, or full referrer URLs. LaundryLink’s page, room, and referral counters respect supported Global Privacy Control and Do Not Track signals. Cloudflare provides site delivery and the alerts and metrics infrastructure. The alerts service uses connection IP information for rate limiting. Hosting, network, and push services can process connection information as part of operating their services. Cloudflare’s Web Analytics, where enabled, is separate from LaundryLink’s own aggregate counts.</p>
+      <h2>Automatic Laundry</h2>
+      <p>Machine status and historical usage are based on information reported by Automatic Laundry. Automatic Laundry handles the information you enter in its text, email, and equipment service forms, including the forms you open through LaundryLink. Its websites and embedded interfaces follow its own privacy practices.</p>
+      <h2>Calendar reminders</h2>
+      <p>LaundryLink creates the calendar file in your browser without accessing a calendar account. Your calendar app controls import and reminders.</p>
+      <h2>Contact</h2>
+      <p>For a privacy question, use the email link on <a href="/about/">About UVM LaundryLink</a>.</p>`,
+  },
+  {
+    slug: 'terms',
+    title: 'Terms of Use',
+    description: 'The intended use of UVM LaundryLink and the limits of its data, estimates, and reminders.',
+    intro: legalEffectiveDate,
+    html: `<h2>Using LaundryLink</h2>
+      <p>UVM LaundryLink is a free, independent student project by Ivan Minier for UVM residence hall students and other people authorized to use campus laundry facilities. It is separate from UVM and Automatic Laundry and has no official endorsement. Follow <a href="${handbook}">UVM’s residence hall and facility rules</a>. Access to the website gives you no additional access to residence halls or laundry rooms.</p>
+      <h2>Reported data and estimates</h2>
+      <p>LaundryLink shows machine status from third-party reports. A status may be delayed, inaccurate, or unavailable. A machine shown as free may still be occupied or contain laundry. Check the machine when you arrive. Estimated cycle finish times can change. Peak Times summarize past usage and current availability can differ.</p>
+      <h2>Alerts and reminders</h2>
+      <p>Browser push alerts depend on the data feed, network, push service, browser permissions, and device settings. They can arrive late or fail to arrive. A downloaded calendar reminder uses the estimate at download time. Your calendar app controls delivery. Automatic Laundry handles its own text and email alerts.</p>
+      <h2>Repairs and external services</h2>
+      <p>Use <a href="${service}">Automatic Laundry’s service form</a> for equipment problems. Automatic Laundry handles servicing. When you open an external site or use an embedded provider form, that service’s own terms and privacy practices apply.</p>
+      <h2>Reasonable use and availability</h2>
+      <p>Use the tracker in a way that keeps it available to other students. Avoid automated traffic that burdens LaundryLink or its data providers, and respect access controls. The site may change, be interrupted, or be discontinued.</p>
+      <h2>Contact</h2>
+      <p>For a question about LaundryLink, use the email link on <a href="/about/">About UVM LaundryLink</a>.</p>`,
   },
 ];
