@@ -1,9 +1,10 @@
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { CAMPUS_SECTIONS, groupCampusRooms } from '../src/campusDirectory.mjs';
-import { roomPath } from '../src/roomLinks.mjs';
+import { hallName, hallSlug, roomPath } from '../src/roomLinks.mjs';
 import { independenceDisclosure, trackerTitle, homeScreenSteps, informationDisclosure, informationPath, informationQuestions, informationResources, urgentMachinePhone, urgentMachineTel } from '../src/informationContent.mjs';
 import { checkSources } from './check-sources.mjs';
-import { articles, legalArticles, service } from './site-content.mjs';
+import { articles, handbook, legalArticles, service } from './site-content.mjs';
+import { accessQualifier, accessStatement, complexFullNames, coverageNote, locationLine, locationPhrase, machineInventory, roomLocation, sharedFacilities } from '../src/roomLocations.mjs';
 
 const origin = 'https://uvmlaundry.com';
 const development = process.argv.includes('--dev');
@@ -57,11 +58,8 @@ const time = (value) => `<time datetime="${escape(value)}">${escape(dateText(val
 const halls = new Map();
 const hallByRoom = new Map();
 for (const room of rooms) {
-  const display = room.displayName ?? room.name;
-  const name = room.id.startsWith('lll_') ? 'Living-Learning'
-    : display === 'CCRH' ? 'Central Campus Residence Hall'
-    : display.replace(/^UHeights /, 'University Heights ');
-  const slug = slugify(name);
+  const name = hallName(room);
+  const slug = hallSlug(name);
   if (!halls.has(slug)) halls.set(slug, { name, slug, campus: room.campus, rooms: [] });
   const hall = halls.get(slug);
   hall.rooms.push(room);
@@ -136,6 +134,7 @@ const pageSchema = (page) => {
     itemListElement: [...page.trail, [page.path, page.heading]].map(([path, name], index) =>
       ({ '@type': 'ListItem', position: index + 1, name, item: origin + path })),
   });
+  if (page.about) content.about = page.about;
   if (page.path === '/residence-halls/') content.mainEntity = {
     '@type': 'ItemList', itemListElement: directoryComplexes.map((complex, index) =>
       ({ '@type': 'ListItem', position: index + 1, name: complex.title, url: origin + complex.path })),
@@ -191,7 +190,7 @@ const directory = {
   heading: 'UVM campus laundry directory', description: 'Find UVM residence hall laundry rooms by campus. Open your hall’s page for floor, tower, and room options and live machine tracking.',
   intro: 'Browse by campus and complex to find your laundry room and open the tracker.',
   trail: siteTrail, type: 'CollectionPage', layout: 'directory',
-  html: campusDirectory(),
+  html: `${campusDirectory()}<p class="site-note">${escape(coverageNote)}</p>`,
 };
 const campusPages = directoryCampuses.map(({ id, path, complexes }) => {
   const count = complexes.reduce((total, complex) => total + complex.rooms.length, 0);
@@ -223,45 +222,70 @@ const complexPages = directoryCampuses.flatMap(({ id, name, path: campusPath, co
 }));
 
 const formatList = new Intl.ListFormat('en-US', { style: 'long', type: 'conjunction' });
+const officialRoomUrl = (room) => {
+  const historyId = room.historyId ?? rooms.find(({ id }) => id === room.historyRoomId)?.historyId;
+  return historyId ? `https://laundryconnectlive.com/live/${historyId}` : room.url;
+};
+const plural = (count, noun) => `${count} ${noun}${count === 1 ? '' : 's'}`;
+// Card headings name the building, tower, or floor; the Location line gives the room number.
+const hallRoomTitle = (room) => {
+  const { designation, building } = roomLocation(room);
+  return room.id.startsWith('lll_') || !designation ? building : designation;
+};
 const hallPages = hallList.map((hall) => {
-  const livingLearning = hall.slug === 'living-learning';
   const central = hall.slug === 'central-campus-residence-hall';
+  const single = hall.rooms.length === 1;
   const complex = complexByRoom.get(hall.rooms[0].id);
   const hasComplex = complex && complex.title !== 'Other Buildings';
   const campus = campusById.get(hall.campus);
   const complexName = hasComplex && !central ? complex.title : null;
+  const complexDetail = complexName && complexFullNames[complexName] ? ` (${complexFullNames[complexName]})` : '';
   const complexLocation = complexName
-    ? ` in ${complexName.startsWith('The ') ? '' : 'the '}${complexName}${complexName.endsWith(' Complex') ? '' : ' complex'}`
+    ? ` in ${complexName.startsWith('The ') ? '' : 'the '}${complexName}${complexName.endsWith(' Complex') ? '' : ' complex'}${complexDetail}`
     : '';
-  const locationNames = hall.rooms.map(room => room.locationLabel).filter(Boolean);
-  const roomCodes = livingLearning ? hall.rooms.map(room =>
-    room.displayName.replace(/^Living-Learning /, '') + room.locationLabel.replace(/^Room /, '')) : [];
-  const locations = central ? ' on Floors 2–7'
-    : livingLearning ? ` in rooms ${formatList.format(roomCodes)}`
-    : locationNames.length ? ` in ${formatList.format(locationNames)}` : '';
   const campusLocation = hall.campus === 'north' ? 'in the Trinity and North campus area' : `on ${campusPlace(hall.campus)}`;
-  const roomCount = hall.rooms.length === 1 ? 'room' : 'rooms';
-  const roomVerb = hall.rooms.length === 1 ? 'is' : 'are';
-  const intro = hall.name.endsWith('s')
-    ? `The laundry ${roomCount} at ${hall.name} ${roomVerb}${complexLocation} ${campusLocation}${locations}.`
-    : `${hall.name}’s laundry ${roomCount} ${roomVerb}${complexLocation} ${campusLocation}${locations}.`;
+  const washers = hall.rooms.reduce((total, room) => total + roomLocation(room).washers, 0);
+  const dryers = hall.rooms.reduce((total, room) => total + roomLocation(room).dryers, 0);
+  const subject = hall.name.endsWith('s') ? `The laundry room at ${hall.name}` : `${hall.name}’s laundry room`;
+  const intro = single
+    ? `${subject} is ${locationPhrase(hall.rooms[0])}${complexLocation ? ',' + complexLocation : ''} ${campusLocation}.`
+    : `${hall.name} has ${hall.rooms.length} laundry rooms${complexLocation} ${campusLocation}: ${formatList.format(
+      [...Map.groupBy(hall.rooms, hallRoomTitle)].map(([title, group]) =>
+        `${title} (${group.length === 1 ? 'Room' : 'Rooms'} ${formatList.format(group.flatMap((room) => roomLocation(room).rooms))})`))}.`;
+  const description = single
+    ? `${hall.name} laundry at UVM is ${locationPhrase(hall.rooms[0])}, with ${machineInventory(hall.rooms[0])} on record. Check live washer and dryer availability.`
+    : `${hall.name} laundry at UVM: ${hall.rooms.length} laundry rooms with ${plural(washers, 'washer')} and ${plural(dryers, 'dryer')} on record. See each room’s floor and room number, then check live availability.`;
   const splitNote = central
     ? '<p class="site-note">UVM LaundryLink groups machine numbers 45–55 under Floor 6 and 56–62 under Floor 7. LaundryConnect Live lists those two floors together, including their shared Peak Times history.</p>' : '';
   const roomCards = list(hall.rooms.map((room) => {
-    const location = livingLearning ? roomLinkLabel(room) : room.locationLabel ?? room.displayName ?? room.name;
-    const sibling = livingLearning && hall.rooms.find(other =>
-      other.id !== room.id && other.displayName === room.displayName);
-    const historyId = room.historyId ?? rooms.find(({ id }) => id === room.historyRoomId)?.historyId;
-    const official = historyId ? `https://laundryconnectlive.com/live/${historyId}` : room.url;
-    return `<h3>${escape(location)}</h3><p>${link(trackerLink(room), 'Check live machines')} · ${link(official, 'Official room view')}</p>
-      ${sibling ? `<p>Also in ${escape(room.displayName)}: ${link(trackerLink(sibling), sibling.locationLabel)}</p>` : ''}`;
+    const location = roomLocation(room);
+    return `<h3>${escape(hallRoomTitle(room))}</h3>
+      <dl class="hall-room-facts">
+        <div><dt>Location</dt><dd>${escape(locationLine(room))}</dd></div>
+        <div><dt>Machines on record</dt><dd>${escape(plural(location.washers, 'washer'))} · ${escape(plural(location.dryers, 'dryer'))}</dd></div>
+      </dl>
+      ${location.note ? `<p class="hall-room-note">${escape(location.note)}</p>` : ''}
+      <p>${link(trackerLink(room), 'Check live machines')} · ${link(officialRoomUrl(room), 'Official room view')}</p>`;
   }), 'hall-grid');
+  const sharedNotes = [...new Set(hall.rooms.map((room) => roomLocation(room).shared).filter(Boolean))]
+    .map((key) => `<p>${escape(sharedFacilities[key])}</p>`).join('');
   return {
     path: hallUrl(hall), trail: [...hallTrail, [campus.path, campus.name]], title: `${hall.name} Laundry at UVM | UVM LaundryLink`,
     heading: `${hall.name} laundry`, layout: 'hall', backHref: complex?.path ?? campus.path,
-    description: `${intro} Open the tracker for washer and dryer availability.`,
+    description,
     intro,
-    html: `<h2>Laundry rooms</h2>${roomCards}${splitNote}<p>Current counts appear in the tracker when the live feed is available. For repairs, include the machine number and room when you ${link(service, 'request service from Automatic Laundry')}.</p>
+    about: hall.rooms.map((room) => ({
+      '@type': 'Place',
+      name: `${roomLocation(room).building}${roomLocation(room).designation ? ' ' + roomLocation(room).designation : ''} laundry, ${locationLine(room).split(' · ').pop()}`,
+      description: `${locationLine(room)}. ${machineInventory(room).replace(/^./, (first) => first.toUpperCase())} on record.`,
+      containedInPlace: { '@type': 'Place', name: roomLocation(room).building },
+    })),
+    html: `<h2>${single ? 'Laundry room' : 'Laundry rooms'}</h2>${roomCards}
+      <p class="site-note">Machines on record come from the equipment list Automatic Laundry reports for each room. They are not live availability. Open the tracker to see which machines are free right now.</p>${splitNote}
+      <h2>Access</h2>${sharedNotes}
+      <p>${escape(accessStatement)}${sharedNotes ? ' ' + escape(accessQualifier) : ''} See ${link(handbook, 'UVM’s Hallways Handbook')} for residence hall rules.</p>
+      <h2>Reporting a problem</h2>
+      <p>For repairs, include the machine number and room when you ${link(service, 'request service from Automatic Laundry')}.</p>
       <nav class="site-page-actions" aria-label="Room directories">
         <a class="site-page-action" href="${campus.path}">${escape(campus.name)} campus directory</a>
         ${hasComplex ? `<a class="site-page-action" href="${complex.path}">${escape(complex.title)} directory</a>` : ''}

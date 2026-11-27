@@ -1,3 +1,4 @@
+import { coverageNote } from './roomLocations.mjs';
 export const informationPath = '/information/';
 export const trackerTitle = 'UVM Laundry Tracker | UVM LaundryLink';
 export const independenceDisclosure = 'Independent student project with no affiliation with UVM or Automatic Laundry.';
@@ -27,6 +28,7 @@ export const informationQuestions = [
     'Open the ', { href: '/residence-halls/', label: 'campus laundry directory' },
     ' and choose your residence hall, then select your floor, tower, or room. Central Campus Residence Hall has separate entries for Floors 2 through 7. Open the room tracker for the latest update and the number of free washers and dryers. A machine may show time remaining when the provider reports it.',
   ]],
+  ['Which UVM housing does LaundryLink cover?', [coverageNote]],
   ['What should I bring?', [
     'Bring a laundry bag and detergent suited to the machine. Check garment and machine labels, empty your pockets, avoid overloading the washer, move your load promptly, and clear the dryer lint screen as directed.',
   ]],

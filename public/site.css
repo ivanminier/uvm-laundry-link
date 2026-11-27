@@ -247,6 +247,33 @@ html.dark .public-page {
   margin: 0.3rem 0;
 }
 
+.hall-room-facts {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.4rem 0 0.6rem;
+}
+
+.hall-room-facts div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.5rem;
+}
+
+.hall-room-facts dt {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.hall-room-facts dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.hall-grid .hall-room-note {
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+
 .site-note {
   max-width: 58rem;
   padding: 0.8rem 1rem;

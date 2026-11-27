@@ -389,6 +389,20 @@ html.dark .ll-back-button {
   color: var(--ll-muted);
 }
 
+.ll-room-location {
+  margin: -0.5rem 0 1.25rem;
+  color: var(--ll-muted);
+  font-size: 0.9375rem;
+  line-height: 1.4;
+}
+
+.ll-room-location a {
+  color: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
 @media (max-width: 39.99rem) {
   .ll-room-header {
     gap: 0.5rem;

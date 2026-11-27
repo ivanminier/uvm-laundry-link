@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { roomPath } from '../src/roomLinks.mjs';
+import { hallGuidePath, roomPath } from '../src/roomLinks.mjs';
+import { locationLine, roomLocations } from '../src/roomLocations.mjs';
 import { independenceDisclosure, informationDisclosure, machineStatusDefinitions, informationPath, informationQuestions } from '../src/informationContent.mjs';
 import { readFile } from 'node:fs/promises';
 import { runInNewContext } from 'node:vm';
+
+const laundryRooms = JSON.parse(await readFile(new URL('../src/laundryRooms.json', import.meta.url)));
 
 const canonicalOrigin = 'https://uvmlaundry.com';
 const endpoint = process.argv[2];
@@ -143,6 +146,35 @@ for (const fact of [/Search or browse the UVM room selector/, /Save Room option/
   /email or text notice when the cycle finishes or about five minutes early/, /weekly heatmap and its busiest and quietest hours/,
   /problem report and a full service request/, /laundry tips, and FAQs/]) assert.match(compare, fact);
 const cottages = await read('/residence-halls/the-cottages/');
+// Hall guides: every tracker's location, inventory, and clean tracker link.
+const hallPages = new Map();
+for (const room of laundryRooms) {
+  const guide = hallGuidePath(room);
+  if (!hallPages.has(guide)) hallPages.set(guide, await read(guide));
+  const page = hallPages.get(guide);
+  const { washers, dryers } = roomLocations[room.id];
+  assert.ok(page.includes(locationLine(room)), `${guide} lists ${locationLine(room)}`);
+  assert.ok(page.includes(`href="/${roomPath(room)}"`), `${guide} links ${roomPath(room)}`);
+  assert.ok(page.includes(`${washers} washer${washers === 1 ? '' : 's'} · ${dryers} dryer${dryers === 1 ? '' : 's'}`), `${guide} inventory for ${room.id}`);
+}
+assert.equal(hallPages.size, 30, 'Thirty hall guides');
+for (const [guide, page] of hallPages) {
+  assert.doesNotMatch(page, /\?view=[a-z-]+#room|public(?:ly)? access/i, guide);
+  assert.match(page, /Residence hall laundry rooms are for authorized residents\./, guide);
+  assert.match(page, /not live availability/, guide);
+  assert.match(page, /"about":\[\{"@type":"Place"/, guide);
+}
+assert.match(hallPages.get('/residence-halls/simpson-hall/'), /Ground floor · Room 201G/);
+for (const hall of ['hunt', 'mccann', 'ready', 'richardson', 'sichel']) {
+  assert.doesNotMatch(await read(`/residence-halls/${hall}-hall/`), /McAuley/, `${hall} has its own laundry room`);
+}
+assert.match(hallPages.get('/residence-halls/wright-hall/'), /serves authorized residents of the CWPSCR complex/);
+for (const page of [await read('/residence-halls/'), await read(informationPath)]) {
+  for (const property of ['Hillel', 'Room 202B', 'Redstone Lofts', 'Redstone Commons', 'Catamount Run Apartments', 'University Commons at Catamount Run', 'Spinner Place']) {
+    assert.ok(page.includes(property), property);
+  }
+  assert.doesNotMatch(page, /#room\/(?:hillel|redstone-lofts|redstone-commons|spinner|catamount|university-commons)/);
+}
 assert.doesNotMatch(cottages, /s’s laundry/);
 assert.match(cottages, /The laundry room at The Cottages is /);
 const manifest = JSON.parse(await read('/manifest.json'));

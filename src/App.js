@@ -5,6 +5,8 @@ import { findLaundryRoom, getOfficialRoomUrl, laundryRooms, roomDisplayName, roo
 import { useLaundryStatus } from './useLaundryStatus';
 import { nextReportedFinish } from './cycleEstimates';
 import { CAMPUS_SECTIONS, campusHeading, groupCampusRooms, roomDirectorySearchTerms } from './campusDirectory.mjs';
+import { locationLine } from './roomLocations.mjs';
+import { hallGuidePath, hallName } from './roomLinks.mjs';
 import { RoomSwitcher, RoomTools } from './RoomTools';
 import { MyLaundry } from './MyLaundry';
 import { PushAlertForm } from './PushAlertForm';
@@ -997,6 +999,13 @@ const App = () => {
               <RoomSwitcher room={currentRoom} onSelectRoom={handleSelectRoom} />
               <RoomTools key={`tools-${currentRoom.id}`} room={currentRoom} />
             </div>
+            {locationLine(currentRoom) && (
+              <p className="ll-room-location">
+                <span>{locationLine(currentRoom)}</span>
+                <span aria-hidden="true"> · </span>
+                <a href={hallGuidePath(currentRoom)} aria-label={`${hallName(currentRoom)} hall guide`}>Hall guide</a>
+              </p>
+            )}
             {roomStatus.failed && (
               <div role="status" className="mb-6 rounded-md border-l-4 border-yellow-500 bg-yellow-100 p-4 text-yellow-900 dark:bg-yellow-700/30 dark:text-yellow-200">
                 {roomStatus.stale ? 'Live refresh failed. Showing the last saved machine statuses.' : 'Live machine status is unavailable. Try refreshing or open the LaundryConnect page.'}
