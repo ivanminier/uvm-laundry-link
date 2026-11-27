@@ -25,13 +25,11 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci --no-audit --no-fund
-      - run: npm test -- --watchAll=false --runInBand
-      - run: node --test alerts/*.test.mjs
-      - run: npm run build
+      # Same verification and build that Cloudflare Pages runs before publishing production.
+      - run: npm run verify
         env:
           GOOGLE_SITE_VERIFICATION: ${{ vars.GOOGLE_SITE_VERIFICATION }}
           BING_SITE_VERIFICATION: ${{ vars.BING_SITE_VERIFICATION }}
-      - run: node scripts/check-public-pages.mjs
       - uses: actions/upload-pages-artifact@v4
         with:
           path: build

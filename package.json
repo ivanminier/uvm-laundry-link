@@ -28,6 +28,7 @@
     "prestart": "node scripts/build-public-pages.mjs --dev",
     "start": "react-scripts start",
     "build": "react-scripts build && node scripts/build-public-pages.mjs",
+    "verify": "npm test -- --watchAll=false --runInBand && node --test alerts/*.test.mjs && npm run build && node scripts/check-public-pages.mjs",
     "test": "react-scripts test",
     "dashboard": "node scripts/growth-dashboard.mjs",
     "eject": "react-scripts eject",
