@@ -205,9 +205,10 @@ const campusPages = directoryCampuses.map(({ id, path, complexes }) => {
 });
 const complexPages = directoryCampuses.flatMap(({ id, name, path: campusPath, complexes }) => complexes.map(complex => {
   const otherBuildings = complex.title === 'Other Buildings';
-  const title = otherBuildings ? `Other Buildings on ${campusPlace(id)}` : complex.title;
+  const complexName = complex.title.replace(/^The /, '').replace(/ Complex$/, '');
+  const heading = otherBuildings ? `Other Buildings on ${campusPlace(id)}` : `Laundry in the ${complexName} complex`;
   return {
-    path: complex.path, title: `${title} Laundry | UVM LaundryLink`, heading: otherBuildings ? title : `${title} laundry`,
+    path: complex.path, title: `${heading} | UVM LaundryLink`, heading,
     description: `Find laundry rooms in ${complex.title} on ${name} at UVM. Open a room to check washer and dryer availability.`,
     intro: `${name} · ${complex.rooms.length} laundry ${complex.rooms.length === 1 ? 'room' : 'rooms'}`,
     trail: [...hallTrail, [campusPath, name]], layout: 'directory', type: 'CollectionPage', backHref: campusPath,
