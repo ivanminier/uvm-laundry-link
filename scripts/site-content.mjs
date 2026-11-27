@@ -53,14 +53,16 @@ export const articles = [
   },
 ];
 
-const legalEffectiveDate = 'Effective November 27, 2026.';
+// Each legal document carries its own effective date so either can be revised independently.
+const privacyEffectiveDate = 'Effective November 27, 2026.';
+const termsEffectiveDate = 'Effective November 27, 2026.';
 
 export const legalArticles = [
   {
     slug: 'privacy',
     title: 'Privacy Policy',
     description: 'How UVM LaundryLink uses browser storage, push alert data, and aggregate site analytics.',
-    intro: legalEffectiveDate,
+    intro: privacyEffectiveDate,
     html: `<h2>Who runs LaundryLink</h2>
       <p>UVM LaundryLink is an independent student project created and maintained by Ivan Minier. It is not affiliated with the University of Vermont or Automatic Laundry. You can use the tracker without an account, name, email address, or phone number.</p>
       <h2>What stays in your browser</h2>
@@ -77,14 +79,19 @@ export const legalArticles = [
       <p>LaundryLink creates the calendar file in your browser without accessing a calendar account. Your calendar app controls import and reminders.</p>
       <h2>Policy changes</h2>
       <p>If this Privacy Policy changes, the effective date on this page will be updated.</p>
-      <h2>Contact</h2>
-      <p>For a privacy question, use the email link on <a href="/about/">About UVM LaundryLink</a>.</p>`,
+      <h2>Contact and privacy requests</h2>
+      <p>For a privacy question or request, use the email link on <a href="/about/">About UVM LaundryLink</a>. You may contact me to request access to or deletion of identifiable information held by LaundryLink.</p>
+      <p>LaundryLink does not require accounts, so it cannot look up records by name, email address, or phone number. I may need additional information to identify relevant records and verify that a request relates to your own information.</p>
+      <p>Pending browser push alerts can be canceled through My Laundry in the browser where they were created. Successful cancellation removes the corresponding active alert record. Alerts expire after four hours and are removed through the service’s existing cleanup process.</p>
+      <p>LaundryLink’s aggregate analytics tables contain counts and labels rather than individual user identifiers. These counts cannot reliably be associated with or removed for an individual user.</p>
+      <p>Information submitted through Automatic Laundry’s text, email, and equipment service forms is handled by Automatic Laundry under its own privacy practices. Cloudflare, browser push services, and email and calendar providers may also process information under their own policies. LaundryLink does not directly control all information retained by these services.</p>
+      <p>If you contact me about a privacy request, I receive your email address and message and use that information to respond to and manage your request.</p>`,
   },
   {
     slug: 'terms',
     title: 'Terms of Use',
     description: 'The intended use of UVM LaundryLink and the limits of its data, estimates, and reminders.',
-    intro: legalEffectiveDate,
+    intro: termsEffectiveDate,
     html: `<h2>Using LaundryLink</h2>
       <p>UVM LaundryLink is a free, independent student project by Ivan Minier for UVM residence hall students and other people authorized to use campus laundry facilities. It is not affiliated with the University of Vermont or Automatic Laundry and has no official endorsement. Follow <a href="${handbook}">UVM’s residence hall and facility rules</a>. Access to the website gives you no additional access to residence halls or laundry rooms.</p>
       <h2>Reported data and estimates</h2>

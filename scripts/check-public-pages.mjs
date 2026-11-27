@@ -119,6 +119,16 @@ assert.match(privacy, /A pending alert can still be active on the alerts service
 assert.match(privacy, /no automatic expiration set for these counts/);
 assert.match(privacy, /It still counts aggregate push outcomes/);
 assert.match(privacy, /If this Privacy Policy changes, the effective date on this page will be updated/);
+assert.match(privacy, /<h2>Contact and privacy requests<\/h2>/);
+assert.equal((privacy.match(/<h2>Contact\b/g) ?? []).length, 1, 'One Privacy Policy contact section');
+for (const sentence of [
+  'You may contact me to request access to or deletion of identifiable information held by LaundryLink.',
+  'I may need additional information to identify relevant records and verify that a request relates to your own information.',
+  'Alerts expire after four hours and are removed through the service’s existing cleanup process.',
+  'These counts cannot reliably be associated with or removed for an individual user.',
+  'LaundryLink does not directly control all information retained by these services.',
+  'I receive your email address and message and use that information to respond to and manage your request.',
+]) assert.ok(privacy.includes(sentence), sentence);
 assert.match(terms, /Reasonable use and availability/);
 assert.match(terms, /To the extent permitted by applicable law/);
 assert.match(terms, /These terms may change/);
