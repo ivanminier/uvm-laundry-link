@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef } from 'react';
 import { ChevronDown, Share2 } from 'lucide-react';
 import { laundryRooms, roomDisplayName, roomLabel, roomPath } from './laundryData';
 
@@ -19,28 +19,20 @@ export function RoomSwitcher({ room, onSelectRoom }) {
 }
 
 export function RoomTools({ room }) {
-  const [shareStatus, setShareStatus] = useState('');
-  const [manualLink, setManualLink] = useState('');
+  const sharing = useRef(false);
+  if (typeof navigator.share !== 'function') return null;
 
   async function shareRoom() {
+    if (sharing.current) return;
+    sharing.current = true;
+
     const url = new URL(roomPath(room), window.location.origin + '/').href;
-    setManualLink('');
-    setShareStatus('');
-
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: `${roomLabel(room)} · UVM LaundryLink`, url });
-        return;
-      } catch (error) {
-        if (error.name === 'AbortError') return;
-      }
-    }
-
     try {
-      await navigator.clipboard.writeText(url);
-      setShareStatus('Room link copied.');
+      await navigator.share({ title: `${roomLabel(room)} · UVM LaundryLink`, url });
     } catch {
-      setManualLink(url);
+      // The native share sheet handles its own UI, including cancellation.
+    } finally {
+      sharing.current = false;
     }
   }
 
@@ -49,14 +41,6 @@ export function RoomTools({ room }) {
       <button type="button" onClick={shareRoom} className="ll-room-share-button">
         <Share2 size={16} aria-hidden="true" /> Share Room
       </button>
-      {shareStatus && <p role="status" className="ll-room-tools__status">{shareStatus}</p>}
-      {manualLink && (
-        <label className="ll-room-tools__manual-link">
-          Copy this room link
-          <input readOnly value={manualLink} onFocus={(event) => event.target.select()}
-            className="ll-input mt-1 block w-full rounded-md border p-2" />
-        </label>
-      )}
     </div>
   );
 }

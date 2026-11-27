@@ -347,14 +347,21 @@ function FavoriteAvailability({ room }) {
 
 const RoomCard = React.memo(({ room, onSelectRoom, isFavorite, onToggleFavorite, headingLevel = 3 }) => {
   const Heading = headingLevel === 5 ? 'h5' : headingLevel === 4 ? 'h4' : 'h3';
+
+  function openRoom(event) {
+    if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    onSelectRoom(room.id);
+  }
+
   return (
     <article className="ll-room-card">
       <div className="ll-room-card__topline">
         <div>
           <Heading className="ll-room-card__heading">
-            <button type="button" onClick={() => onSelectRoom(room.id)} className="ll-room-card__title">
+            <a href={roomPath(room)} onClick={openRoom} aria-label={roomLabel(room)} className="ll-room-card__title">
               {roomDisplayName(room)}
-            </button>
+            </a>
           </Heading>
           {room.locationLabel && <p className="ll-room-card__location">{room.locationLabel}</p>}
         </div>
@@ -370,9 +377,9 @@ const RoomCard = React.memo(({ room, onSelectRoom, isFavorite, onToggleFavorite,
         </button>
       </div>
       {isFavorite && <div className="ll-room-card__availability"><FavoriteAvailability room={room} /></div>}
-      <button type="button" onClick={() => onSelectRoom(room.id)} className="ll-room-card__action">
-        View room <ArrowRight size={16} aria-hidden="true" />
-      </button>
+      <span className="ll-room-card__action" aria-hidden="true">
+        View room <ArrowRight size={16} />
+      </span>
     </article>
   );
 });
@@ -781,7 +788,7 @@ const App = () => {
                   <label htmlFor="search" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Search Machines</label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"> <Search size={18} className="text-gray-500 dark:text-slate-300" /> </div>
-                    <input type="text" id="search" placeholder="e.g., Washer 13, Dryer" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={`${inputBaseClasses} ${inputBorderClasses} ${inputFocusClasses} pl-10`} />
+                    <input type="text" id="search" placeholder="e.g., Washer 13 or Dryer" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={`${inputBaseClasses} ${inputBorderClasses} ${inputFocusClasses} pl-10`} />
                   </div>
                 </div>
                 <div>

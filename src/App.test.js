@@ -136,12 +136,15 @@ test('room cards separate favorite and room controls accessibly', async () => {
     await act(async () => { root.render(<App />); });
     const firstCard = container.querySelector('.ll-room-card');
     const favorite = firstCard.querySelector('.ll-room-card__favorite');
-    expect(firstCard.querySelectorAll('button')).toHaveLength(3);
-    expect(firstCard.querySelector('button button')).toBeNull();
+    const roomLink = firstCard.querySelector('.ll-room-card__title');
+    expect(firstCard.querySelectorAll('a, button')).toHaveLength(2);
+    expect(roomLink.getAttribute('href')).toBe('#room/christie-hall-bsmt');
     expect(favorite.getAttribute('aria-pressed')).toBe('false');
     await act(async () => { favorite.click(); });
     expect(favorite.getAttribute('aria-pressed')).toBe('true');
     expect(window.location.hash).toBe('');
+    await act(async () => { roomLink.click(); });
+    expect(window.location.hash).toBe('#room/christie-hall-bsmt');
   } finally {
     act(() => root.unmount());
     container.remove();
@@ -286,7 +289,7 @@ test('switching CCRH floors excludes the legacy combined cache and saves each fl
     expect(container.querySelector('main h2').textContent).toBe('CCRH');
     const header = container.querySelector('.ll-room-header');
     expect(header.querySelector('#room-switcher')).not.toBeNull();
-    expect([...header.querySelectorAll('button')].map(button => button.textContent.trim())).toEqual(['All Rooms', 'Share Room']);
+    expect([...header.querySelectorAll('button')].map(button => button.textContent.trim())).toEqual(['All Rooms']);
     expect(header.querySelector('a')).toBeNull();
     expect(container.querySelector('#statusFilter').style.backgroundImage).toBe('');
     expect(container.querySelectorAll('#room-switcher')).toHaveLength(1);

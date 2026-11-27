@@ -343,14 +343,6 @@ html.dark .ll-room-share-button {
   color: var(--ll-gold);
 }
 
-.ll-room-tools__status,
-.ll-room-tools__manual-link {
-  flex-basis: 100%;
-  margin: 0;
-  color: var(--ll-muted);
-  font-size: 0.875rem;
-}
-
 .ll-home-hero {
   max-width: 52rem;
   margin-bottom: 1.8rem;
@@ -517,6 +509,20 @@ html.dark .ll-campus-filter[aria-pressed="true"] {
   text-align: left;
 }
 
+.ll-room-card__title::after {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  content: "";
+}
+
+.ll-room-card__title:focus-visible::after {
+  outline: 3px solid var(--ll-focus);
+  outline-offset: 2px;
+  border-radius: 0.8rem;
+}
+
 .ll-room-card__location {
   margin: 0.3rem 0 0;
   color: var(--ll-muted);
@@ -524,6 +530,8 @@ html.dark .ll-campus-filter[aria-pressed="true"] {
 }
 
 .ll-room-card__favorite {
+  position: relative;
+  z-index: 2;
   display: inline-flex;
   width: 2.75rem;
   min-width: 2.75rem;
