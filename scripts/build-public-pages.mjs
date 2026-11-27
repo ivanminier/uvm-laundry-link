@@ -1,4 +1,5 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { CAMPUS_SECTIONS, groupCampusRooms } from '../src/campusDirectory.mjs';
 import { checkSources } from './check-sources.mjs';
 import { articles, handbook, service } from './site-content.mjs';
 
@@ -9,7 +10,7 @@ const rooms = JSON.parse(await readFile(new URL('../src/laundryRooms.json', impo
 const history = JSON.parse(await readFile(new URL('../src/peakTimesSnapshot.json', import.meta.url)));
 const health = process.env.SITE_CHECK_SOURCES === '1' ? await checkSources()
   : JSON.parse(await readFile(new URL('../src/serviceHealthSnapshot.json', import.meta.url)));
-const campusNames = { redstone: 'Redstone', athletic: 'Athletic', central: 'Central', north: 'Trinity / North' };
+const campusNames = Object.fromEntries(CAMPUS_SECTIONS);
 const themeScript = `<script id="laundrylink-theme-init">
 (() => {
   const root = document.documentElement;
@@ -52,6 +53,7 @@ const dateText = (value) => new Intl.DateTimeFormat('en-US', {
 const time = (value) => `<time datetime="${escape(value)}">${escape(dateText(value))}</time>`;
 
 const halls = new Map();
+const hallByRoom = new Map();
 for (const room of rooms) {
   const display = room.displayName ?? room.name;
   const name = room.id.startsWith('lll_') ? 'Living-Learning'
@@ -59,15 +61,46 @@ for (const room of rooms) {
     : display.replace(/^UHeights /, 'University Heights ');
   const slug = room.id === 'austin' ? 'austin-hall' : slugify(name);
   if (!halls.has(slug)) halls.set(slug, { name, slug, campus: room.campus, rooms: [] });
-  halls.get(slug).rooms.push(room);
+  const hall = halls.get(slug);
+  hall.rooms.push(room);
+  hallByRoom.set(room.id, hall);
 }
 const hallList = [...halls.values()].sort((a, b) => a.name.localeCompare(b.name));
 const hallUrl = ({ slug }) => `/residence-halls/${slug}/`;
-const campusDirectory = Object.entries(campusNames).map(([id, name]) => {
-  const group = hallList.filter((hall) => hall.campus === id);
-  return `<section id="${id}"><h2>${escape(name)}</h2>${list(group.map((hall) =>
-    `${link(hallUrl(hall), hall.name)}${hall.rooms.length > 1 ? ` · ${hall.rooms.length} rooms` : ''}`), 'campus-grid')}</section>`;
-}).join('');
+const directoryCampuses = CAMPUS_SECTIONS.map(([id, name]) => {
+  const campusRooms = rooms.filter(room => room.campus === id).sort((a, b) =>
+    (a.displayName ?? a.name).localeCompare(b.displayName ?? b.name, undefined, { numeric: true }));
+  const complexes = groupCampusRooms(campusRooms, id).map(({ title, rooms: group }) => ({
+    title,
+    halls: [...new Set(group.map(room => hallByRoom.get(room.id)))],
+  }));
+  return { id, name, complexes };
+});
+const directoryHalls = directoryCampuses.flatMap(({ complexes }) => complexes.flatMap(({ halls }) => halls));
+const arrow = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>';
+const roomLinkLabel = (room) => room.id.startsWith('lll_')
+  ? [room.displayName, room.locationLabel].filter(Boolean).join(' · ')
+  : room.locationLabel ?? 'Live room tracker';
+const directoryCard = (hall, showRooms) => `<li class="ll-room-card${showRooms ? ' site-map-card' : ''}">
+  <div class="ll-room-card__topline"><div>
+    <h4 class="ll-room-card__heading"><a class="ll-room-card__title" href="${hallUrl(hall)}">${escape(hall.name)}</a></h4>
+    ${hall.rooms.length > 1 ? `<p class="ll-room-card__location">${hall.rooms.length} laundry rooms</p>` : ''}
+  </div></div>
+  ${showRooms
+    ? list(hall.rooms.map(room => link(trackerLink(room), roomLinkLabel(room))), 'site-map-room-links')
+    : `<span class="ll-room-card__action" aria-hidden="true">View hall ${arrow}</span>`}
+</li>`;
+const campusDirectory = (showRooms = false) => directoryCampuses.map(({ id, name, complexes }) =>
+  `<section class="ll-campus-section" id="${id}" aria-labelledby="${id}-title">
+    <h2 class="ll-campus-section__title" id="${id}-title">${escape(name)}</h2>
+    ${complexes.map(({ title, halls }) => {
+      const headingId = id + '-' + slugify(title);
+      return `<section class="ll-complex-section" aria-labelledby="${headingId}">
+        <h3 class="ll-complex-section__title" id="${headingId}">${escape(title)}</h3>
+        <ul class="ll-room-grid">${halls.map(hall => directoryCard(hall, showRooms)).join('')}</ul>
+      </section>`;
+    }).join('')}
+  </section>`).join('');
 
 const siteSchema = {
   '@type': 'WebSite', '@id': origin + '/#website', url: origin + '/', name: 'UVM LaundryLink',
@@ -90,7 +123,7 @@ const pageSchema = (page) => {
       ({ '@type': 'ListItem', position: index + 1, name, item: origin + path })),
   });
   if (page.path === '/residence-halls/') content.mainEntity = {
-    '@type': 'ItemList', itemListElement: hallList.map((hall, index) =>
+    '@type': 'ItemList', itemListElement: directoryHalls.map((hall, index) =>
       ({ '@type': 'ListItem', position: index + 1, name: hall.name, url: origin + hallUrl(hall) })),
   };
   return JSON.stringify({ '@context': 'https://schema.org', '@graph': graph }).replace(/</g, '\\u003c');
@@ -111,6 +144,7 @@ function head(page) {
   ${meta('property', 'og:image', origin + '/logo512.png')}
   ${meta('property', 'og:image:alt', 'UVM LaundryLink independent laundry tracker mark')}
   <link rel="stylesheet" href="/site.css">
+  ${page.path !== '/' ? '<link rel="stylesheet" href="/room-directory.css">' : ''}
   <script src="/referrals.js" defer></script>
   <script type="application/ld+json">${pageSchema(page)}</script>`;
 }
@@ -118,7 +152,10 @@ function head(page) {
 const siteTrail = [['/', 'UVM LaundryLink']];
 const hallTrail = [...siteTrail, ['/residence-halls/', 'Laundry directory']];
 function content(page) {
-  return `${header()}<main class="site-wrap site-main">
+  const mainClasses = page.layout
+    ? `site-wrap site-main site-app-view site-${page.layout} animate-fadeIn`
+    : 'site-wrap site-main';
+  return `${header()}<main class="${mainClasses}">
     ${page.trail ? `<nav class="crumbs" aria-label="Breadcrumbs">${page.trail.map(([url, name]) => link(url, name)).join('<span aria-hidden="true"> / </span>')}</nav>` : ''}<h1>${escape(page.heading)}</h1>
     <p class="site-intro">${escape(page.intro)}</p>${page.html}
     <nav class="crumbs" aria-label="Laundry resources">${link('/residence-halls/', 'Directory')} ${link('/laundry-guide/', 'Laundry guide')} ${link('/faq/', 'FAQ')} ${link('/status/', 'Service status')} ${link('/sitemap/', 'Site map')}</nav></main>${footer()}`;
@@ -136,9 +173,9 @@ const home = {
 const directory = {
   path: '/residence-halls/', title: 'UVM Campus Laundry Directory | UVM LaundryLink',
   heading: 'UVM campus laundry directory', description: 'Find UVM residence hall laundry rooms by campus. Open your hall’s page for floor, tower, and room options and live machine tracking.',
-  intro: `Browse ${hallList.length} residence hall buildings or complexes and ${rooms.length} tracked laundry rooms. Choose your own building or an area you can access. UVM sets residential access rules.`,
-  trail: siteTrail, type: 'CollectionPage',
-  html: `<nav class="crumbs" aria-label="Campus areas">${Object.entries(campusNames).map(([id, name]) => link('#' + id, name)).join('')}</nav>${campusDirectory}<p>${link(handbook, 'UVM Hallways Handbook')}</p>`,
+  intro: `Browse ${rooms.length} laundry rooms in ${hallList.length} UVM residence halls and complexes. Choose your hall to find its laundry rooms and open the tracker.`,
+  trail: siteTrail, type: 'CollectionPage', layout: 'directory',
+  html: `<nav class="site-directory-campuses" aria-label="Campus areas">${CAMPUS_SECTIONS.map(([id, name]) => link('#' + id, name)).join('')}</nav>${campusDirectory()}<p class="site-directory-housing">${link(handbook, 'UVM Hallways Handbook')}</p>`,
 };
 const hallPages = hallList.map((hall) => {
   const locationNames = hall.rooms.map((room) => room.locationLabel ?? (room.displayName?.startsWith('Living-Learning ') ? room.displayName.slice('Living-Learning '.length) : '')).filter(Boolean);
@@ -163,26 +200,45 @@ const hallPages = hallList.map((hall) => {
 const status = {
   path: '/status/', title: 'UVM LaundryLink Service Status and Data Sources', heading: 'UVM LaundryLink service status',
   description: 'See when UVM laundry sources were last checked, how to recognize saved machine status, and where to go during an outage.',
-  intro: 'These checks are snapshots from the site build. The room tracker shows when your browser last retrieved machine status.',
-  html: `<div class="site-copy"><h2>Last automated checks</h2>
-    <p>Checked ${time(health.checkedAt)}.</p><ul>
-      <li>Machine status feed responded with status data for ${health.checkedFeeds} of ${health.totalFeeds} provider rooms.</li>
-      <li>Sample machine directory request ${health.directory ? 'returned a usable machine list' : 'did not return a usable machine list'} from the build environment.</li>
-      <li>Push configuration endpoint ${health.pushConfiguration ? 'responded for LaundryLink' : 'could not be verified'}. This check does not test delivery.</li>
-    </ul>
-    <p>Peak Times data fetched ${time(history.capturedAt)}. It describes historical usage.</p>
-    <h2>Read live, saved, and unavailable status</h2><p><strong>Live:</strong> the tracker retrieved provider status at the time shown. <strong>Saved snapshot:</strong> the data is from an earlier check on this device. <strong>Unavailable:</strong> the tracker cannot show usable machine data. Check again or open the official room link in the ${link('/residence-halls/', 'laundry directory')}.</p>
-    <h2>Alerts and repairs</h2><p>Push alerts depend on browser permissions and the live room feed. Automatic Laundry delivers the text and email options in its embedded form. To report an equipment issue, ${link(service, 'contact Automatic Laundry')}.</p></div>`,
+  intro: 'Check the latest automated results and see what each machine status means.',
+  layout: 'status', trail: siteTrail,
+  html: `<div class="site-panel-grid">
+    <section class="site-panel site-panel-wide">
+      <h2>Last automated checks</h2>
+      <p>Checked ${time(health.checkedAt)}.</p>
+      <dl class="site-status-metrics">
+        <div><dt>Room status feeds</dt><dd><strong>${health.checkedFeeds} of ${health.totalFeeds}</strong><span>Machine status feed responded with status data for ${health.checkedFeeds} of ${health.totalFeeds} provider rooms.</span></dd></div>
+        <div><dt>Machine directory</dt><dd><strong>${health.directory ? 'Responded' : 'Unavailable'}</strong><span>The sample directory request ${health.directory ? 'returned a usable machine list' : 'did not return a usable machine list'}.</span></dd></div>
+        <div><dt>Push configuration</dt><dd><strong>${health.pushConfiguration ? 'Responded' : 'Unverified'}</strong><span>The check covers configuration. Delivery depends on the browser and room feed.</span></dd></div>
+      </dl>
+      <p>Peak Times history fetched ${time(history.capturedAt)}.</p>
+    </section>
+    <section class="site-panel">
+      <h2>Read your room status</h2>
+      <dl class="site-status-meanings">
+        <div><dt>Live</dt><dd>The tracker fetched status from the provider at the time shown in your room.</dd></div>
+        <div><dt>Saved snapshot</dt><dd>Your device is showing an earlier check. Look at its timestamp before heading downstairs.</dd></div>
+        <div><dt>Unavailable</dt><dd>No usable status is available. Try refreshing or open the official room view from the ${link('/residence-halls/', 'campus directory')}.</dd></div>
+      </dl>
+    </section>
+    <section class="site-panel">
+      <h2>Alerts and repairs</h2>
+      <p>Push alerts use your browser’s permissions and the live room feed. Automatic Laundry supplies text and email options through its embedded form.</p>
+      <p>For a broken machine, include the room and machine number when you ${link(service, 'request service from Automatic Laundry')}.</p>
+      <p>${link('/faq/', 'Read the laundry FAQ')}</p>
+    </section>
+  </div>`,
 };
 const articlePages = articles.map((page) => ({
   ...page, path: `/${page.slug}/`, heading: page.title, title: `${page.title} | UVM LaundryLink`,
-  trail: siteTrail, html: `<div class="site-copy">${page.html}</div>`,
+  trail: siteTrail, html: page.layout ? page.html : `<div class="site-copy">${page.html}</div>`,
 }));
 const sitemapPage = {
   path: '/sitemap/', title: 'UVM LaundryLink Site Map', heading: 'Site map',
   description: 'Browse every UVM LaundryLink page, including campus laundry rooms, service information, and site details.',
-  intro: 'Browse the public pages on UVM LaundryLink.',
-  html: `<h2>Key pages</h2>${list([
+  intro: 'Find every public page, residence hall, and individual room in UVM LaundryLink.',
+  layout: 'directory', trail: siteTrail,
+  html: `<section class="site-panel site-map-pages"><h2>Key pages</h2>${list([
     link('/', 'Laundry tracker home'),
     link('/residence-halls/', 'Campus laundry directory'),
     link('/laundry-guide/', 'First-year laundry guide'),
@@ -191,8 +247,7 @@ const sitemapPage = {
     link('/about/', 'About UVM LaundryLink'),
     link('/compare/', 'Compare trackers'),
     link('/sitemap/', 'Site map'),
-  ], 'campus-grid')}<h2>Residence halls and complexes</h2>${list(hallPages.map((page) =>
-    link(page.path, page.heading)), 'campus-grid')}`,
+  ], 'site-map-key-links')}</section>${campusDirectory(true)}`,
 };
 const pages = [home, directory, ...hallPages, ...articlePages, status, sitemapPage];
 

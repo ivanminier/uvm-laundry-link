@@ -71,6 +71,20 @@ assert.match(status, /Machine status feed responded with status data for \d+ of 
 assert.match(status, /<time datetime="\d{4}-\d{2}-\d{2}T/);
 const sitemapPage = await read('/sitemap/');
 for (const path of paths) assert.ok(sitemapPage.includes(`href="${path}"`), `HTML sitemap entry for ${path}`);
+const directoryPage = await read('/residence-halls/');
+for (const [path, text] of [
+  ['/residence-halls/', directoryPage], ['/sitemap/', sitemapPage], ['/status/', status],
+  ['/about/', await read('/about/')], ['/compare/', await read('/compare/')],
+]) assert.match(text, /<main class="[^"]*animate-fadeIn"/, path);
+assert.match(await read('/room-directory.css'), /@keyframes ll-fade-in/);
+for (const hall of [...paths].filter(path => path.startsWith('/residence-halls/') && path !== '/residence-halls/')) {
+  assert.ok(directoryPage.includes(`href="${hall}"`), `Directory entry for ${hall}`);
+}
+const rooms = JSON.parse(await readFile(new URL('../src/laundryRooms.json', import.meta.url)));
+for (const room of rooms) {
+  const route = '/#room/' + room.name.toLowerCase().replace(/\s+/g, '-').replaceAll('&', '&amp;');
+  assert.ok(sitemapPage.includes(`href="${route}"`), `HTML sitemap room entry for ${room.id}`);
+}
 const themeScript = (await read('/')).match(/<script id="laundrylink-theme-init">([\s\S]*?)<\/script>/)?.[1];
 assert.ok(themeScript, 'Theme initialization script');
 const evaluateTheme = (preferences, systemDark) => {
