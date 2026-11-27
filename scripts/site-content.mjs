@@ -4,18 +4,6 @@ const officialRoomSelector = 'https://laundryconnectlive.com/uvm';
 
 export const articles = [
   {
-    slug: 'faq',
-    title: 'UVM laundry tracker FAQ',
-    description: 'Answers about tracking UVM laundry on your phone, cycle reminders, Peak Times, saved statuses, and broken machines.',
-    intro: 'How to check your room, read machine status, and choose the right alert.',
-    html: `<h2>How do I track my laundry at UVM?</h2><p>Find your hall in the <a href="/residence-halls/">laundry directory</a>, open the live tracker for your particular room, and select your machine. A machine may show time remaining if the provider reports it.</p>
-      <h2>Is there a UVM laundry app?</h2><p>LaundryLink is a website you can use on a phone or computer. You can add it to your phone’s Home Screen. For push notifications on iPhone or iPad, open LaundryLink from its Home Screen icon and allow notifications when prompted.</p>
-      <h2>Can I get a text, email, or push notification?</h2><p>Open Set Cycle Alert on a running machine. LaundryLink supplies push alerts. Automatic Laundry’s embedded panel supplies text and email setup. When the tracker confirms no washer or dryer of the selected type is available in a room, LaundryLink can send a one-time push when one opens there.</p>
-      <h2>What do the status labels mean?</h2><p>Available means the provider reports an open machine. Cycle Finished means a cycle has ended. A saved snapshot shows a past observation with its timestamp. When there’s no usable status, the tracker says it is unavailable. See <a href="/status/">service status</a> if a refresh fails.</p>
-      <h2>What are Peak Times?</h2><p>Peak Times summarize past machine usage. Use the chart to plan a visit and the tracker to check current availability. The provider publishes a shared history for CCRH Floors 6 and 7 even though LaundryLink separates their live machine lists.</p>
-      <h2>How do I report a broken washer or dryer?</h2><p>Use Report a problem on the machine card or <a href="${service}">submit a service request to Automatic Laundry</a>. Include the building, room, and machine number.</p>`,
-  },
-  {
     slug: 'about',
     title: 'About UVM LaundryLink',
     description: 'Who built UVM LaundryLink, where its laundry data comes from, and how it differs from the official laundry provider.',

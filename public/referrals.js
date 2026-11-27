@@ -2,7 +2,7 @@
   if (navigator.globalPrivacyControl || navigator.doNotTrack === '1') return;
   const pageLabel = {
     '/': 'tracker', '/residence-halls/': 'directory',
-    '/faq/': 'faq', '/status/': 'status', '/about/': 'about', '/compare/': 'compare',
+    '/status/': 'status', '/about/': 'about', '/compare/': 'compare',
   }[location.pathname];
   const hall = location.pathname.match(/^\/residence-halls\/([a-z0-9-]{1,75})\/$/);
   const label = pageLabel ?? (hall && 'hall:' + hall[1]);

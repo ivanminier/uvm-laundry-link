@@ -180,7 +180,7 @@ const home = {
   html: `<p class="site-note">Live machine status and alerts require JavaScript. The directory, hall pages, and laundry guides work without it.</p>
     <h2>Find your laundry room</h2><p>${link('/residence-halls/', 'Browse the full campus laundry directory')} or pick a campus below.</p>
     ${list(Object.entries(campusNames).map(([id, name]) => link('/residence-halls/#' + id, name)), 'campus-grid')}
-    <h2>How to track laundry at UVM</h2><p>Choose your hall, open the live room tracker, and check which washers or dryers are available. A running machine can show time remaining and offer a cycle alert. Open the ${link('/faq/', 'laundry FAQ')} for help with statuses and alerts.</p>`,
+    <h2>How to track laundry at UVM</h2><p>Choose your hall, open the live room tracker, and check which washers or dryers are available. A running machine can show time remaining and offer a cycle alert. Open ${link('/?view=information', 'Information')} for help with statuses and alerts.</p>`,
 };
 const directory = {
   path: '/residence-halls/', title: 'UVM Campus Laundry Directory | UVM LaundryLink',
@@ -276,7 +276,6 @@ const status = {
       <h2>Alerts and repairs</h2>
       <p>Push alerts use your browser’s permissions and the live room feed. Automatic Laundry supplies text and email options through its embedded form.</p>
       <p>For a broken machine, include the room and machine number when you ${link(service, 'request service from Automatic Laundry')}.</p>
-      <p>${link('/faq/', 'Read the laundry FAQ')}</p>
     </section>
   </div>`,
 };
@@ -292,7 +291,6 @@ const sitemapPage = {
   html: `<section class="site-panel site-map-pages"><h2>Key pages</h2>${list([
     link('/', 'Laundry tracker home'),
     link('/residence-halls/', 'Campus laundry directory'),
-    link('/faq/', 'FAQ'),
     link('/status/', 'Service status'),
     link('/about/', 'About UVM LaundryLink'),
     link('/compare/', 'Compare trackers'),
@@ -322,7 +320,7 @@ for (const page of pages.slice(1)) {
 <meta name="theme-color" content="#154734"><link rel="icon" type="image/svg+xml" href="/favicon.svg">${head(page)}</head>
 <body class="public-page">${content(page)}</body></html>\n`);
 }
-await rm(new URL('laundry-guide/index.html', build), { force: true });
+await Promise.all(['laundry-guide', 'faq'].map(page => rm(new URL(page + '/index.html', build), { force: true })));
 await writeFile(new URL('404.html', build), `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Page not found | UVM LaundryLink</title><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="stylesheet" href="/site.css">${themeScript}</head><body class="public-page">${header()}<main class="site-wrap site-main"><h1>Page not found</h1><p>${link('/residence-halls/', 'Find a laundry room')} or ${link('/', 'open the tracker')}.</p></main>${footer()}</body></html>\n`);
 await writeFile(new URL('sitemap.xml', build), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${pages.map(({ path }) => `  <url><loc>${escape(origin + path)}</loc></url>`).join('\n')}

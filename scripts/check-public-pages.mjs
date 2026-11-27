@@ -22,8 +22,8 @@ async function read(path, expectedStatus = 200, userAgent) {
 const routes = Array.from((await read('/sitemap.xml')).matchAll(/<loc>(.*?)<\/loc>/g), (match) => new URL(match[1]));
 const paths = new Set(routes.map(({ pathname }) => pathname));
 assert.equal(routes.length, paths.size, 'Unique sitemap entries');
-assert.ok(!paths.has('/laundry-guide/'), 'Retired guide has no sitemap entry');
-for (const path of ['/', '/residence-halls/', '/residence-halls/wright-hall/', '/residence-halls/austin-hall/', '/residence-halls/living-learning/', '/faq/', '/status/', '/about/', '/compare/', '/sitemap/']) {
+assert.ok(!paths.has('/laundry-guide/') && !paths.has('/faq/'), 'Retired pages have no sitemap entry');
+for (const path of ['/', '/residence-halls/', '/residence-halls/wright-hall/', '/residence-halls/austin-hall/', '/residence-halls/living-learning/', '/status/', '/about/', '/compare/', '/sitemap/']) {
   assert.ok(paths.has(path), path);
 }
 const titles = new Set();
@@ -37,7 +37,7 @@ for (let index = 0; index < routes.length; index += 6) {
     assert.match(body, /rel="icon" type="image\/svg\+xml" href="\/favicon\.svg"/, pathname);
     assert.match(body, /id="laundrylink-theme-init"/, pathname);
     assert.doesNotMatch(body, /noindex|You need to enable JavaScript/i, pathname);
-    assert.doesNotMatch(body, /aria-label="Laundry resources"|href="\/laundry-guide\//, pathname);
+    assert.doesNotMatch(body, /aria-label="Laundry resources"|href="\/(?:laundry-guide|faq)\//, pathname);
     assert.equal((body.match(/<h1>/g) ?? []).length, 1, pathname);
     const title = body.match(/<title>(.*?)<\/title>/)?.[1];
     const description = body.match(/<meta name="description" content="([^"]+)"/)?.[1];
@@ -143,6 +143,6 @@ assert.equal(visit.credentials, 'omit');
 assert.equal(visit.referrerPolicy, 'no-referrer');
 assert.equal(capture({ referrer: 'https://www.perplexity.ai/search/private' })[0][1].body.toString(), 'category=perplexity&page=tracker');
 assert.equal(capture({ referrer: 'https://gemini.google.com/app/private' })[0][1].body.toString(), 'category=gemini&page=tracker');
-assert.equal(capture({ referrer: 'https://uvmlaundry.com/faq/', search: '?utm_source=chatgpt.com' }).length, 0);
+assert.equal(capture({ referrer: 'https://uvmlaundry.com/about/', search: '?utm_source=chatgpt.com' }).length, 0);
 assert.equal(capture({ search: '?utm_source=chatgpt.com', privacy: true }).length, 0);
 console.log(`Verified ${paths.size} sitemap routes, metadata, internal links, and crawler access rules${endpoint ? ' in production' : ''}.`);

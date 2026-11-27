@@ -1,3 +1,6 @@
-/laundry-guide /faq/ 301
-/laundry-guide/ /faq/ 301
-/laundry-guide/index.html /faq/ 301
+/laundry-guide /?view=information 301
+/laundry-guide/ /?view=information 301
+/laundry-guide/index.html /?view=information 301
+/faq /?view=information 301
+/faq/ /?view=information 301
+/faq/index.html /?view=information 301
