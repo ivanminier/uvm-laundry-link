@@ -125,6 +125,11 @@ assert.equal(evaluateTheme({ uvmLaundryUseSystemTheme: 'false', uvmLaundryManual
 assert.equal(evaluateTheme({ uvmLaundryUseSystemTheme: 'false', uvmLaundryManualDarkMode: 'true' }, false).dark, true, 'Manual dark theme');
 assert.match(await read('/site.css'), /html\.dark \.public-page/);
 
+const serviceWorker = await read('/service-worker.js');
+const entrypoints = JSON.parse(serviceWorker.match(/^const APP_ENTRYPOINTS = (\[[^\n]+\]);/m)?.[1]);
+assert.ok(entrypoints.some(path => /^\/static\/js\/main\.[a-f0-9]+\.js$/.test(path)), 'Cache the compiled app for offline launches');
+assert.ok(entrypoints.some(path => /^\/static\/css\/main\.[a-f0-9]+\.css$/.test(path)), 'Cache the compiled stylesheet for offline launches');
+
 const robots = await read('/robots.txt');
 assert.match(robots, /User-agent: \*\s+Allow: \/\s+Sitemap: https:\/\/uvmlaundry\.com\/sitemap\.xml/);
 assert.doesNotMatch(robots, /Disallow: \/(?:\s|$)/);

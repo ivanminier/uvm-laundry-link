@@ -356,6 +356,12 @@ const verifications = [
   ['msvalidate.01', process.env.BING_SITE_VERIFICATION],
 ].filter(([, token]) => token).map(([name, token]) => meta('name', name, token)).join('');
 if (!development) {
+  const workerFile = new URL('service-worker.js', build);
+  const manifest = JSON.parse(await readFile(new URL('asset-manifest.json', build), 'utf8'));
+  const entrypoints = manifest.entrypoints.map(asset => '/' + asset.replace(/^\//, ''));
+  const worker = await readFile(workerFile, 'utf8');
+  if (!worker.includes('const APP_ENTRYPOINTS = [];') || !entrypoints.length) throw new Error('Expected app shell assets');
+  await writeFile(workerFile, worker.replace('const APP_ENTRYPOINTS = [];', `const APP_ENTRYPOINTS = ${JSON.stringify(entrypoints)};`));
   const homeFile = new URL('index.html', build);
   const appShell = await readFile(homeFile, 'utf8');
   if (!/<div id="root"><\/div>/.test(appShell) || !/<title>.*?<\/title>/.test(appShell)) throw new Error('Expected React build template');

@@ -1,10 +1,12 @@
 const CACHE_NAME = 'laundrylink-static-v3';
+const APP_ENTRYPOINTS = [];
 const SHELL_URLS = ['/index.html', '/manifest.json', '/favicon.ico', '/favicon.svg', '/apple-touch-icon.png',
-  '/logo192.png', '/logo512.png',
+  '/logo192.png', '/logo512.png', '/brand-mark.svg',
   '/status/', '/site.css', '/room-directory.css', '/scroll-edge.js'];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_URLS)).then(() => self.skipWaiting()));
+  const requests = [...SHELL_URLS, ...APP_ENTRYPOINTS].map(url => new Request(url, { cache: 'reload' }));
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(requests)).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (event) => {
