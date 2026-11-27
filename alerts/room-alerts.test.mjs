@@ -76,12 +76,8 @@ test('next-room alerts survive failed feeds, reject stale reports, use exact flo
   const machines = Object.fromEntries(catalog.map(({ id }) => [id, { statusId: 'IN_USE', receivedAt: '2026-11-27T05:00:00Z' }]));
   let outage = false;
   t.mock.method(globalThis, 'fetch', async (url) => {
-    if (url.includes('/washAlert/machines/')) {
-      return Response.json(catalog.map(({ id, number, type }) => ({
-        id, machineNumber: number, washAlertIsVisible: true,
-        machineType: { isWasher: type === 'Washer', isDryer: type === 'Dryer' },
-      })));
-    }
+    // The provider's machine directory is not reachable from the Worker; room alerts use bundled catalogs.
+    if (url.includes('/washAlert/machines/')) throw new TypeError('Machine directory unavailable');
     return outage ? new Response('', { status: 503 }) : Response.json({ room: { id: roomId }, machines });
   });
 
@@ -202,12 +198,10 @@ test('next-room alerts require usable statuses for every watched machine and kee
   }, env);
   env.ROOM_ALERTS = { getByName: () => alertRoom };
   const machines = Object.fromEntries(catalog.map(({ id }) => [id, { statusId: 'IN_USE', receivedAt: '2026-11-27T05:00:00Z' }]));
-  t.mock.method(globalThis, 'fetch', async (url) => url.includes('/washAlert/machines/')
-    ? Response.json(catalog.map(({ id, number, type }) => ({
-      id, machineNumber: number, washAlertIsVisible: true,
-      machineType: { isWasher: type === 'Washer', isDryer: type === 'Dryer' },
-    })))
-    : Response.json({ room: { id: roomId }, machines }));
+  t.mock.method(globalThis, 'fetch', async (url) => {
+    if (url.includes('/washAlert/machines/')) throw new TypeError('Machine directory unavailable');
+    return Response.json({ room: { id: roomId }, machines });
+  });
   const call = (path, body) => worker.fetch(new Request('https://alerts.uvmlaundry.com' + path, {
     method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json' }, body: JSON.stringify(body),
   }), env);
@@ -259,4 +253,62 @@ test('next-room alerts require usable statuses for every watched machine and kee
   await alertRoom.alarm();
   assert.deepEqual(deliveries.map(({ path }) => path), [`#room/ccrh-floor-6?machine=${washerIds[0]}`]);
   assert.equal((await status(floor6, washer.id)).active, false);
+});
+
+test('bundled room alert catalogs cover every room, keep CCRH floors separate, and use one status request per registration', async (t) => {
+  const rooms = JSON.parse(readFileSync(new URL('../src/laundryRooms.json', import.meta.url)));
+  const roomDryers = JSON.parse(readFileSync(new URL('./room-dryers.json', import.meta.url)));
+  const ids = new Set();
+  for (const room of rooms.filter(({ providerId }) => providerId)) {
+    for (const [catalogName, entries] of [['washers', washers[room.id]], ['dryers', roomDryers[room.id]]]) {
+      assert.ok(entries?.length, `${room.id} has verified ${catalogName}`);
+      for (const [id, number] of entries) {
+        assert.match(id, /^\d{1,15}$/);
+        assert.ok(!ids.has(id), `${id} appears once`);
+        ids.add(id);
+        if (room.machineRange) assert.ok(Number(number) >= room.machineRange[0] && Number(number) <= room.machineRange[1], `${room.id} ${number}`);
+      }
+    }
+  }
+  assert.deepEqual(roomDryers.central_campus_7.map(([id]) => id).sort(), dryers.map(({ id }) => id).sort());
+
+  const davisDryers = roomDryers.davis.map(([id]) => id);
+  const requests = [];
+  const store = new DatabaseSync(':memory:');
+  t.after(() => store.close());
+  const env = { VAPID_PRIVATE_KEY: 'fixture', VAPID_PUBLIC_KEY: 'fixture', ALERT_REQUESTS: { limit: async () => ({ success: true }) } };
+  const alertRoom = new RoomAlerts({ waitUntil() {}, storage: {
+    getAlarm: async () => null, setAlarm: async () => {},
+    sql: { exec: (sql, ...args) => {
+      const statement = store.prepare(sql);
+      if (statement.columns().length) return { toArray: () => statement.all(...args) };
+      statement.run(...args);
+      return { toArray: () => [] };
+    } },
+  } }, env);
+  env.ROOM_ALERTS = { getByName: () => alertRoom };
+  const statuses = Object.fromEntries(davisDryers.map((id) => [id, { statusId: 'IN_USE' }]));
+  t.mock.method(globalThis, 'fetch', async (url) => {
+    requests.push(url);
+    if (url.includes('/washAlert/machines/')) throw new TypeError('Machine directory unavailable');
+    return Response.json({ room: { id: '12254' }, machines: statuses });
+  });
+  const register = (machineIds) => worker.fetch(new Request('https://alerts.uvmlaundry.com/alerts', {
+    method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ roomId: 'davis', machineId: 'nextDryer', machineIds, subscription }),
+  }), env);
+
+  assert.equal((await register(davisDryers.slice(1))).status, 503);
+  statuses[davisDryers[0]].statusId = 'AVAILABLE';
+  const free = await register(davisDryers);
+  assert.equal(free.status, 409);
+  assert.match((await free.json()).error, /A dryer is free now/);
+  statuses[davisDryers[0]].statusId = 'OFFLINE';
+  assert.equal((await register(davisDryers)).status, 409);
+  statuses[davisDryers[0]].statusId = 'IN_USE';
+  const created = await register(davisDryers);
+  assert.equal(created.status, 200);
+  assert.ok((await created.json()).id);
+  assert.equal(requests.filter((url) => url.includes('/washAlert/machines/')).length, 0);
+  assert.equal(requests.length, 4);
 });

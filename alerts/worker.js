@@ -1,8 +1,9 @@
 import { DurableObject } from 'cloudflare:workers';
-import { fetchRoomMachines, fetchRoomStatus, filterRoomMachines, findLaundryRoom, roomLabel, machinePath, normalizeRoomStatus, canWatchNextMachine, isFreeMachine, isProviderStatusFree, NEXT_WASHER, NEXT_WASHER_LABEL, NEXT_DRYER, NEXT_DRYER_LABEL } from '../src/laundryData';
+import { fetchRoomStatus, filterRoomMachines, findLaundryRoom, roomLabel, machinePath, normalizeRoomStatus, canWatchNextMachine, isFreeMachine, isProviderStatusFree, NEXT_WASHER, NEXT_WASHER_LABEL, NEXT_DRYER, NEXT_DRYER_LABEL } from '../src/laundryData';
 import { deliverPush, parseSubscription } from './push';
 import ccrhMachines from './ccrh-machines.json';
 import roomWashers from './room-washers.json';
+import roomDryers from './room-dryers.json';
 
 const LISTEN_ORIGIN = 'https://uvmlaundry.com';
 const ORIGINS = new Set([LISTEN_ORIGIN, 'https://www.uvmlaundry.com']);
@@ -170,8 +171,10 @@ export default {
   },
 };
 
-function verifiedWashers(room) {
-  return (roomWashers[room.id] ?? []).map(([id, number]) => ({ id, number, type: 'Washer', machineName: `Washer ${number}` }));
+// Room alerts use bundled, verified machine catalogs instead of fetching the provider's machine directory.
+function verifiedMachines(room, type) {
+  const catalog = type === 'Dryer' ? roomDryers : roomWashers;
+  return (catalog[room.id] ?? []).map(([id, number]) => ({ id, number, type, machineName: `${type} ${number}` }));
 }
 
 export class RoomAlerts extends DurableObject {
@@ -208,14 +211,8 @@ export class RoomAlerts extends DurableObject {
     const mappedMachine = !watchAlert && room.machineRange && filterRoomMachines(room, ccrhMachines).find(({ id }) => id === machineId);
     if (!watchAlert && room.machineRange && !mappedMachine) return rejected(404, 'Machine not found in this room.');
 
-    const catalogPromise = watchAlert?.type === 'Dryer'
-      ? fetchRoomMachines(room.providerId, AbortSignal.timeout(8_000))
-        .then((catalog) => filterRoomMachines(room, catalog).filter(({ type }) => type === watchAlert.type))
-      : Promise.resolve(watchAlert ? verifiedWashers(room) : null);
-    const [payload, catalog] = await Promise.all([
-      fetchRoomStatus(room.providerId, AbortSignal.timeout(8_000)),
-      catalogPromise,
-    ]);
+    const catalog = watchAlert ? verifiedMachines(room, watchAlert.type) : null;
+    const payload = await fetchRoomStatus(room.providerId, AbortSignal.timeout(8_000));
     if (String(payload?.room?.id) !== room.providerId || !payload.machines) {
       return rejected(503, 'The provider could not verify this room.');
     }
@@ -299,7 +296,7 @@ export class RoomAlerts extends DurableObject {
           const room = findLaundryRoom(alert.room_id);
           const watchedMachines = alert.watch_machines
             ? JSON.parse(alert.watch_machines)
-            : watchAlert.type === 'Washer' ? verifiedWashers(room) : [];
+            : watchAlert.type === 'Washer' ? verifiedMachines(room, 'Washer') : [];
           const open = watchedMachines.find(({ id, initialReportTime }) => {
             const machine = payload.machines[id];
             if (!isProviderStatusFree(machine?.statusId)) return false;
