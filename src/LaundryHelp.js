@@ -1,5 +1,5 @@
-import React from 'react';
-import { ExternalLink } from 'lucide-react';
+import React, { useId, useState } from 'react';
+import { ChevronRight, ExternalLink } from 'lucide-react';
 import { SERVICE_REQUEST_URL } from './MachineReport';
 import { BackButton } from './BackButton';
 
@@ -26,6 +26,25 @@ const resources = [
   ['UVM Housing help center', 'https://www.uvm.edu/housingdining/help-center', true],
 ];
 
+function Question({ question, answer }) {
+  const [open, setOpen] = useState(false);
+  const answerId = useId();
+
+  return (
+    <div className="border-t border-slate-200 dark:border-slate-700">
+      <button type="button" aria-expanded={open} aria-controls={answerId} onClick={() => setOpen(value => !value)}
+        className="ll-faq-question flex min-h-[48px] w-full items-center gap-1.5 rounded py-3 text-left font-medium focus-visible:ring-2 focus-visible:ring-uvm-green dark:focus-visible:ring-uvm-gold">
+        <ChevronRight size={16} className="ll-faq-chevron shrink-0" aria-hidden="true" />{question}
+      </button>
+      <div id={answerId} className="ll-faq-answer" aria-hidden={!open} inert={open ? undefined : ''}>
+        <div>
+          <p className="pb-3 pl-[22px] text-sm text-slate-600 dark:text-slate-300">{answer}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function LaundryHelp({ onBack }) {
   return (
     <div className="ll-panel mx-auto max-w-2xl p-5 sm:p-7 animate-fadeIn">
@@ -35,12 +54,7 @@ export function LaundryHelp({ onBack }) {
       </header>
       <section className="mt-6">
         <h3 className="mb-3 text-lg font-semibold">Frequently Asked Questions</h3>
-        {questions.map(([question, answer]) => (
-          <details key={question} className="border-t border-slate-200 py-3 dark:border-slate-700">
-            <summary className="cursor-pointer rounded font-medium focus-visible:ring-2 focus-visible:ring-uvm-green dark:focus-visible:ring-uvm-gold">{question}</summary>
-            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{answer}</p>
-          </details>
-        ))}
+        {questions.map(([question, answer]) => <Question key={question} question={question} answer={answer} />)}
       </section>
       <section className="mt-6">
         <h3 className="mb-3 text-lg font-semibold">More Resources</h3>

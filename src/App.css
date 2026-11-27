@@ -561,7 +561,14 @@ html.dark .ll-footer-nav a {
   pointer-events: none;
 }
 
+@keyframes ll-refresh-toast {
+  0% { opacity: 0; transform: translateY(10px) scale(0.95); }
+  7%, 93% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(8px) scale(0.96); }
+}
+
 .ll-refresh-toast {
+  animation: ll-refresh-toast 3s ease both;
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
@@ -581,4 +588,42 @@ html.dark .ll-footer-nav a {
 
 html.dark .ll-refresh-toast svg {
   color: var(--ll-gold);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ll-refresh-toast {
+    animation-name: none;
+  }
+}
+
+.ll-faq-chevron {
+  transition: transform 200ms ease;
+}
+
+.ll-faq-question[aria-expanded="true"] .ll-faq-chevron {
+  transform: rotate(90deg);
+}
+
+.ll-faq-answer {
+  display: grid;
+  grid-template-rows: 0fr;
+  visibility: hidden;
+  transition: grid-template-rows 200ms ease, visibility 0s linear 200ms;
+}
+
+.ll-faq-answer[aria-hidden="false"] {
+  grid-template-rows: 1fr;
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.ll-faq-answer > div {
+  min-height: 0;
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ll-faq-answer {
+    transition: none;
+  }
 }

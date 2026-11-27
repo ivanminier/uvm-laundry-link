@@ -1,16 +1,11 @@
 import rooms from './laundryRooms.json';
+import { roomLabel, roomPath } from './roomLinks.mjs';
+
+export { roomDisplayName, roomLabel, roomPath } from './roomLinks.mjs';
 
 const STATUS_BASE_URL = 'https://vxpjcrk7iorjzymtfpuy5csrzm0rwugg.lambda-url.us-east-1.on.aws/rooms';
 const MACHINE_BASE_URL = 'https://api.sqinsights.com/washAlert/machines';
 const ORGANIZATION_ID = '4052';
-
-export function roomDisplayName(room) {
-  return room.displayName ?? room.name;
-}
-
-export function roomLabel(room) {
-  return [roomDisplayName(room), room.locationLabel].filter(Boolean).join(' · ');
-}
 
 export const laundryRooms = [...rooms].sort((first, second) =>
   roomLabel(first).localeCompare(roomLabel(second), undefined, { numeric: true })
@@ -18,7 +13,7 @@ export const laundryRooms = [...rooms].sort((first, second) =>
 
 const roomKey = (value) => String(value).toLowerCase().replace(/\bflr\b/g, 'floor').replace(/[^a-z0-9]/g, '');
 const roomAliases = new Map(
-  rooms.flatMap((room) => [room.id, room.name, room.officialName, room.historyId, roomLabel(room)].filter(Boolean).map((key) => [roomKey(key), room]))
+  rooms.flatMap((room) => [room.id, room.name, room.officialName, room.historyId, roomLabel(room), roomPath(room).slice(6)].filter(Boolean).map((key) => [roomKey(key), room]))
 );
 for (const room of rooms) {
   if (room.providerId && !roomAliases.has(room.providerId)) roomAliases.set(room.providerId, room);
@@ -42,10 +37,6 @@ export function getRoomHistoryId(room) {
 export function getOfficialRoomUrl(room) {
   const historyId = getRoomHistoryId(room);
   return historyId ? `https://laundryconnectlive.com/live/${historyId}` : room.url;
-}
-
-export function roomPath(room) {
-  return `#room/${room.name.toLowerCase().replace(/\s+/g, '-')}`;
 }
 
 export const NEXT_WASHER = 'nextWasher';

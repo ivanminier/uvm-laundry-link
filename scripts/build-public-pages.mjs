@@ -1,5 +1,6 @@
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { CAMPUS_SECTIONS, groupCampusRooms } from '../src/campusDirectory.mjs';
+import { roomPath } from '../src/roomLinks.mjs';
 import { checkSources } from './check-sources.mjs';
 import { articles, service } from './site-content.mjs';
 
@@ -37,7 +38,7 @@ const escape = (value) => String(value).replace(/[&<>"']/g, (character) =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]);
 const link = (url, label) => `<a href="${escape(url)}">${escape(label)}</a>`;
 const slugify = (text) => text.toLowerCase().replaceAll('&', 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-const trackerLink = (room) => `/#room/${room.name.toLowerCase().replace(/\s+/g, '-')}`;
+const trackerLink = (room) => '/' + roomPath(room);
 const header = () => `<header class="ll-site-header"><div class="ll-header-inner"><div class="ll-header-row">
   <a href="/" class="ll-brand"><img src="/brand-mark.svg" alt="" aria-hidden="true" class="ll-brand__mark"><span class="ll-brand__name">UVM LaundryLink</span></a>
   <div class="ll-header-actions">
@@ -60,7 +61,7 @@ for (const room of rooms) {
   const name = room.id.startsWith('lll_') ? 'Living-Learning'
     : display === 'CCRH' ? 'Central Campus Residence Hall'
     : display.replace(/^UHeights /, 'University Heights ');
-  const slug = room.id === 'austin' ? 'austin-hall' : slugify(name);
+  const slug = slugify(name);
   if (!halls.has(slug)) halls.set(slug, { name, slug, campus: room.campus, rooms: [] });
   const hall = halls.get(slug);
   hall.rooms.push(room);
@@ -289,12 +290,14 @@ const sitemapPage = {
   intro: 'Find every public page, residence hall, and individual room in UVM LaundryLink.',
   layout: 'directory', trail: siteTrail,
   html: `<section class="site-panel site-map-pages"><h2>Key pages</h2>${list([
-    link('/', 'Laundry tracker home'),
-    link('/residence-halls/', 'Campus laundry directory'),
-    link('/status/', 'Service status'),
     link('/about/', 'About UVM LaundryLink'),
+    link('/residence-halls/', 'Campus laundry directory'),
     link('/compare/', 'Compare trackers'),
-    link('/sitemap/', 'Site map'),
+    link('/?view=information', 'Information'),
+    link('/', 'Laundry tracker home'),
+    link('/?view=my-laundry', 'Notifications'),
+    link('/status/', 'Service status'),
+    link('/?view=settings', 'Settings'),
   ], 'site-map-key-links')}</section>${campusDirectory(true)}`,
 };
 const pages = [home, directory, ...complexPages, ...hallPages, ...articlePages, status, sitemapPage];
@@ -320,7 +323,8 @@ for (const page of pages.slice(1)) {
 <meta name="theme-color" content="#154734"><link rel="icon" type="image/svg+xml" href="/favicon.svg">${head(page)}</head>
 <body class="public-page">${content(page)}</body></html>\n`);
 }
-await Promise.all(['laundry-guide', 'faq'].map(page => rm(new URL(page + '/index.html', build), { force: true })));
+await Promise.all(['laundry-guide', 'faq', 'residence-halls/austin-hall'].map(path =>
+  rm(new URL(path + '/index.html', build), { force: true })));
 await writeFile(new URL('404.html', build), `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Page not found | UVM LaundryLink</title><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="stylesheet" href="/site.css">${themeScript}</head><body class="public-page">${header()}<main class="site-wrap site-main"><h1>Page not found</h1><p>${link('/residence-halls/', 'Find a laundry room')} or ${link('/', 'open the tracker')}.</p></main>${footer()}</body></html>\n`);
 await writeFile(new URL('sitemap.xml', build), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${pages.map(({ path }) => `  <url><loc>${escape(origin + path)}</loc></url>`).join('\n')}

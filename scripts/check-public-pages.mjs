@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { roomPath } from '../src/roomLinks.mjs';
 import { readFile } from 'node:fs/promises';
 import { runInNewContext } from 'node:vm';
 
@@ -23,7 +24,7 @@ const routes = Array.from((await read('/sitemap.xml')).matchAll(/<loc>(.*?)<\/lo
 const paths = new Set(routes.map(({ pathname }) => pathname));
 assert.equal(routes.length, paths.size, 'Unique sitemap entries');
 assert.ok(!paths.has('/laundry-guide/') && !paths.has('/faq/'), 'Retired pages have no sitemap entry');
-for (const path of ['/', '/residence-halls/', '/residence-halls/wright-hall/', '/residence-halls/austin-hall/', '/residence-halls/living-learning/', '/status/', '/about/', '/compare/', '/sitemap/']) {
+for (const path of ['/', '/residence-halls/', '/residence-halls/wright-hall/', '/residence-halls/marsh-and-austin-hall/', '/residence-halls/living-learning/', '/status/', '/about/', '/compare/', '/sitemap/']) {
   assert.ok(paths.has(path), path);
 }
 const titles = new Set();
@@ -72,7 +73,9 @@ const status = await read('/status/');
 assert.match(status, /Machine status feed responded with status data for \d+ of \d+ provider rooms\./);
 assert.match(status, /<time datetime="\d{4}-\d{2}-\d{2}T/);
 const sitemapPage = await read('/sitemap/');
-for (const path of paths) assert.ok(sitemapPage.includes(`href="${path}"`), `HTML sitemap entry for ${path}`);
+for (const path of paths) if (path !== '/sitemap/') assert.ok(sitemapPage.includes(`href="${path}"`), `HTML sitemap entry for ${path}`);
+assert.doesNotMatch(sitemapPage, /href="\/sitemap\/"/);
+for (const view of ['my-laundry', 'information', 'settings']) assert.ok(sitemapPage.includes(`href="/?view=${view}"`));
 const directoryPage = await read('/residence-halls/');
 for (const [path, text] of [
   ['/residence-halls/', directoryPage], ['/sitemap/', sitemapPage], ['/status/', status],
@@ -90,7 +93,7 @@ assert.doesNotMatch(directoryPage, /aria-label="Breadcrumbs"|UVM Hallways Handbo
 assert.match(directoryPage, /Browse by campus and complex to find your laundry room and open the tracker\./);
 const rooms = JSON.parse(await readFile(new URL('../src/laundryRooms.json', import.meta.url)));
 for (const room of rooms) {
-  const route = '/#room/' + room.name.toLowerCase().replace(/\s+/g, '-').replaceAll('&', '&amp;');
+  const route = '/' + roomPath(room);
   assert.ok(sitemapPage.includes(`href="${route}"`), `HTML sitemap room entry for ${room.id}`);
 }
 const themeScript = (await read('/')).match(/<script id="laundrylink-theme-init">([\s\S]*?)<\/script>/)?.[1];

@@ -558,21 +558,28 @@ const App = () => {
 
   useEffect(() => {
     const syncRoute = () => {
-      const overlayView = OVERLAY_ROUTE_VIEWS.get(new URLSearchParams(window.location.search).get('view'));
-      if (overlayView) {
-        const url = new URL(window.location.href);
-        url.searchParams.delete('view');
-        window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
-        setSelectedRoomId('');
-        setPreviousView('home');
-        setCurrentView(overlayView);
-        return;
-      }
-      const [hash, query] = window.location.hash.replace(/^#\/?(?:room\/)?/, '').split('?', 2);
+      const url = new URL(window.location.href);
+      const overlayView = OVERLAY_ROUTE_VIEWS.get(url.searchParams.get('view'));
+      const [hash, query = ''] = url.hash.replace(/^#\/?(?:room\/)?/, '').split(/\?(.*)/s, 2);
       const room = findLaundryRoom(hash);
       if (!room) {
-        handleGoHome(false);
+        if (overlayView) {
+          url.searchParams.delete('view');
+          window.history.replaceState(null, '', url);
+          setSelectedRoomId('');
+          setPreviousView('home');
+          setCurrentView(overlayView);
+        } else {
+          handleGoHome(false);
+        }
         return;
+      }
+      const canonicalHash = roomPath(room) + (query ? '?' + query : '');
+      if (url.hash !== canonicalHash || url.pathname !== '/' || overlayView) {
+        if (overlayView) url.searchParams.delete('view');
+        url.pathname = '/';
+        url.hash = canonicalHash;
+        window.history.replaceState(null, '', url);
       }
       handleSelectRoom(room.id, false);
       const machineId = new URLSearchParams(query).get('machine');

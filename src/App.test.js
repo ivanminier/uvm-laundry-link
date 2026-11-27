@@ -64,7 +64,12 @@ test('the bundled room directory accepts known provider IDs and deep-link aliase
     'Living-Learning E · Room 160',
   ]);
   expect(roomLabel(findLaundryRoom('wing-hall-1st-flr'))).toBe('Wing Hall');
-  expect(roomPath(findLaundryRoom('ccrh 7'))).toBe('#room/central-campus-flr-7');
+  expect(roomPath(findLaundryRoom('ccrh 7'))).toBe('#room/ccrh-floor-7');
+  expect(new Set(laundryRooms.map(roomPath)).size).toBe(laundryRooms.length);
+  for (const room of laundryRooms) {
+    expect(findLaundryRoom(room.name.toLowerCase().replace(/\s+/g, '-'))).toBe(room);
+    expect(findLaundryRoom(roomPath(room).slice(6))).toBe(room);
+  }
   expect(new Set(laundryRooms.map(roomLabel)).size).toBe(laundryRooms.length);
 });
 
@@ -138,13 +143,13 @@ test('room cards separate favorite and room controls accessibly', async () => {
     const favorite = firstCard.querySelector('.ll-room-card__favorite');
     const roomLink = firstCard.querySelector('.ll-room-card__title');
     expect(firstCard.querySelectorAll('a, button')).toHaveLength(2);
-    expect(roomLink.getAttribute('href')).toBe('#room/christie-hall-bsmt');
+    expect(roomLink.getAttribute('href')).toBe('#room/christie-hall');
     expect(favorite.getAttribute('aria-pressed')).toBe('false');
     await act(async () => { favorite.click(); });
     expect(favorite.getAttribute('aria-pressed')).toBe('true');
     expect(window.location.hash).toBe('');
     await act(async () => { roomLink.click(); });
-    expect(window.location.hash).toBe('#room/christie-hall-bsmt');
+    expect(window.location.hash).toBe('#room/christie-hall');
   } finally {
     act(() => root.unmount());
     container.remove();
@@ -289,6 +294,7 @@ test('switching CCRH floors excludes the legacy combined cache and saves each fl
     await act(async () => { root.render(<App />); });
     const cards = () => [...container.querySelectorAll('[id^="machine-card-"] h3')].map(node => node.textContent);
     expect(cards()).toEqual(['Washer 45', 'Dryer 55']);
+    expect(window.location.hash).toBe('#room/ccrh-floor-6');
     expect(container.textContent).not.toContain('Notify me when a washer opens');
     expect(container.querySelector('main h2').textContent).toBe('CCRH');
     const header = container.querySelector('.ll-room-header');
@@ -305,6 +311,7 @@ test('switching CCRH floors excludes the legacy combined cache and saves each fl
       window.dispatchEvent(new HashChangeEvent('hashchange'));
     });
     expect(cards()).toEqual(['Washer 56', 'Dryer 62']);
+    expect(window.location.hash).toBe('#room/ccrh-floor-7?machine=62');
     expect(container.textContent).toContain('Notify me when a washer opens');
     expect(document.activeElement.id).toBe('machine-card-62');
     expect(container.querySelectorAll('a[aria-label^="Link to "]')).toHaveLength(0);
@@ -420,7 +427,7 @@ test('My Laundry loads legacy alerts, shows their machine links and cancels thro
     expect(header.querySelector('.ll-back-button')).not.toBeNull();
     const machineLink = container.querySelector('main a');
     expect(machineLink.textContent).toBe('Washer 56');
-    expect(machineLink.getAttribute('href')).toBe('#room/central-campus-flr-7?machine=56');
+    expect(machineLink.getAttribute('href')).toBe('#room/ccrh-floor-7?machine=56');
     expect(container.textContent).toContain('CCRH · Floor 7 · About 3 min left');
     await act(async () => { machineLink.click(); });
     expect(document.activeElement.id).toBe('machine-card-56');
