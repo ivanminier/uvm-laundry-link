@@ -66,7 +66,9 @@ select:focus-visible {
 }
 
 .ll-site-header {
-  position: relative;
+  position: sticky;
+  top: 0;
+  z-index: 50;
   border-bottom: 1px solid rgb(255 255 255 / 12%);
   background: #154734;
   color: #fff;
@@ -434,48 +436,6 @@ html.dark .ll-campus-filter[aria-pressed="true"] {
   background: var(--ll-surface) !important;
   color: var(--ll-ink);
   box-shadow: 0 1px 3px rgb(22 44 34 / 5%);
-}
-
-.ll-site-footer {
-  border-top: 1px solid var(--ll-line);
-  background: var(--ll-surface-alt);
-  color: var(--ll-muted);
-  font-size: 0.875rem;
-}
-
-.ll-footer-inner {
-  width: min(100% - 2rem, 86rem);
-  margin-inline: auto;
-  padding-block: 1.8rem 2.2rem;
-  text-align: center;
-}
-
-.ll-footer-nav {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.35rem 1.15rem;
-  margin-bottom: 1rem;
-}
-
-.ll-footer-nav a {
-  min-height: 2.75rem;
-  align-content: center;
-  color: var(--ll-green);
-  font-weight: 600;
-  text-underline-offset: 0.18em;
-}
-
-html.dark .ll-footer-nav a {
-  color: var(--ll-gold);
-}
-
-.ll-footer-inner p {
-  margin: 0.3rem 0;
-}
-
-.ll-disclaimer {
-  font-size: 0.8rem;
 }
 
 ::-webkit-scrollbar {

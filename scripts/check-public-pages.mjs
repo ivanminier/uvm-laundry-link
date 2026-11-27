@@ -54,11 +54,7 @@ for (let index = 0; index < routes.length; index += 6) {
     assert.match(header, /<img src="\/brand-mark\.svg"/, pathname);
     assert.deepEqual(Array.from(header.matchAll(/aria-label="([^"]+)"/g), ([, label]) => label),
       ['My Laundry', 'Information', 'Settings'], `Header actions on ${pathname}`);
-    const footer = body.match(/<footer class="ll-site-footer">([\s\S]*?)<\/footer>/)?.[1];
-    assert.ok(footer, `Footer on ${pathname}`);
-    assert.deepEqual(Array.from(footer.matchAll(/href="([^"]+)"/g), ([, href]) => href), [], `Footer links on ${pathname}`);
-    assert.match(footer, /Independent student project by Ivan Minier · \d{4}/, pathname);
-    assert.match(footer, /Not affiliated with the University of Vermont or Automatic Laundry\. Status is based on provider-reported data\./, pathname);
+    assert.doesNotMatch(body, /<footer\b/, pathname);
     for (const [, target] of body.matchAll(/<a [^>]*href="(\/[^"#]*)(?:#[^"]*)?"/g)) {
       const targetPath = new URL(target, canonicalOrigin).pathname;
       assert.ok(paths.has(targetPath), `Broken link on ${pathname}: ${target}`);
@@ -69,6 +65,10 @@ for (let index = 0; index < routes.length; index += 6) {
   }));
 }
 
+const about = await read('/about/');
+assert.match(about, /Independent student project by Ivan Minier · \d{4}/);
+assert.match(about, /operates independently of the University of Vermont and Automatic Laundry/);
+assert.match(about, /based on data reported by Automatic Laundry/);
 const status = await read('/status/');
 assert.match(status, /Machine status feed responded with status data for \d+ of \d+ provider rooms\./);
 assert.match(status, /<time datetime="\d{4}-\d{2}-\d{2}T/);

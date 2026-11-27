@@ -7,7 +7,7 @@ export const articles = [
     slug: 'about',
     title: 'About UVM LaundryLink',
     description: 'Who built UVM LaundryLink, where its laundry data comes from, and how it differs from the official laundry provider.',
-    intro: 'UVM LaundryLink is an independent, student-created website by Ivan Minier for tracking residence hall laundry at the University of Vermont.',
+    intro: `Independent student project by Ivan Minier · ${new Date().getFullYear()}`,
     layout: 'about',
     html: `<div class="site-panel-grid">
       <section class="site-panel site-panel-wide">
@@ -17,7 +17,8 @@ export const articles = [
       </section>
       <section class="site-panel">
         <h2>Where the data comes from</h2>
-        <p>Automatic Laundry provides the machine status and usage history. The <a href="/status/">service status page</a> shows the latest automated checks. For repairs, use <a href="${service}">Automatic Laundry’s service form</a>. For residential access rules, see <a href="${handbook}">UVM’s Hallways Handbook</a>.</p>
+        <p>LaundryLink operates independently of the University of Vermont and Automatic Laundry. Machine status and usage history are based on data reported by Automatic Laundry.</p>
+        <p>The <a href="/status/">service status page</a> shows the latest automated checks. For repairs, use <a href="${service}">Automatic Laundry’s service form</a>. For residential access rules, see <a href="${handbook}">UVM’s Hallways Handbook</a>.</p>
       </section>
       <section class="site-panel">
         <h2>Privacy</h2>

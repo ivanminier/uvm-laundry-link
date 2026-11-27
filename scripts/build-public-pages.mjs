@@ -47,7 +47,6 @@ const header = () => `<header class="ll-site-header"><div class="ll-header-inner
     <a class="ll-icon-button" href="/?view=settings" aria-label="Settings" title="Settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.09a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></a>
   </div>
 </div></div></header>`;
-const footer = () => `<footer class="ll-site-footer"><div class="ll-footer-inner"><p>Independent student project by Ivan Minier · ${new Date().getFullYear()}</p><p class="ll-disclaimer">Not affiliated with the University of Vermont or Automatic Laundry. Status is based on provider-reported data.</p></div></footer>`;
 const list = (items, style) => `<ul class="${style}">${items.map((item) => `<li>${item}</li>`).join('')}</ul>`;
 const dateText = (value) => new Intl.DateTimeFormat('en-US', {
   timeZone: 'America/New_York', dateStyle: 'long', timeStyle: 'short',
@@ -173,7 +172,7 @@ function content(page) {
   return `${header()}<main class="${mainClasses}">
     ${page.backHref ? `<div class="site-page-header">${heading}<a class="site-back-button" href="${escape(page.backHref)}">${arrow} Back</a></div>` : heading}
     <p class="site-intro">${escape(page.intro)}</p>${page.html}
-    </main>${footer()}`;
+    </main>`;
 }
 
 const home = {
@@ -192,12 +191,14 @@ const directory = {
   trail: siteTrail, type: 'CollectionPage', layout: 'directory',
   html: `<nav class="site-directory-campuses" aria-label="Campus areas">${directoryCampuses.map(({ path, name }) => link(path, name)).join('')}</nav>${campusDirectory()}`,
 };
-const campusPages = directoryCampuses.map(({ id, name, path, complexes }) => {
+const campusPages = directoryCampuses.map(({ id, path, complexes }) => {
   const count = complexes.reduce((total, complex) => total + complex.rooms.length, 0);
+  const place = `${id === 'north' ? 'the ' : ''}${campusPlace(id)}`;
+  const heading = `Laundry on ${place}`;
   return {
-    path, title: `${campusPlace(id)} Laundry | UVM LaundryLink`, heading: `${campusPlace(id)} laundry`,
+    path, title: `${heading} | UVM LaundryLink`, heading,
     description: `Browse laundry complexes and residence halls serving ${campusPlace(id)} at the University of Vermont.`,
-    intro: `Browse ${count} laundry rooms by complex on ${campusPlace(id)}.`,
+    intro: `Browse ${count} laundry rooms by complex on ${place}.`,
     trail: hallTrail, layout: 'directory', type: 'CollectionPage', backHref: '/residence-halls/',
     html: `<section aria-labelledby="campus-complexes"><h2 class="ll-campus-section__title" id="campus-complexes">Complexes</h2>${complexCards(complexes)}</section>`,
   };
@@ -351,7 +352,7 @@ await writeFile(new URL('404.html', build), `<!doctype html>
       <a class="site-page-action" href="/">Return to the tracker</a>
     </div>
   </section>
-</main>${footer()}</body></html>\n`);
+</main></body></html>\n`);
 await writeFile(new URL('sitemap.xml', build), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${pages.map(({ path }) => `  <url><loc>${escape(origin + path)}</loc></url>`).join('\n')}
 </urlset>\n`);

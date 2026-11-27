@@ -248,28 +248,6 @@ html.dark .public-page {
   background: var(--card);
 }
 
-.ll-site-footer {
-  border-top: 1px solid var(--line);
-  background: var(--surface-alt);
-  color: var(--muted);
-  font-size: 0.875rem;
-}
-
-.ll-footer-inner {
-  width: min(100% - 2rem, 86rem);
-  margin-inline: auto;
-  padding-block: 1.8rem 2.2rem;
-  text-align: center;
-}
-
-.ll-footer-inner p {
-  margin: 0.3rem 0;
-}
-
-.ll-disclaimer {
-  font-size: 0.8rem;
-}
-
 @media (max-width: 22.5rem) {
   .ll-header-inner {
     width: calc(100% - 1.25rem);

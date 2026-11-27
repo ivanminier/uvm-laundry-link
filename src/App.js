@@ -951,7 +951,7 @@ const App = () => {
   return (
     <div className="ll-app min-h-screen font-sans">
       <HomeScreenPrompt />
-      <header className="ll-site-header sticky top-0 z-50">
+      <header className="ll-site-header">
         <div className="ll-header-inner">
           <div className="ll-header-row">
             <button onClick={() => handleGoHome()} aria-label="UVM LaundryLink home" className="ll-brand">
@@ -975,13 +975,6 @@ const App = () => {
       <main className="ll-main">
         {renderContent()}
       </main>
-
-      <footer className="ll-site-footer">
-        <div className="ll-footer-inner">
-          <p>Independent student project by Ivan Minier · {new Date().getFullYear()}</p>
-          <p className="ll-disclaimer">Not affiliated with the University of Vermont or Automatic Laundry. Status is based on provider-reported data.</p>
-        </div>
-      </footer>
     </div>
   );
 };

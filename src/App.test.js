@@ -220,7 +220,7 @@ test('main views share the same back control', async () => {
   try {
     await act(async () => { root.render(<App />); });
     expect(container.querySelector('[aria-label="My Laundry"]').textContent.trim()).toBe('');
-    expect(container.querySelectorAll('footer.ll-site-footer a')).toHaveLength(0);
+    expect(container.querySelector('footer')).toBeNull();
     await act(async () => { container.querySelector('[aria-label="Information"]').click(); });
     expect(backButton().textContent.trim()).toBe('Back');
     expect(container.textContent).toContain('What if a machine will not start?');
