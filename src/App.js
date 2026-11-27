@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Zap, CheckCircle, XCircle, AlertTriangle, Clock, RefreshCw, Settings, Star, ArrowRight, ExternalLink, Droplet, Wind, Eye, EyeOff, Info, Search, Sun, Moon, LayoutGrid, Bell, X } from 'lucide-react';
+import { Zap, ChevronDown, CheckCircle, XCircle, AlertTriangle, Clock, RefreshCw, Settings, Star, ArrowRight, ExternalLink, Droplet, Wind, Eye, EyeOff, Info, Search, Sun, Moon, LayoutGrid, Bell, X } from 'lucide-react';
 
 import { findLaundryRoom, getOfficialRoomUrl, laundryRooms, roomDisplayName, roomLabel, roomPath, machinePath, canWatchNextMachine, NEXT_WASHER_LABEL, NEXT_DRYER_LABEL } from './laundryData';
 import { useLaundryStatus } from './useLaundryStatus';
@@ -818,9 +818,15 @@ const App = () => {
                 </div>
                 <div>
                   <label htmlFor="statusFilter" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Filter by Status</label>
-                  <select id="statusFilter" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className={`${inputBaseClasses} ${inputBorderClasses} ${inputFocusClasses}`}>
-                    {statusOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                  </select>
+                  <div className="relative">
+                    <select id="statusFilter" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}
+                      className={`${inputBaseClasses} ${inputBorderClasses} ${inputFocusClasses} appearance-none pr-10`}>
+                      {statusOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                    <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-500 dark:text-slate-300" aria-hidden="true">
+                      <ChevronDown size={17} />
+                    </span>
+                  </div>
                 </div>
               </div>
               {hasUsableStatus && <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm text-gray-700 dark:text-slate-300">
