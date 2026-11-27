@@ -640,6 +640,11 @@ html.dark .site-directory .site-room-info {
   border-top: 1px solid var(--line);
 }
 
+.site-information-disclosure {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
 .site-information-panel summary {
   padding-block: 0.65rem;
   cursor: pointer;

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { roomPath } from '../src/roomLinks.mjs';
-import { independenceDisclosure, machineStatusDefinitions, informationPath, informationQuestions } from '../src/informationContent.mjs';
+import { independenceDisclosure, informationDisclosure, machineStatusDefinitions, informationPath, informationQuestions } from '../src/informationContent.mjs';
 import { readFile } from 'node:fs/promises';
 import { runInNewContext } from 'node:vm';
 
@@ -9,6 +9,15 @@ const canonicalOrigin = 'https://uvmlaundry.com';
 const endpoint = process.argv[2];
 const origin = endpoint ? new URL(endpoint).origin : canonicalOrigin;
 const build = new URL('../build/', import.meta.url);
+const headerRules = await readFile(new URL('../public/_headers', import.meta.url), 'utf8');
+const scriptHash = (body) => `'sha256-${createHash('sha256').update(body).digest('base64')}'`;
+function checkInlineScripts(html, policy, path) {
+  for (const [, attributes, body] of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g)) {
+    if (body.trim() && !/\bsrc=|type="application\/ld\+json"/.test(attributes)) {
+      assert.ok(policy?.includes(scriptHash(body)), `CSP permits inline script on ${path}`);
+    }
+  }
+}
 async function read(path, expectedStatus = 200, userAgent) {
   if (!endpoint) {
     return readFile(new URL(path.slice(1) + (path.endsWith('/') ? 'index.html' : ''), build), 'utf8');
@@ -19,7 +28,11 @@ async function read(path, expectedStatus = 200, userAgent) {
   });
   assert.equal(response.status, expectedStatus, path);
   if (expectedStatus === 200) assert.doesNotMatch(response.headers.get('x-robots-tag') ?? '', /noindex/i, path);
-  return response.text();
+  const body = await response.text();
+  if (origin === canonicalOrigin && response.headers.get('content-type')?.includes('text/html')) {
+    checkInlineScripts(body, response.headers.get('content-security-policy-report-only'), path);
+  }
+  return body;
 }
 
 const routes = Array.from((await read('/sitemap.xml')).matchAll(/<loc>(.*?)<\/loc>/g), (match) => new URL(match[1]));
@@ -34,6 +47,7 @@ const descriptions = new Set();
 for (let index = 0; index < routes.length; index += 6) {
   await Promise.all(routes.slice(index, index + 6).map(async ({ pathname, href }) => {
     const body = await read(pathname);
+    checkInlineScripts(body, headerRules, pathname);
     assert.ok(href.startsWith(canonicalOrigin + '/') && pathname.endsWith('/'), href);
     assert.ok(body.includes(`rel="canonical" href="${href}"`), pathname);
     assert.ok(body.includes(`property="og:url" content="${href}"`), pathname);
@@ -87,6 +101,23 @@ assert.doesNotMatch(await read('/compare/'), /filter by campus|search for a mach
 const status = await read('/status/');
 assert.match(status, /Machine status feed responded with status data for \d+ of \d+ provider rooms\./);
 assert.match(status, /<time datetime="\d{4}-\d{2}-\d{2}T/);
+const offlineScript = status.match(/<script>([\s\S]*?getElementById\('status-offline'\)[\s\S]*?)<\/script>/)?.[1];
+assert.ok(offlineScript, 'Service status offline notice initializer');
+const notice = { hidden: true };
+const connection = { onLine: false };
+const listeners = {};
+runInNewContext(offlineScript, {
+  document: { getElementById: (id) => id === 'status-offline' ? notice : null },
+  navigator: connection,
+  window: { addEventListener: (event, listener) => { listeners[event] = listener; } },
+});
+assert.equal(notice.hidden, false, 'Show the notice when status loads offline');
+connection.onLine = true;
+listeners.online();
+assert.equal(notice.hidden, true, 'Hide the notice when the connection returns');
+connection.onLine = false;
+listeners.offline();
+assert.equal(notice.hidden, false, 'Show the notice when the connection drops');
 const sitemapPage = await read('/sitemap/');
 for (const path of paths) if (path !== '/sitemap/') assert.ok(sitemapPage.includes(`href="${path}"`), `HTML sitemap entry for ${path}`);
 assert.doesNotMatch(sitemapPage, /href="\/sitemap\/"/);
@@ -94,6 +125,9 @@ for (const view of ['my-laundry', 'settings']) assert.ok(sitemapPage.includes(`h
 assert.match(sitemapPage, /href="\/\?view=my-laundry">My Laundry<\/a>/);
 assert.ok((await read('/')).includes(independenceDisclosure));
 const information = await read(informationPath);
+const [disclosure, aboutResource] = informationDisclosure;
+assert.ok(information.includes(`<p class="site-information-disclosure">${disclosure}<a href="${aboutResource.href}">${aboutResource.label}</a></p>`));
+assert.equal((information.match(/href="\/about\/"/g) ?? []).length, 1, 'One About link in Information');
 for (const [label, meaning] of machineStatusDefinitions) {
   assert.ok(information.includes(`<dt><strong>${label}</strong></dt><dd>${meaning}</dd>`), label);
 }
@@ -127,13 +161,15 @@ for (const room of rooms) {
 }
 const themeScript = (await read('/')).match(/<script id="laundrylink-theme-init">([\s\S]*?)<\/script>/)?.[1];
 assert.ok(themeScript, 'Theme initialization script');
-const themeHash = `'sha256-${createHash('sha256').update(themeScript).digest('base64')}'`;
-const headerRules = await readFile(new URL('../public/_headers', import.meta.url), 'utf8');
-assert.ok(headerRules.includes(themeHash), 'Report-only CSP permits the current theme initializer');
+const themeHash = scriptHash(themeScript);
+const offlineHash = scriptHash(offlineScript);
+assert.ok(headerRules.includes(themeHash));
+assert.ok(headerRules.includes(offlineHash));
+if (!endpoint) checkInlineScripts(await read('/404.html'), headerRules, '/404.html');
 assert.doesNotMatch(headerRules, /^\s*Content-Security-Policy:/mi, 'CSP enforcement requires approval');
 if (endpoint && origin === canonicalOrigin) {
   for (const [path, status] of [
-    ['/', 200], ['/residence-halls/wright-hall/', 200], [informationPath, 200], ['/about/', 200],
+    ['/', 200], ['/residence-halls/wright-hall/', 200], [informationPath, 200], ['/about/', 200], ['/status/', 200],
     ['/this-laundrylink-page-does-not-exist/', 404],
   ]) {
     const response = await fetch(origin + path, { method: 'HEAD', signal: AbortSignal.timeout(10_000) });
@@ -141,7 +177,9 @@ if (endpoint && origin === canonicalOrigin) {
     assert.equal(response.headers.get('strict-transport-security'), 'max-age=86400', path);
     assert.equal(response.headers.get('x-frame-options'), 'DENY', path);
     assert.equal(response.headers.get('permissions-policy'), 'camera=(), microphone=(), geolocation=()', path);
-    assert.ok(response.headers.get('content-security-policy-report-only')?.includes(themeHash), path);
+    const reportOnly = response.headers.get('content-security-policy-report-only');
+    assert.ok(reportOnly?.includes(themeHash), path);
+    if (path === '/status/') assert.ok(reportOnly.includes(offlineHash), path);
     assert.equal(response.headers.get('content-security-policy'), null, path);
   }
 }
@@ -166,6 +204,7 @@ const serviceWorker = await read('/service-worker.js');
 const entrypoints = JSON.parse(serviceWorker.match(/^const APP_ENTRYPOINTS = (\[[^\n]+\]);/m)?.[1]);
 assert.ok(entrypoints.some(path => /^\/static\/js\/main\.[a-f0-9]+\.js$/.test(path)), 'Cache the compiled app for offline launches');
 assert.ok(entrypoints.some(path => /^\/static\/css\/main\.[a-f0-9]+\.css$/.test(path)), 'Cache the compiled stylesheet for offline launches');
+assert.match(serviceWorker, /['"]\/status\/['"]/, 'Precache the status page and its inline offline notice');
 
 const robots = await read('/robots.txt');
 assert.match(robots, /User-agent: \*\s+Allow: \/\s+Sitemap: https:\/\/uvmlaundry\.com\/sitemap\.xml/);

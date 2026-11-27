@@ -2,6 +2,7 @@ import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 
 import App from './App';
+import { informationDisclosure } from './informationContent.mjs';
 import { MachineReport } from './MachineReport';
 import { quieterWindow, RoomPeakTimes } from './RoomPeakTimes';
 import { quieterWindows } from './peakTimesGuidance.mjs';
@@ -96,7 +97,8 @@ test('opens the room directory without a network request', async () => {
     await act(async () => { root.render(<App />); });
     expect(container.textContent).toContain('All Laundry Rooms');
     expect(container.textContent).toContain('Wing Hall');
-    expect(container.querySelector('a[href="/about/"]').parentElement.textContent).toContain('Independent student project');
+    expect(container.querySelector('a[href="/about/"]')).toBeNull();
+    expect(container.textContent).not.toContain(informationDisclosure[0].trim());
     expect(document.title).toBe('UVM Laundry Tracker | UVM LaundryLink');
     expect(container.querySelector('.ll-campus-jump-heading').textContent).toBe('Campuses');
     expect(container.querySelectorAll('.ll-room-card__title')).toHaveLength(laundryRooms.length);
@@ -283,12 +285,16 @@ test('static-page header routes open the app overlays', async () => {
         expect(container.textContent).toContain('What should I bring?');
         expect(container.textContent).not.toContain('Know who to contact');
         expect(container.textContent).not.toContain('Laundry basics and video guides');
-        expect(container.querySelector('a[href="/about/"]')).not.toBeNull();
+        const [aboutLink] = container.querySelectorAll('a[href="/about/"]');
+        expect(container.querySelectorAll('a[href="/about/"]')).toHaveLength(1);
+        expect(aboutLink.textContent).toBe(informationDisclosure[1].label);
+        expect(aboutLink.parentElement.textContent).toBe(informationDisclosure[0] + informationDisclosure[1].label);
+        expect(aboutLink.parentElement.parentElement.querySelector('h2').textContent).toBe('More Resources');
         expect(container.querySelector('a[href="/compare/"]')).not.toBeNull();
         expect(container.querySelector('a[href="/sitemap/"]')).not.toBeNull();
         expect(container.querySelector('a[href="/status/"]')).not.toBeNull();
-        expect(Array.from(container.querySelectorAll('section li a:is([href="/about/"], [href="/compare/"], [href="/status/"], [href="/sitemap/"])'), (anchor) => anchor.textContent.trim()))
-          .toEqual(['About UVM LaundryLink', 'Compare trackers', 'Service status', 'Site map']);
+        expect(Array.from(container.querySelectorAll('section li a:is([href="/compare/"], [href="/status/"], [href="/sitemap/"])'), (anchor) => anchor.textContent.trim()))
+          .toEqual(['Compare trackers', 'Service status', 'Site map']);
       }
     } finally {
       act(() => root.unmount());
