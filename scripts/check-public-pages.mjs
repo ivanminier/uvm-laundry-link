@@ -10,11 +10,25 @@ const endpoint = process.argv[2];
 const origin = endpoint ? new URL(endpoint).origin : canonicalOrigin;
 const build = new URL('../build/', import.meta.url);
 const headerRules = await readFile(new URL('../public/_headers', import.meta.url), 'utf8');
+const enforcedHeaders = [...headerRules.matchAll(/^[ \t]*Content-Security-Policy:[ \t]*(.+)$/gmi)];
+assert.equal(enforcedHeaders.length, 1, 'One enforced Content-Security-Policy in _headers');
+assert.doesNotMatch(headerRules, /^[ \t]*Content-Security-Policy-Report-Only:/mi);
+const enforcedPolicy = enforcedHeaders[0][1].trim();
+const directives = new Map(enforcedPolicy.split(';').map((directive) => {
+  const [name, ...sources] = directive.trim().split(/\s+/);
+  return [name, sources];
+}));
+assert.deepEqual(directives.get('frame-ancestors'), ["'none'"], 'Disallow embedding LaundryLink');
+const scriptSources = directives.get('script-src-elem') ?? directives.get('script-src');
+assert.ok(scriptSources, 'Enforced CSP includes a script source list');
+if (!endpoint) {
+  assert.equal(await readFile(new URL('_headers', build), 'utf8'), headerRules, 'Build includes the enforced headers');
+}
 const scriptHash = (body) => `'sha256-${createHash('sha256').update(body).digest('base64')}'`;
-function checkInlineScripts(html, policy, path) {
+function checkInlineScripts(html, path) {
   for (const [, attributes, body] of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g)) {
     if (body.trim() && !/\bsrc=|type="application\/ld\+json"/.test(attributes)) {
-      assert.ok(policy?.includes(scriptHash(body)), `CSP permits inline script on ${path}`);
+      assert.ok(scriptSources.includes(scriptHash(body)), `CSP permits inline script on ${path}`);
     }
   }
 }
@@ -30,7 +44,8 @@ async function read(path, expectedStatus = 200, userAgent) {
   if (expectedStatus === 200) assert.doesNotMatch(response.headers.get('x-robots-tag') ?? '', /noindex/i, path);
   const body = await response.text();
   if (origin === canonicalOrigin && response.headers.get('content-type')?.includes('text/html')) {
-    checkInlineScripts(body, response.headers.get('content-security-policy-report-only'), path);
+    assert.equal(response.headers.get('content-security-policy'), enforcedPolicy, path);
+    assert.equal(response.headers.get('content-security-policy-report-only'), null, path);
   }
   return body;
 }
@@ -48,7 +63,7 @@ const descriptions = new Set();
 for (let index = 0; index < routes.length; index += 6) {
   await Promise.all(routes.slice(index, index + 6).map(async ({ pathname, href }) => {
     const body = await read(pathname);
-    checkInlineScripts(body, headerRules, pathname);
+    checkInlineScripts(body, pathname);
     assert.ok(href.startsWith(canonicalOrigin + '/') && pathname.endsWith('/'), href);
     assert.ok(body.includes(`rel="canonical" href="${href}"`), pathname);
     assert.ok(body.includes(`property="og:url" content="${href}"`), pathname);
@@ -178,10 +193,9 @@ const themeScript = (await read('/')).match(/<script id="laundrylink-theme-init"
 assert.ok(themeScript, 'Theme initialization script');
 const themeHash = scriptHash(themeScript);
 const offlineHash = scriptHash(offlineScript);
-assert.ok(headerRules.includes(themeHash));
-assert.ok(headerRules.includes(offlineHash));
-if (!endpoint) checkInlineScripts(await read('/404.html'), headerRules, '/404.html');
-assert.doesNotMatch(headerRules, /^\s*Content-Security-Policy:/mi, 'CSP enforcement requires approval');
+assert.ok(scriptSources.includes(themeHash), 'Theme hash is in enforced CSP');
+assert.ok(scriptSources.includes(offlineHash), 'Service-status hash is in enforced CSP');
+if (!endpoint) checkInlineScripts(await read('/404.html'), '/404.html');
 if (endpoint && origin === canonicalOrigin) {
   for (const [path, status] of [
     ['/', 200], ['/residence-halls/wright-hall/', 200], [informationPath, 200], ['/about/', 200], ['/status/', 200],
@@ -192,10 +206,8 @@ if (endpoint && origin === canonicalOrigin) {
     assert.equal(response.headers.get('strict-transport-security'), 'max-age=86400', path);
     assert.equal(response.headers.get('x-frame-options'), 'DENY', path);
     assert.equal(response.headers.get('permissions-policy'), 'camera=(), microphone=(), geolocation=()', path);
-    const reportOnly = response.headers.get('content-security-policy-report-only');
-    assert.ok(reportOnly?.includes(themeHash), path);
-    if (path === '/status/') assert.ok(reportOnly.includes(offlineHash), path);
-    assert.equal(response.headers.get('content-security-policy'), null, path);
+    assert.equal(response.headers.get('x-content-type-options'), 'nosniff', path);
+    assert.equal(response.headers.get('referrer-policy'), 'strict-origin-when-cross-origin', path);
   }
 }
 const evaluateTheme = (preferences, systemDark) => {
@@ -238,6 +250,7 @@ if (endpoint) {
     }
   }
   const missing = await read('/this-laundrylink-page-does-not-exist/', 404);
+  checkInlineScripts(missing, '/this-laundrylink-page-does-not-exist/');
   assert.match(missing, /Page not found/);
   for (const userAgent of ['Googlebot', 'bingbot', 'OAI-SearchBot', 'Google-Extended']) {
     assert.match(await read('/', 200, userAgent), /UVM residence hall laundry tracker/);
