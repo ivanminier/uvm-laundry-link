@@ -1,19 +1,18 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Zap, CheckCircle, XCircle, AlertTriangle, Clock, RefreshCw, Settings, Star, ArrowLeft, ExternalLink, Droplet, Wind, Eye, EyeOff, Info, Search, Sun, Moon, LayoutGrid, Bell, X } from 'lucide-react';
+import { Zap, CheckCircle, XCircle, AlertTriangle, Clock, RefreshCw, Settings, Star, ArrowRight, ExternalLink, Droplet, Wind, Eye, EyeOff, Info, Search, Sun, Moon, LayoutGrid, Bell, X } from 'lucide-react';
 
-import { findLaundryRoom, laundryRooms, roomDisplayName, roomLabel, roomPath, machinePath, canWatchNextWasher } from './laundryData';
+import { findLaundryRoom, getOfficialRoomUrl, laundryRooms, roomDisplayName, roomLabel, roomPath, machinePath, canWatchNextMachine, NEXT_WASHER_LABEL, NEXT_DRYER_LABEL } from './laundryData';
 import { useLaundryStatus } from './useLaundryStatus';
-import { RoomTools } from './RoomTools';
+import { RoomSwitcher, RoomTools } from './RoomTools';
 import { MyLaundry } from './MyLaundry';
 import { PushAlertForm } from './PushAlertForm';
 import { LaundryHelp } from './LaundryHelp';
+import { BackButton } from './BackButton';
 import { RoomPeakTimes } from './RoomPeakTimes';
 import { MachineReport, SERVICE_REQUEST_URL } from './MachineReport';
 
-// UVM Colors
-const UVM_GREEN = '#154734';
-const UVM_GOLD = '#fdb515';
-const UVM_LOGO_URL = 'https://i.imgur.com/kvyrGbL.png';
+// LaundryLink brand green
+const BRAND_GREEN = '#154734';
 
 // Helper function to get status color and icon
 const getStatusDetails = (status) => {
@@ -125,8 +124,8 @@ const MachineLayoutIcon = ({ machine, effectiveDarkMode, onMachineClick }) => {
     const machineAccentBg = effectiveDarkMode ? 'bg-slate-600' : 'bg-slate-300';
     const machineTextColor = effectiveDarkMode ? 'text-slate-200' : 'text-slate-700';
     const machineIconColor = effectiveDarkMode ? 'text-slate-400' : 'text-slate-500';
-
-    const isDryer = machine.type === 'Dryer';
+    const doorShapeClasses = machine.type === 'Dryer' ? 'rounded-md' : 'rounded-full';
+    const glassShapeClasses = machine.type === 'Dryer' ? 'rounded-sm' : 'rounded-full';
 
     return (
         <button
@@ -134,16 +133,18 @@ const MachineLayoutIcon = ({ machine, effectiveDarkMode, onMachineClick }) => {
             className={`flex-shrink-0 w-24 h-32 rounded-md flex flex-col items-center justify-between p-2 text-center shadow-md hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-uvm-gold ${machineBodyBg} ${machineTextColor} border border-transparent hover:border-uvm-gold`}
             title={`${machine.machineName} - ${machine.type} - ${actualStatus}${timeRemaining ? ` (${timeRemaining} left)` : ''}`}
         >
-            <div className={`w-full flex items-center justify-between px-1 py-0.5 rounded-t-sm ${machineAccentBg}`}>
+            <div className={`w-full flex items-center justify-between px-1 py-0.5 rounded-t-sm border-b border-slate-400/50 ${machineAccentBg}`}>
                 <MachineTypeIcon size={16} className={machineIconColor} />
                 <span className="font-semibold text-xs">{machineNumber}</span>
+                <span aria-hidden="true" className="h-2.5 w-2.5 rounded-full border border-slate-500/70" />
             </div>
             <div className="flex-grow flex items-center justify-center w-full my-1">
                 <div
-                    className={`w-10 h-10 flex items-center justify-center border-2 ${isDryer ? 'rounded-sm' : 'rounded-full'}`}
-                    style={{ borderColor: statusColorHex, backgroundColor: `${statusColorHex}33` }}
+                    className={`relative flex h-12 w-12 items-center justify-center ${doorShapeClasses} border-[3px] border-slate-500 bg-slate-300 dark:bg-slate-800`}
                 >
-                     <div className="w-3 h-3 rounded-full" style={{ backgroundColor: statusColorHex }}></div>
+                    <div className={`absolute inset-1 ${glassShapeClasses} border border-slate-400/80 bg-slate-100/80 dark:border-slate-600 dark:bg-slate-700`} />
+                    <div className="relative h-3 w-3 rounded-full" style={{ backgroundColor: statusColorHex }} />
+                    <div className="absolute right-1 top-1/2 h-1.5 w-1 -translate-y-1/2 rounded-full bg-slate-500" />
                 </div>
             </div>
             <div className={`w-full px-1 py-0.5 rounded-b-sm text-xs font-medium ${machineAccentBg}`}>
@@ -218,7 +219,7 @@ const RoomLayout = ({ machines, effectiveDarkMode, onMachineClick }) => {
 const MachineCard = React.memo(({ machine, room, stale }) => {
   const { icon: statusIcon, textColor, bgColor, actualStatus, borderColor } = getStatusDetails(machine.status);
   const canSetAlert = !stale && (actualStatus === 'In Use' || actualStatus === 'Finishing Soon');
-  const MachineTypeSpecificIcon = machine.type === 'Washer' ? Droplet : Wind;
+  const MachineTypeIcon = machine.type === 'Washer' ? Droplet : Wind;
   const formattedTimeRemaining = formatTime(machine.timeRemaining);
   const machineIdForScroll = `machine-card-${machine.id || machine.machineName.replace(/\s+/g, '-')}`;
 
@@ -230,7 +231,7 @@ const MachineCard = React.memo(({ machine, room, stale }) => {
   else if (actualStatus === 'Cycle Finished') placeholderText = machine.type === 'Washer' ? "Clothes left in washer" : "Clothes left in dryer";
 
   return (
-    <div id={machineIdForScroll} tabIndex={-1} aria-label={machine.machineName} className={`rounded-xl shadow-lg bg-white dark:bg-slate-800 border ${borderColor} flex flex-col justify-between transition-all duration-300 hover:shadow-2xl hover:scale-[1.02]`}>
+    <article id={machineIdForScroll} tabIndex={-1} aria-label={machine.machineName} className={`ll-machine-card rounded-xl border ${borderColor} flex flex-col justify-between transition-shadow duration-200 hover:shadow-md`}>
       <div className="p-4">
         <div className="flex items-start justify-between mb-3">
           <div>
@@ -238,7 +239,7 @@ const MachineCard = React.memo(({ machine, room, stale }) => {
               {String(machine.machineName || `Machine ${machine.id}`)}
             </h3>
             <div className="flex items-center text-sm text-gray-500 dark:text-slate-300 mt-1">
-              <MachineTypeSpecificIcon size={16} className="mr-1.5 flex-shrink-0" />
+               <MachineTypeIcon size={16} className="mr-1.5 flex-shrink-0" />
               <span>{String(machine.type || 'N/A')} - {String(machine.size || 'N/A')}</span>
             </div>
           </div>
@@ -262,16 +263,16 @@ const MachineCard = React.memo(({ machine, room, stale }) => {
           </div>
         )}
         <MachineReport machine={machine} room={room} canSetAlert={canSetAlert} />
-        <a href={machinePath(room, machine.id)} className="mt-1 inline-flex min-h-[44px] items-center text-xs text-slate-600 underline underline-offset-4 dark:text-slate-300"
-          aria-label={`Link to ${machine.machineName}`}>Machine link</a>
       </div>
-    </div>
+    </article>
   );
 });
 
-function NextWasherAlert({ room, washers, eligible }) {
+function NextMachineAlert({ room, type, machines, eligible }) {
   const dialog = useRef(null);
   const [open, setOpen] = useState(false);
+  const isWasher = type === 'Washer';
+  const machineLabel = isWasher ? NEXT_WASHER_LABEL : NEXT_DRYER_LABEL;
 
   function showAlert() {
     dialog.current.showModal();
@@ -283,19 +284,19 @@ function NextWasherAlert({ room, washers, eligible }) {
       {eligible && (
         <button type="button" onClick={showAlert}
           className="mt-3 inline-flex min-h-[44px] items-center gap-2 rounded-lg border border-slate-300 px-3 text-sm font-semibold text-uvm-green hover:bg-green-50 dark:border-slate-600 dark:text-uvm-gold dark:hover:bg-slate-700">
-          <Bell size={16} /> Notify me when a washer opens
+          <Bell size={16} /> Notify me when a {type.toLowerCase()} opens
         </button>
       )}
-      <dialog ref={dialog} onClose={() => setOpen(false)} aria-label="Next available washer"
-        className="w-[calc(100%-2rem)] max-w-md rounded-xl bg-white p-5 text-slate-900 shadow-xl backdrop:bg-black/60 dark:bg-slate-800 dark:text-slate-100">
+      <dialog ref={dialog} onClose={() => setOpen(false)} aria-label={machineLabel}
+        className="ll-dialog w-[calc(100%-2rem)] max-w-md rounded-xl p-5 shadow-xl backdrop:bg-black/60">
         <div className="flex items-center justify-between gap-3">
-          <h3 className="text-xl font-bold">Next available washer</h3>
+          <h3 className="text-xl font-bold">{machineLabel}</h3>
           <form method="dialog">
-            <button type="submit" aria-label="Close washer alert" className="rounded p-2 focus-visible:ring-2"><X size={20} /></button>
+            <button type="submit" aria-label={`Close ${type.toLowerCase()} alert`} className="rounded p-2 focus-visible:ring-2"><X size={20} /></button>
           </form>
         </div>
         <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{roomLabel(room)}</p>
-        {open && <PushAlertForm room={room} washers={washers} canSetAlert={eligible} />}
+        {open && <PushAlertForm room={room} watchType={type} machines={machines} canSetAlert={eligible} />}
       </dialog>
     </>
   );
@@ -312,7 +313,7 @@ function FavoriteAvailability({ room }) {
     observer.observe(container.current);
     return () => observer.disconnect();
   }, []);
-  const keepHeight = 'mt-3 min-h-[44px] text-sm text-green-100';
+  const keepHeight = 'mt-3 min-h-[44px] text-sm text-slate-700 dark:text-slate-200';
   const [, setClock] = useState(0);
 
   useEffect(() => {
@@ -337,53 +338,95 @@ function FavoriteAvailability({ room }) {
   return (
     <div ref={container} className={keepHeight}>
       {machines.some(({ status }) => status !== 'Unknown') && (
-        <p className="text-sm font-semibold text-white">{washers} {washers === 1 ? 'washer' : 'washers'} free · {dryers} {dryers === 1 ? 'dryer' : 'dryers'} free</p>
+        <p className="text-sm font-semibold">{washers} {washers === 1 ? 'washer' : 'washers'} free · {dryers} {dryers === 1 ? 'dryer' : 'dryers'} free</p>
       )}
-      <p className={`mt-1 text-xs ${saved ? 'text-yellow-200' : ''}`}>{saved ? 'Saved snapshot' : 'Checked'} {age}</p>
+      <p className={`mt-1 text-xs ${saved ? 'text-amber-700 dark:text-amber-300' : ''}`}>{saved ? 'Saved snapshot' : 'Checked'} {age}</p>
     </div>
   );
 }
 
-const RoomCard = React.memo(({ room, onSelectRoom, isFavorite, onToggleFavorite }) => (
-    <div
-        role="button"
-        tabIndex={0}
-        onClick={() => onSelectRoom(room.id)}
-        onKeyDown={(e) => {
-            if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
-                e.preventDefault();
-                onSelectRoom(room.id);
-            }
-        }}
-        style={{ '--gradient-start-color': UVM_GREEN }}
-        className={`rounded-xl shadow-lg p-5 sm:p-6 flex flex-col justify-between transition-all duration-300 cursor-pointer h-full min-h-[170px] sm:min-h-[190px] group relative overflow-hidden bg-gradient-to-br from-[var(--gradient-start-color)] to-green-800 dark:from-[var(--gradient-start-color)] dark:to-green-700 hover:shadow-[0_0_20px_3px_rgba(253,181,21,0.6)] focus:outline-none focus:ring-4 focus:ring-yellow-400/80`}
-    >
-        <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
-        <div className="relative z-10 flex-grow">
-            <h3 className="text-xl sm:text-2xl font-bold mb-2 text-white group-hover:text-yellow-400 transition-colors">{roomDisplayName(room)}</h3>
-            {room.locationLabel && <p className="text-sm text-green-100">{room.locationLabel}</p>}
-            {isFavorite && <FavoriteAvailability room={room} />}
-        </div>
-        <div className="flex items-center justify-end mt-auto pt-3 relative z-10">
-            <button
-                onClick={(e) => { e.stopPropagation(); onToggleFavorite(room.id); }}
-                title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
-                className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 transition-colors focus:outline-none focus:ring-2 focus:ring-white/80"
-            >
-                <Star size={22} className={`transition-colors ${isFavorite ? `text-yellow-400 fill-yellow-400` : 'text-white/60 group-hover:text-white'}`} />
+const RoomCard = React.memo(({ room, onSelectRoom, isFavorite, onToggleFavorite, headingLevel = 3 }) => {
+  const Heading = headingLevel === 5 ? 'h5' : headingLevel === 4 ? 'h4' : 'h3';
+  return (
+    <article className="ll-room-card">
+      <div className="ll-room-card__topline">
+        <div>
+          <Heading className="ll-room-card__heading">
+            <button type="button" onClick={() => onSelectRoom(room.id)} className="ll-room-card__title">
+              {roomDisplayName(room)}
             </button>
+          </Heading>
+          {room.locationLabel && <p className="ll-room-card__location">{room.locationLabel}</p>}
         </div>
-    </div>
-));
+        <button
+          type="button"
+          onClick={() => onToggleFavorite(room.id)}
+          title={isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
+          aria-label={isFavorite ? `Remove ${roomDisplayName(room)} from favorites` : `Add ${roomDisplayName(room)} to favorites`}
+          aria-pressed={isFavorite}
+          className="ll-room-card__favorite"
+        >
+          <Star size={19} aria-hidden="true" className={isFavorite ? 'fill-current' : ''} />
+        </button>
+      </div>
+      {isFavorite && <div className="ll-room-card__availability"><FavoriteAvailability room={room} /></div>}
+      <button type="button" onClick={() => onSelectRoom(room.id)} className="ll-room-card__action">
+        View room <ArrowRight size={16} aria-hidden="true" />
+      </button>
+    </article>
+  );
+});
 
 const EMPTY_MACHINES = [];
-const CAMPUS_FILTERS = [
-  ['all', 'All'],
+const OVERLAY_ROUTE_VIEWS = new Map([
+  ['my-laundry', 'myLaundry'],
+  ['information', 'help'],
+  ['settings', 'settings'],
+]);
+const CAMPUS_SECTIONS = [
   ['redstone', 'Redstone'],
   ['athletic', 'Athletic'],
   ['central', 'Central'],
   ['north', 'Trinity/North'],
 ];
+const CAMPUS_COMPLEXES = {
+  redstone: [
+    { title: 'CWPSCR', roomIds: ['christie', 'cwp', 'patterson', 'slade', 'coolidge', 'redstone'] },
+    { title: 'MSH', roomIds: ['mason', 'simpson', 'hamilton'] },
+    { title: 'WDW', roomIds: ['wing', 'davis', 'wilks'] },
+  ],
+  athletic: [
+    { title: 'Living-Learning Complex', roomIds: ['lll_140', 'lll_180', 'lll_b110', 'lll_c131', 'lll_d110', 'lll_d140', 'lll_e110', 'lll_e160'] },
+    { title: 'University Heights North Complex', roomIds: ['uheightsn1', 'uheightsn2'] },
+    { title: 'University Heights South Complex', roomIds: ['uheightss1', 'uheightss2'] },
+    { title: 'MAT', roomIds: ['austin', 'tupper'] },
+    { title: 'Harris-Millis', roomIds: ['harris', 'millis'] },
+  ],
+  central: [
+    { title: 'CCRH', roomIds: ['central_campus_2', 'central_campus_3', 'central_campus_4', 'central_campus_5', 'central_campus_6', 'central_campus_7'] },
+  ],
+  north: [
+    { title: 'The Back Five', roomIds: ['hunt', 'mccann', 'ready', 'richardson', 'sichel'] },
+  ],
+};
+
+function groupCampusRooms(rooms, campus) {
+  const complexes = CAMPUS_COMPLEXES[campus] ?? [];
+  const roomsById = new Map(rooms.map((room) => [room.id, room]));
+  const complexRoomIds = new Set(complexes.flatMap(({ roomIds }) => roomIds));
+  const sections = complexes
+    .map(({ title, roomIds }) => ({
+      title,
+      rooms: roomIds.map((id) => roomsById.get(id)).filter(Boolean),
+    }))
+    .filter(({ rooms: groupedRooms }) => groupedRooms.length > 0)
+    .sort((first, second) => first.title.localeCompare(second.title));
+  const otherRooms = rooms.filter((room) => !complexRoomIds.has(room.id));
+
+  if (otherRooms.length > 0) sections.push({ title: 'Other Buildings', rooms: otherRooms });
+  return sections;
+}
+
 const REMEMBER_ROOM_KEY = 'uvmLaundryRememberRoom';
 const LAST_ROOM_KEY = 'uvmLaundryLastRoom';
 
@@ -466,17 +509,8 @@ const App = () => {
 
   useEffect(() => {
     const root = document.documentElement;
-    const body = document.body;
-
-    if (effectiveDarkMode) {
-      root.classList.add('dark');
-      body.classList.remove('bg-gray-100', 'text-gray-900');
-      body.classList.add('bg-slate-900', 'text-slate-100');
-    } else {
-      root.classList.remove('dark');
-      body.classList.remove('bg-slate-900', 'text-slate-100');
-      body.classList.add('bg-gray-100', 'text-gray-900');
-    }
+    root.classList.toggle('dark', effectiveDarkMode);
+    root.dataset.theme = effectiveDarkMode ? 'dark' : 'light';
   }, [effectiveDarkMode]);
   
   const handleSelectRoom = useCallback((roomId, updateHash = true) => {
@@ -502,6 +536,16 @@ const App = () => {
 
   useEffect(() => {
     const syncRoute = () => {
+      const overlayView = OVERLAY_ROUTE_VIEWS.get(new URLSearchParams(window.location.search).get('view'));
+      if (overlayView) {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('view');
+        window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
+        setSelectedRoomId('');
+        setPreviousView('home');
+        setCurrentView(overlayView);
+        return;
+      }
       const [hash, query] = window.location.hash.replace(/^#\/?(?:room\/)?/, '').split('?', 2);
       const room = findLaundryRoom(hash);
       if (!room) {
@@ -515,7 +559,8 @@ const App = () => {
         setMachineScrollTarget(`machine-card-${machineId}`);
       }
     };
-    const lastRoom = !window.location.hash && readPreference(REMEMBER_ROOM_KEY, false)
+    const requestedOverlay = OVERLAY_ROUTE_VIEWS.has(new URLSearchParams(window.location.search).get('view'));
+    const lastRoom = !window.location.hash && !requestedOverlay && readPreference(REMEMBER_ROOM_KEY, false)
       ? findLaundryRoom(readPreference(LAST_ROOM_KEY, null))
       : null;
     if (lastRoom) {
@@ -589,6 +634,11 @@ const App = () => {
     }
     return roomsToDisplay;
   }, [campus, showOnlyFavorites, homeSearchTerm, favorites]);
+  const visibleCampusSections = useMemo(() => CAMPUS_SECTIONS.map(([id, label]) => ({
+    id,
+    label,
+    rooms: filteredHomeRooms.filter((room) => room.campus === id),
+  })).filter(({ rooms }) => rooms.length > 0), [filteredHomeRooms]);
   
   const allWashers = useMemo(() => machines.filter(machine => machine.type === 'Washer'), [machines]);
   const unknownMachines = machines.filter(({ status }) => status === 'Unknown').length;
@@ -611,21 +661,47 @@ const App = () => {
 
   const statusOptions = ['All', 'Available', 'Ready to Start', 'In Use', 'Finishing Soon', 'Cycle Finished', 'Door Open', 'Reserved', 'Out of Order', 'Offline', 'Status Unknown'];
 
-  const inputBaseClasses = "w-full p-3 border rounded-lg shadow-sm transition-colors duration-200 focus:outline-none focus:ring-2 dark:bg-slate-700 dark:text-white placeholder-gray-400 dark:placeholder-slate-400";
+  const inputBaseClasses = "ll-input w-full h-12 p-3 border rounded-lg shadow-sm transition-colors duration-200 focus:outline-none focus:ring-2 placeholder-gray-400 dark:placeholder-slate-400";
   const inputFocusClasses = "focus:ring-uvm-gold focus:border-uvm-gold";
   const inputBorderClasses = "border-gray-300 dark:border-slate-600";
 
+  const renderRoomCards = (rooms, headingLevel) => (
+    <div className="ll-room-grid flex flex-wrap gap-4 md:gap-5">
+      {rooms.map(room => (
+        <RoomCard
+          key={room.id}
+          room={room}
+          onSelectRoom={handleSelectRoom}
+          isFavorite={favorites.includes(room.id)}
+          onToggleFavorite={toggleFavorite}
+          headingLevel={headingLevel}
+        />
+      ))}
+    </div>
+  );
+
+  const renderComplexSection = (section, sectionCampus, headingLevel) => {
+    const Heading = headingLevel === 4 ? 'h4' : 'h3';
+    const headingId = `room-group-${sectionCampus}-${section.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+    return (
+      <section key={headingId} className="ll-complex-section" aria-labelledby={headingId}>
+        <Heading id={headingId} className="ll-complex-section__title">{section.title}</Heading>
+        {renderRoomCards(section.rooms, headingLevel + 1)}
+      </section>
+    );
+  };
   // --- Render Functions ---
   const renderContent = () => {
     switch (currentView) {
       case 'home':
         return (
           <div key="home" className="animate-fadeIn">
-            <p className="mb-4 text-sm text-slate-600 dark:text-slate-300">
-              Check University of Vermont washers and dryers with this independent, student-created laundry tracker.
-            </p>
-            <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-              <h2 className={`text-3xl lg:text-4xl font-bold ${effectiveDarkMode ? 'text-white' : 'text-gray-900'} md:mb-0 mb-3 whitespace-nowrap`}>
+            <div className="ll-home-hero">
+              <p className="ll-home-tagline">Know before you go.</p>
+              <p className="ll-home-copy">Check reported washer and dryer status before you head downstairs.</p>
+            </div>
+            <div className="flex flex-col md:flex-row justify-between items-stretch md:items-end mb-8 gap-4">
+              <h2 className="ll-room-list-heading text-2xl lg:text-4xl font-bold md:mb-0 mb-3 whitespace-nowrap">
                 {showOnlyFavorites ? "Favorite Rooms" : "All Laundry Rooms"}
               </h2>
               <div className="flex-grow md:flex-grow-0 w-full md:w-auto flex flex-col sm:flex-row items-center gap-3">
@@ -633,56 +709,59 @@ const App = () => {
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none"> <Search size={18} className="text-gray-500 dark:text-slate-300" /> </div>
                   <input type="text" placeholder="Search rooms..." value={homeSearchTerm} onChange={(e) => setHomeSearchTerm(e.target.value)} className={`${inputBaseClasses} ${inputBorderClasses} ${inputFocusClasses} pl-10`} />
                 </div>
-                <button onClick={() => setShowOnlyFavorites(!showOnlyFavorites)} className={`flex items-center justify-center w-full sm:w-auto px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-900 focus:ring-uvm-gold shadow-md whitespace-nowrap ${showOnlyFavorites ? `bg-yellow-400 text-yellow-900 hover:bg-yellow-500` : `${effectiveDarkMode ? 'bg-slate-700 hover:bg-slate-600 text-slate-100' : 'bg-white hover:bg-gray-50 text-gray-900 border border-gray-300 dark:border-slate-600'}`}`}>
-                    <Star size={18} className={`mr-2 ${showOnlyFavorites ? `text-yellow-900 fill-yellow-900` : (effectiveDarkMode ? 'text-slate-100 fill-slate-100' : `text-yellow-400 fill-yellow-400` ) }`} />
+                <button type="button" aria-pressed={showOnlyFavorites} onClick={() => setShowOnlyFavorites(!showOnlyFavorites)} className="ll-favorites-toggle w-full whitespace-nowrap px-4 py-3 sm:w-auto">
+                    <Star size={18} className={showOnlyFavorites ? 'fill-current' : ''} />
                     {showOnlyFavorites ? "Show All" : "Show Favorites"}
                 </button>
               </div>
             </div>
-            <div role="group" aria-label="Filter rooms by campus" className="mb-5 flex flex-wrap gap-2">
-              {CAMPUS_FILTERS.map(([id, label]) => (
-                <button type="button" key={id} aria-pressed={campus === id} onClick={() => setCampus(id)}
-                  className={`min-h-[44px] rounded-full border px-4 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-uvm-gold ${campus === id
-                    ? 'border-uvm-green bg-uvm-green text-white dark:border-uvm-gold dark:bg-uvm-gold dark:text-slate-900'
-                    : 'border-slate-300 bg-white text-slate-800 hover:border-uvm-green dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200'}`}>
-                  {label}
-                </button>
-              ))}
-            </div>
+            <>
+              <h3 className="ll-campus-filter-heading">Campuses</h3>
+              <div role="group" aria-label="Filter rooms by campus" className="mb-5 flex flex-wrap gap-2">
+                {[['all', 'All'], ...CAMPUS_SECTIONS].map(([id, label]) => (
+                  <button type="button" key={id} aria-pressed={campus === id} onClick={() => setCampus(id)}
+                    className="ll-campus-filter min-h-[44px] rounded-full border px-4 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-uvm-gold">
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </>
             {filteredHomeRooms.length === 0 ? (
-              <div className="text-center py-16 text-gray-500 dark:text-gray-400 bg-white dark:bg-slate-800/70 rounded-xl shadow-lg p-8">
+              <div className="ll-empty-state text-center py-16 p-8">
                 <Info size={64} className="mx-auto opacity-50 mb-4 text-uvm-green dark:text-uvm-gold" />
                 <p className="mt-4 text-xl font-semibold">
-                  {homeSearchTerm.trim() !== '' ? 'No Rooms Match Your Search' : (showOnlyFavorites ? "No Favorite Rooms in This View" : "No Laundry Rooms Found")}
+                  {homeSearchTerm.trim() !== '' ? 'No Rooms Match Your Search' : (showOnlyFavorites ? "No Favorite Rooms Yet" : "No Laundry Rooms Found")}
                 </p>
                 <p className="text-sm mt-2 opacity-80">
-                  {homeSearchTerm.trim() !== '' ? 'Try a different search term or choose All campuses.' : (showOnlyFavorites ? "Choose another campus or add a room to your favorites." : "We couldn't find any laundry rooms at the moment.")}
+                  {homeSearchTerm.trim() !== '' ? 'Try a different search term or choose All.' : (showOnlyFavorites ? "Choose another campus or add a room to your favorites." : "We couldn't find any laundry rooms at the moment.")}
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 md:gap-6">
-                {filteredHomeRooms.map(room => <RoomCard key={room.id} room={room} onSelectRoom={handleSelectRoom} isFavorite={favorites.includes(room.id)} onToggleFavorite={toggleFavorite} />)}
-              </div>
+              visibleCampusSections.map(({ id: campusId, label, rooms }) => {
+                const headingId = `campus-rooms-${campusId}`;
+                return (
+                  <section key={campusId} id={headingId} className="ll-campus-section" aria-labelledby={headingId}>
+                    <h3 className="ll-campus-section__title">{label}</h3>
+                    {groupCampusRooms(rooms, campusId).map(section => renderComplexSection(section, campusId, 4))}
+                  </section>
+                );
+              })
             )}
           </div>
         );
       case 'roomDetail':
         return (
           <div key="roomDetail" className="animate-fadeIn">
-            <div className="mb-4 flex flex-wrap items-center gap-x-5 gap-y-2">
-              <button onClick={() => handleGoHome()} className="inline-flex min-h-[44px] items-center gap-2 rounded-lg px-3 text-sm font-semibold text-gray-900 focus:ring-2 focus:ring-uvm-gold dark:text-white">
-                <ArrowLeft size={18} /> All Rooms
-              </button>
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white md:text-3xl">{roomDisplayName(currentRoom)}</h2>
-                {currentRoom.locationLabel && <p className="text-sm text-slate-600 dark:text-slate-300">{currentRoom.locationLabel}</p>}
-              </div>
+            <div className="ll-room-header">
+              <BackButton onClick={() => handleGoHome()}>All Rooms</BackButton>
+              <RoomSwitcher room={currentRoom} onSelectRoom={handleSelectRoom} />
+              <RoomTools key={`tools-${currentRoom.id}`} room={currentRoom} />
             </div>
-            <RoomTools key={`tools-${currentRoom.id}`} room={currentRoom} onSelectRoom={handleSelectRoom} />
             {roomStatus.failed && (
               <div role="status" className="mb-6 rounded-md border-l-4 border-yellow-500 bg-yellow-100 p-4 text-yellow-900 dark:bg-yellow-700/30 dark:text-yellow-200">
-                {roomStatus.stale ? 'Live refresh failed. Showing the last saved machine statuses.' : 'Live machine status is unavailable. Try refreshing or open the official room page.'}
+                {roomStatus.stale ? 'Live refresh failed. Showing the last saved machine statuses.' : 'Live machine status is unavailable. Try refreshing or open the LaundryConnect page.'}
                 {' '}<a className="font-semibold underline" href="/status/">Service status</a>
+                {' '}<a className="font-semibold underline" href={getOfficialRoomUrl(currentRoom)} target="_blank" rel="noopener noreferrer">LaundryConnect page</a>
               </div>
             )}
             {roomStatus.busy && !roomStatus.checkedAt && (
@@ -692,10 +771,11 @@ const App = () => {
             {roomStatus.checkedAt && !hasUsableStatus && (
               <p role="status" className="mb-6 rounded-lg bg-amber-100 p-4 text-amber-900 dark:bg-amber-950 dark:text-amber-200">
                 The provider returned no usable machine statuses. <a className="font-semibold underline" href="/status/">Service status</a>
+                {' '}<a className="font-semibold underline" href={getOfficialRoomUrl(currentRoom)} target="_blank" rel="noopener noreferrer">LaundryConnect page</a>
               </p>
             )}
             {roomStatus.checkedAt && <>
-            <div className="mb-8 p-5 sm:p-6 bg-white dark:bg-slate-800/70 rounded-xl shadow-xl">
+            <div className="ll-panel mb-8 p-5 sm:p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-end">
                 <div>
                   <label htmlFor="search" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Search Machines</label>
@@ -706,7 +786,7 @@ const App = () => {
                 </div>
                 <div>
                   <label htmlFor="statusFilter" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Filter by Status</label>
-                  <select id="statusFilter" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className={`${inputBaseClasses} ${inputBorderClasses} ${inputFocusClasses} appearance-none pr-10 bg-no-repeat`} style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='${effectiveDarkMode ? '%23CBD5E1' : '%236B7280'}' %3E%3Cpath fill-rule='evenodd' d='M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z' clip-rule='evenodd' /%3E%3C/svg%3E")`, backgroundPosition: 'right 0.75rem center', backgroundSize: '1.5em 1.5em' }}>
+                  <select id="statusFilter" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className={`${inputBaseClasses} ${inputBorderClasses} ${inputFocusClasses}`}>
                     {statusOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                   </select>
                 </div>
@@ -720,8 +800,10 @@ const App = () => {
                   Status unavailable for {unknownMachines} {unknownMachines === 1 ? 'machine' : 'machines'}.
                 </p>
               )}
-              <NextWasherAlert key={currentRoom.id} room={currentRoom} washers={allWashers}
-                eligible={!roomStatus.stale && canWatchNextWasher(allWashers)} />
+              <NextMachineAlert key={`${currentRoom.id}-washers`} room={currentRoom} type="Washer" machines={allWashers}
+                eligible={!roomStatus.stale && canWatchNextMachine(allWashers, 'Washer')} />
+              <NextMachineAlert key={`${currentRoom.id}-dryers`} room={currentRoom} type="Dryer" machines={allDryers}
+                eligible={!roomStatus.stale && canWatchNextMachine(allDryers, 'Dryer')} />
               <p className={`text-xs mt-4 text-right ${roomStatus.stale ? 'text-yellow-700 dark:text-yellow-400' : 'text-gray-500 dark:text-slate-400'}`}>{roomStatus.stale ? 'Saved snapshot' : hasUsableStatus ? 'Live · Last checked' : 'Last checked'} · <time dateTime={new Date(roomStatus.checkedAt).toISOString()}>{new Date(roomStatus.checkedAt).toLocaleString()}</time></p>
             </div>
 
@@ -737,7 +819,7 @@ const App = () => {
             )}
             <div id="room-layout" hidden={!showVisualLayout}>
             {showVisualLayout && machines.length > 0 && (
-              <div className="mb-8 p-5 sm:p-6 bg-white dark:bg-slate-800/70 rounded-xl shadow-xl animate-fadeIn">
+              <div className="ll-panel mb-8 p-5 sm:p-6 animate-fadeIn">
                 <h3 className="text-xl font-semibold mb-6 text-gray-800 dark:text-white">Room Layout</h3>
                 <RoomLayout machines={machines} effectiveDarkMode={effectiveDarkMode} onMachineClick={handleScrollToMachine} />
               </div>
@@ -746,7 +828,7 @@ const App = () => {
             </div>
             <div id="machine-list" hidden={!showMachineList && machines.length > 0}>
             {machines.length === 0 ? (
-                 <div className="text-center py-16 text-gray-500 dark:text-gray-400 bg-white dark:bg-slate-800/70 rounded-xl shadow-lg p-8"><Info size={64} className="mx-auto opacity-50 mb-4 text-uvm-green dark:text-uvm-gold" /><p className="mt-4 text-xl font-semibold">No Machines Found</p><p className="text-sm mt-2 opacity-80">The provider has no machines listed for this room.</p></div>
+                 <div className="ll-empty-state text-center py-16 p-8"><Info size={64} className="mx-auto opacity-50 mb-4 text-uvm-green dark:text-uvm-gold" /><p className="mt-4 text-xl font-semibold">No Machines Found</p><p className="text-sm mt-2 opacity-80">The provider has no machines listed for this room.</p></div>
             ) : (
               <>
                 {filteredWashers.length > 0 && (
@@ -766,7 +848,7 @@ const App = () => {
                   </div>
                 )}
                  {filteredWashers.length === 0 && filteredDryers.length === 0 && machines.length > 0 && (
-                     <div className="text-center py-10 text-gray-500 dark:text-gray-400 bg-white dark:bg-slate-800/50 rounded-lg shadow-md p-6"><Info size={48} className="mx-auto opacity-50 mb-3" /><p>No machines match your current filters.</p></div>
+                     <div className="ll-empty-state text-center py-10 p-6"><Info size={48} className="mx-auto opacity-50 mb-3" /><p>No machines match your current filters.</p></div>
                  )}
               </>
             )}
@@ -780,10 +862,10 @@ const App = () => {
         return <LaundryHelp onBack={handleBackFromOverlay} />;
       case 'settings':
         return (
-          <div key="settings" className="max-w-2xl mx-auto bg-white dark:bg-slate-800 p-6 sm:p-8 rounded-2xl shadow-2xl animate-fadeIn">
+          <div key="settings" className="ll-panel max-w-2xl mx-auto p-6 sm:p-8 animate-fadeIn">
             <div className="flex items-center justify-between mb-10">
-              <h2 className={`text-3xl lg:text-4xl font-bold ${effectiveDarkMode ? 'text-white' : 'text-gray-900'}`}>Settings</h2>
-              <button onClick={handleBackFromOverlay} className={`flex items-center text-sm font-semibold rounded-lg px-4 py-2.5 transition-colors focus:outline-none focus:ring-2 focus:ring-uvm-gold ${effectiveDarkMode ? 'text-slate-100 bg-slate-700 hover:bg-slate-600' : 'text-gray-900 bg-gray-100 hover:bg-gray-200'}`}><ArrowLeft size={18} className="mr-2"/> Back</button>
+              <h2 className="text-3xl lg:text-4xl font-bold">Settings</h2>
+              <BackButton onClick={handleBackFromOverlay} />
             </div>
             <div className="space-y-10">
               <section>
@@ -805,11 +887,19 @@ const App = () => {
               </section>
               <section>
                 <h3 className="mb-4 text-xl font-semibold">Room Preferences</h3>
-                <label className="flex min-h-[44px] items-center gap-3 rounded-lg bg-slate-100 px-4 py-2 dark:bg-slate-700/60">
-                  <input type="checkbox" checked={rememberRoom} onChange={(event) => setRememberRoom(event.target.checked)}
-                    className="h-5 w-5 accent-uvm-green" />
-                  Open my last room on startup
-                </label>
+                <div className="flex items-center justify-between rounded-lg bg-gray-50 p-4 dark:bg-slate-700/60">
+                  <div className="flex items-center text-sm text-gray-700 dark:text-slate-200 sm:text-base">
+                    <span className="mr-2.5">
+                      <Clock size={20} className={rememberRoom ? 'text-uvm-green dark:text-uvm-gold' : 'text-gray-500 dark:text-slate-300'} />
+                    </span>
+                    <span>Open my last room on startup</span>
+                  </div>
+                  <button id="rememberRoomToggle" type="button" role="switch" aria-label="Open my last room on startup"
+                    aria-checked={rememberRoom} onClick={() => setRememberRoom(previous => !previous)}
+                    className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-uvm-gold focus:ring-offset-2 dark:focus:ring-offset-slate-800 ${rememberRoom ? 'bg-green-600 dark:bg-green-600' : 'bg-gray-300 dark:bg-slate-500'}`}>
+                    <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${rememberRoom ? 'translate-x-6' : 'translate-x-1'}`} />
+                  </button>
+                </div>
               </section>
               <section>
                 <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-5 border-b pb-3 border-gray-200 dark:border-slate-700">Report Issues</h3>
@@ -817,7 +907,7 @@ const App = () => {
                     <p className="text-sm text-gray-700 dark:text-slate-300">
                         If you encounter a broken machine, please report it to Automatic Laundry.
                     </p>
-                    <a href={SERVICE_REQUEST_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 rounded-lg text-sm font-semibold transition-all duration-200 text-white focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-uvm-gold shadow-md" style={{backgroundColor: UVM_GREEN}} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#0f3927'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = UVM_GREEN}>
+                    <a href={SERVICE_REQUEST_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center w-full sm:w-auto px-6 py-3 rounded-lg text-sm font-semibold transition-colors text-white focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-uvm-gold shadow-sm" style={{backgroundColor: BRAND_GREEN}}>
                         <ExternalLink size={18} className="mr-2" /> Report a Broken Machine
                     </a>
                 </div>
@@ -830,55 +920,37 @@ const App = () => {
   };
 
   return (
-    <div className={`min-h-screen font-sans`}>
-      <header className="sticky top-0 z-50 shadow-lg" style={{ backgroundColor: UVM_GREEN }}>
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 md:h-20">
-            <button onClick={() => handleGoHome()} className="flex min-w-0 items-center cursor-pointer focus:outline-none focus:ring-2 focus:ring-uvm-gold rounded-md p-1 -ml-1 group">
-              <img src={UVM_LOGO_URL} alt="UVM Logo" className="h-7 w-auto mr-1.5 rounded-sm sm:mr-3 sm:h-10 md:h-12 transition-transform duration-300 group-hover:scale-105" onError={(e) => { e.currentTarget.style.display='none'; }}/>
-              <h1 className="truncate text-base sm:text-xl md:text-2xl font-bold text-white tracking-tight group-hover:text-yellow-400 transition-colors">UVM LaundryLink</h1>
+    <div className="ll-app min-h-screen font-sans">
+      <header className="ll-site-header sticky top-0 z-50">
+        <div className="ll-header-inner">
+          <div className="ll-header-row">
+            <button onClick={() => handleGoHome()} aria-label="UVM LaundryLink home" className="ll-brand">
+              <img src="/brand-mark.svg" alt="" aria-hidden="true" className="ll-brand__mark" />
+              <span className="ll-brand__name">UVM LaundryLink</span>
             </button>
-            <div className="flex shrink-0 items-center sm:gap-2">
-              {currentView === 'roomDetail' && roomStatus.busy && <div title="Refreshing data..." className="p-2.5 text-white"><RefreshCw size={22} className='animate-spin' /></div>}
-              {currentView === 'roomDetail' && currentRoom?.providerId && !roomStatus.busy && <button onClick={roomStatus.refresh} className="p-2.5 text-white hover:bg-white/20 rounded-full transition-colors" title="Refresh Data"> <RefreshCw size={22} /> </button> }
-              <button onClick={() => handleOpenOverlay('myLaundry')} className="flex min-h-[44px] min-w-[44px] items-center justify-center gap-2 rounded-full p-2.5 text-sm font-semibold text-white hover:bg-white/20" aria-label="My Laundry" title="My Laundry">
-                <Bell size={22} /><span className="hidden md:inline">My Laundry</span>
+            <div className="ll-header-actions">
+              {currentView === 'roomDetail' && roomStatus.busy && <span title="Refreshing data" className="ll-icon-button" aria-label="Refreshing data"><RefreshCw size={20} className="animate-spin" /></span>}
+              {currentView === 'roomDetail' && currentRoom?.providerId && !roomStatus.busy && <button onClick={roomStatus.refresh} className="ll-icon-button" aria-label="Refresh machine status" title="Refresh machine status"> <RefreshCw size={20} /> </button>}
+              <button onClick={() => handleOpenOverlay('myLaundry')} className="ll-icon-button" aria-label="My Laundry" title="My Laundry">
+                <Bell size={20} />
               </button>
-              <button onClick={() => handleOpenOverlay('help')} className="rounded-full p-2.5 text-white hover:bg-white/20" aria-label="Laundry Help" title="Laundry Help"><Info size={22} /></button>
-              <button onClick={() => handleOpenOverlay('settings')} className="p-2.5 text-white hover:bg-white/20 rounded-full transition-colors" title="Settings"> <Settings size={22} /> </button>
+              <button onClick={() => handleOpenOverlay('help')} className="ll-icon-button" aria-label="Information" title="Information"><Info size={20} /></button>
+              <button onClick={() => handleOpenOverlay('settings')} className="ll-icon-button" aria-label="Settings" title="Settings"><Settings size={20} /></button>
             </div>
           </div>
         </div>
       </header>
 
-      <main className={`container mx-auto p-4 sm:p-6 lg:p-8`}>
+      <main className="ll-main">
         {renderContent()}
       </main>
 
-      <footer className="mt-20 py-10 border-t border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center text-gray-500 dark:text-slate-400 text-sm">
-          <nav aria-label="Site resources" className="mb-4 flex flex-wrap justify-center gap-x-4 gap-y-2">
-            <a className="underline" href="/residence-halls/">Laundry directory</a>
-            <a className="underline" href="/laundry-guide/">Laundry guide</a>
-            <a className="underline" href="/faq/">FAQ</a>
-            <a className="underline" href="/status/">Service status</a>
-            <a className="underline" href="/about/">About</a>
-            <a className="underline" href="/compare/">Compare trackers</a>
-          </nav>
-          <p>&copy; {new Date().getFullYear()} UVM LaundryLink. Created by Ivan Minier.</p>
-           <p className="mt-1">Not affiliated with the University of Vermont. Machine status provided by UVM’s Wash Alert pages.</p>
+      <footer className="ll-site-footer">
+        <div className="ll-footer-inner">
+          <p>Independent student project by Ivan Minier · {new Date().getFullYear()}</p>
+          <p className="ll-disclaimer">Not affiliated with the University of Vermont or Automatic Laundry. Status is based on provider-reported data.</p>
         </div>
       </footer>
-      
-      <style>{`
-        .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        body { min-height: 100vh; transition: background-color 0.3s ease, color 0.3s ease; }
-        ::-webkit-scrollbar { width: 8px; height: 8px; } /* For RoomLayout horizontal scroll */
-        ::-webkit-scrollbar-track { background: ${effectiveDarkMode ? '#1e293b' : '#f1f5f9'}; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb { background: ${effectiveDarkMode ? '#475569' : '#9ca3af'}; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: ${effectiveDarkMode ? UVM_GOLD : UVM_GREEN}; }
-      `}</style>
     </div>
   );
 };

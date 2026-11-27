@@ -22,7 +22,7 @@ async function read(path, expectedStatus = 200, userAgent) {
 const routes = Array.from((await read('/sitemap.xml')).matchAll(/<loc>(.*?)<\/loc>/g), (match) => new URL(match[1]));
 const paths = new Set(routes.map(({ pathname }) => pathname));
 assert.equal(routes.length, paths.size, 'Unique sitemap entries');
-for (const path of ['/', '/residence-halls/', '/residence-halls/wright-hall/', '/laundry-guide/', '/faq/', '/status/', '/about/', '/compare/']) {
+for (const path of ['/', '/residence-halls/', '/residence-halls/wright-hall/', '/residence-halls/austin-hall/', '/residence-halls/living-learning/', '/laundry-guide/', '/faq/', '/status/', '/about/', '/compare/', '/sitemap/']) {
   assert.ok(paths.has(path), path);
 }
 const titles = new Set();
@@ -33,6 +33,8 @@ for (let index = 0; index < routes.length; index += 6) {
     assert.ok(href.startsWith(canonicalOrigin + '/') && pathname.endsWith('/'), href);
     assert.ok(body.includes(`rel="canonical" href="${href}"`), pathname);
     assert.ok(body.includes(`property="og:url" content="${href}"`), pathname);
+    assert.match(body, /rel="icon" type="image\/svg\+xml" href="\/favicon\.svg"/, pathname);
+    assert.match(body, /id="laundrylink-theme-init"/, pathname);
     assert.doesNotMatch(body, /noindex|You need to enable JavaScript/i, pathname);
     assert.equal((body.match(/<h1>/g) ?? []).length, 1, pathname);
     const title = body.match(/<title>(.*?)<\/title>/)?.[1];
@@ -44,8 +46,19 @@ for (let index = 0; index < routes.length; index += 6) {
     const json = body.match(/<script type="application\/ld\+json">([^<]+)<\/script>/)?.[1];
     const structured = JSON.parse(json);
     assert.equal(structured['@context'], 'https://schema.org');
+    const header = body.match(/<header class="ll-site-header">([\s\S]*?)<\/header>/)?.[1];
+    assert.ok(header, `Shared header on ${pathname}`);
+    assert.match(header, /<img src="\/brand-mark\.svg"/, pathname);
+    assert.deepEqual(Array.from(header.matchAll(/aria-label="([^"]+)"/g), ([, label]) => label),
+      ['My Laundry', 'Information', 'Settings'], `Header actions on ${pathname}`);
+    const footer = body.match(/<footer class="ll-site-footer">([\s\S]*?)<\/footer>/)?.[1];
+    assert.ok(footer, `Footer on ${pathname}`);
+    assert.deepEqual(Array.from(footer.matchAll(/href="([^"]+)"/g), ([, href]) => href), [], `Footer links on ${pathname}`);
+    assert.match(footer, /Independent student project by Ivan Minier · \d{4}/, pathname);
+    assert.match(footer, /Not affiliated with the University of Vermont or Automatic Laundry\. Status is based on provider-reported data\./, pathname);
     for (const [, target] of body.matchAll(/<a [^>]*href="(\/[^"#]*)(?:#[^"]*)?"/g)) {
-      assert.ok(paths.has(target), `Broken link on ${pathname}: ${target}`);
+      const targetPath = new URL(target, canonicalOrigin).pathname;
+      assert.ok(paths.has(targetPath), `Broken link on ${pathname}: ${target}`);
     }
     if (pathname.startsWith('/residence-halls/') && pathname !== '/residence-halls/') {
       assert.match(body, /href="\/#room\//, pathname);
@@ -56,6 +69,26 @@ for (let index = 0; index < routes.length; index += 6) {
 const status = await read('/status/');
 assert.match(status, /Machine status feed responded with status data for \d+ of \d+ provider rooms\./);
 assert.match(status, /<time datetime="\d{4}-\d{2}-\d{2}T/);
+const sitemapPage = await read('/sitemap/');
+for (const path of paths) assert.ok(sitemapPage.includes(`href="${path}"`), `HTML sitemap entry for ${path}`);
+const themeScript = (await read('/')).match(/<script id="laundrylink-theme-init">([\s\S]*?)<\/script>/)?.[1];
+assert.ok(themeScript, 'Theme initialization script');
+const evaluateTheme = (preferences, systemDark) => {
+  const root = { dataset: {}, dark: false, classList: { toggle: (_, value) => { root.dark = value; } } };
+  runInNewContext(themeScript, {
+    document: { documentElement: root },
+    localStorage: { getItem: (key) => preferences[key] ?? null },
+    window: {
+      matchMedia: () => ({ matches: systemDark, addEventListener: () => {} }),
+      addEventListener: () => {},
+    },
+  });
+  return root;
+};
+assert.equal(evaluateTheme({}, true).dark, true, 'System dark theme');
+assert.equal(evaluateTheme({ uvmLaundryUseSystemTheme: 'false', uvmLaundryManualDarkMode: 'false' }, true).dark, false, 'Manual light theme');
+assert.equal(evaluateTheme({ uvmLaundryUseSystemTheme: 'false', uvmLaundryManualDarkMode: 'true' }, false).dark, true, 'Manual dark theme');
+assert.match(await read('/site.css'), /html\.dark \.public-page/);
 
 const robots = await read('/robots.txt');
 assert.match(robots, /User-agent: \*\s+Allow: \/\s+Sitemap: https:\/\/uvmlaundry\.com\/sitemap\.xml/);
@@ -90,4 +123,4 @@ assert.equal(capture({ referrer: 'https://www.perplexity.ai/search/private' })[0
 assert.equal(capture({ referrer: 'https://gemini.google.com/app/private' })[0][1].body.toString(), 'category=gemini&page=tracker');
 assert.equal(capture({ referrer: 'https://uvmlaundry.com/faq/', search: '?utm_source=chatgpt.com' }).length, 0);
 assert.equal(capture({ search: '?utm_source=chatgpt.com', privacy: true }).length, 0);
-console.log(`Verified ${paths.size} static public routes, metadata, internal links, and crawler access rules${endpoint ? ' in production' : ''}.`);
+console.log(`Verified ${paths.size} sitemap routes, metadata, internal links, and crawler access rules${endpoint ? ' in production' : ''}.`);

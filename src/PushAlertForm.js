@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-import { NEXT_WASHER, NEXT_WASHER_LABEL } from './laundryData';
+import { NEXT_WASHER, NEXT_WASHER_LABEL, NEXT_DRYER, NEXT_DRYER_LABEL } from './laundryData';
 import { alertsRequest, getSavedAlert, recordKey, removeSavedAlert, saveAlert } from './pushAlerts';
 
 export { hasPushAlert } from './pushAlerts';
@@ -10,10 +10,11 @@ function decodeApplicationKey(base64url) {
   return Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
 }
 
-export function PushAlertForm({ machine, room, canSetAlert, washers }) {
+export function PushAlertForm({ machine, room, canSetAlert, watchType, machines }) {
   const watchRoom = !machine;
-  const machineId = machine?.id ?? NEXT_WASHER;
-  const machineName = machine?.machineName ?? NEXT_WASHER_LABEL;
+  const isDryer = watchType === 'Dryer';
+  const machineId = machine?.id ?? (isDryer ? NEXT_DRYER : NEXT_WASHER);
+  const machineName = machine?.machineName ?? (isDryer ? NEXT_DRYER_LABEL : NEXT_WASHER_LABEL);
   const key = recordKey(room, machineId);
   const [saved, setSaved] = useState(() => getSavedAlert(key));
   const [leadMinutes, setLeadMinutes] = useState(0);
@@ -74,9 +75,9 @@ export function PushAlertForm({ machine, room, canSetAlert, washers }) {
     setError('');
     try {
       if (Notification.permission === 'denied') {
-        throw new Error('Allow notifications for LaundryLink in your browser settings to set an alert.');
+        throw new Error('Allow notifications for UVM LaundryLink in your browser settings to set an alert.');
       }
-      if (!registration?.active) throw new Error('Reload LaundryLink to finish setting up push notifications.');
+      if (!registration?.active) throw new Error('Reload UVM LaundryLink to finish setting up push notifications.');
       const subscription = deviceSubscription ??
         (await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: publicKey }));
       setDeviceSubscription(subscription);
@@ -84,7 +85,10 @@ export function PushAlertForm({ machine, room, canSetAlert, washers }) {
         roomId: room.id,
         machineId,
         machineName,
-        ...(watchRoom && { washerIds: washers.map(({ id }) => id) }),
+        ...(watchRoom && {
+          machineIds: machines.map(({ id }) => String(id)),
+          ...(isDryer ? {} : { washerIds: machines.map(({ id }) => String(id)) }),
+        }),
         leadMinutes,
         subscription: subscription.toJSON(),
       });
@@ -95,7 +99,7 @@ export function PushAlertForm({ machine, room, canSetAlert, washers }) {
       setError(failure.name === 'AbortError'
         ? 'The alert service timed out. Try again.'
         : failure.name === 'NotAllowedError'
-          ? 'Allow notifications for LaundryLink in your browser settings to set an alert.'
+          ? 'Allow notifications for UVM LaundryLink in your browser settings to set an alert.'
           : failure.message);
     } finally {
       setBusy(false);
@@ -118,7 +122,7 @@ export function PushAlertForm({ machine, room, canSetAlert, washers }) {
 
   if (!supported) return (
     <p className="mt-4 text-sm text-slate-700 dark:text-slate-200">
-      Push alerts are unavailable in this browser. On iPhone or iPad, add LaundryLink to your Home Screen and reopen it from there.
+      Push alerts are unavailable in this browser. On iPhone or iPad, add UVM LaundryLink to your Home Screen and reopen it from there.
     </p>
   );
 
@@ -130,7 +134,7 @@ export function PushAlertForm({ machine, room, canSetAlert, washers }) {
         <>
           <p role="status" className="text-sm font-medium">
             {watchRoom
-              ? 'You’ll get one push when a washer opens in this room.'
+              ? `You’ll get one push when a ${watchType.toLowerCase()} opens in this room.`
               : `You’ll get a push ${saved.leadMinutes ? 'about 5 minutes before the cycle ends' : 'when the cycle ends'}.`}
           </p>
           <button type="button" onClick={cancel} disabled={busy || !publicKey}
@@ -144,7 +148,7 @@ export function PushAlertForm({ machine, room, canSetAlert, washers }) {
             <>
               <label htmlFor="alert-timing" className="block text-sm font-medium">Send a push notification</label>
               <select id="alert-timing" value={leadMinutes} onChange={(event) => setLeadMinutes(Number(event.target.value))}
-                className="min-h-[44px] w-full rounded-lg border border-slate-300 bg-white px-3 text-sm dark:border-slate-600 dark:bg-slate-700">
+                className="ll-input min-h-[44px] w-full rounded-lg border px-3 text-sm">
                 <option value={0}>When the cycle ends</option>
                 <option value={5}>About 5 minutes early</option>
               </select>
@@ -156,7 +160,7 @@ export function PushAlertForm({ machine, room, canSetAlert, washers }) {
           </button>
         </>
       ) : <p role="status" className="text-sm">
-        {watchRoom ? 'A room alert is available when no washers are free.' : 'There is no pending alert for this machine.'}
+        {watchRoom ? `A room alert is available when no ${watchType.toLowerCase()}s are free.` : 'There is no pending alert for this machine.'}
       </p>}
       {error && <p role="alert" className="text-sm text-red-700 dark:text-red-300">{error}</p>}
     </div>

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Bell, ExternalLink, Smartphone, Wrench, XCircle } from 'lucide-react';
+import { Bell, ExternalLink, Smartphone, Wrench, XCircle } from 'lucide-react';
+import { BackButton } from './BackButton';
 import { getOfficialRoomUrl, getRoomHistoryId, roomLabel } from './laundryData';
 import { hasPushAlert, PushAlertForm } from './PushAlertForm';
 
@@ -28,7 +29,7 @@ function MachineDialog({ machine, room, mode, canSetAlert, onClose, onModeChange
 
   return (
     <dialog ref={dialog} onClose={onClose} aria-label={title}
-      className={`w-[calc(100%-2rem)] rounded-xl bg-white p-5 text-slate-900 shadow-xl backdrop:bg-black/60 dark:bg-slate-800 dark:text-slate-100 sm:p-6 ${contactAlert ? 'max-w-3xl' : 'max-w-md'}`}>
+      className={`ll-dialog w-[calc(100%-2rem)] rounded-xl p-5 shadow-xl backdrop:bg-black/60 sm:p-6 ${contactAlert ? 'max-w-3xl' : 'max-w-md'}`}>
       <div className="flex items-start justify-between gap-4">
         <h3 className="text-xl font-bold">{title}</h3>
         <form method="dialog">
@@ -38,14 +39,14 @@ function MachineDialog({ machine, room, mode, canSetAlert, onClose, onModeChange
       <p className="mt-3 text-sm">{details}</p>
       <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
         {reporting
-          ? `Select ${machine.machineName} on the official room page, then choose Report a problem.`
+          ? `Select ${machine.machineName} on the LaundryConnect page, then choose Report a problem.`
           : contactAlert
             ? `Select ${machine.machineName} below, then choose Text or Email. Automatic Laundry sends the alert.`
-            : 'Push alerts work even after you close LaundryLink.'}
+            : 'Push alerts work even after you close UVM LaundryLink.'}
       </p>
       {(reporting || contactAlert) && room.machineRange && (
         <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-          The official page lists CCRH Floors 6 and 7 together under Floor 6.
+          The LaundryConnect page lists CCRH Floors 6 and 7 together under Floor 6.
         </p>
       )}
       {!reporting && !contactAlert && (
@@ -61,10 +62,7 @@ function MachineDialog({ machine, room, mode, canSetAlert, onClose, onModeChange
       )}
       {contactAlert && (
         <>
-          <button type="button" onClick={() => onModeChange('alerts')}
-            className="my-2 inline-flex min-h-[44px] items-center gap-2 rounded px-2 text-sm font-semibold text-uvm-green dark:text-uvm-gold">
-            <ArrowLeft size={16} /> Back to push alerts
-          </button>
+          <BackButton onClick={() => onModeChange('alerts')} className="my-2">Back to push alerts</BackButton>
           <iframe src={`${roomUrl}?embed=1`} title="Automatic Laundry text or email alert setup"
             sandbox="allow-scripts allow-forms allow-same-origin"
             className="block h-[min(55dvh,32rem)] min-h-[18rem] w-full rounded-lg border border-slate-300 bg-white dark:border-slate-600" />

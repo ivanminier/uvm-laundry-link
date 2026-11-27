@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import { MachineReport } from './MachineReport';
 import { quieterWindow } from './RoomPeakTimes';
-import { filterRoomMachines, findLaundryRoom, getRoomHistoryId, laundryRooms, normalizeRoomStatus, roomLabel, roomPath } from './laundryData';
+import { canWatchNextMachine, filterRoomMachines, findLaundryRoom, getRoomHistoryId, laundryRooms, normalizeRoomStatus, roomLabel, roomPath } from './laundryData';
 
 const statusFixture = (entries) => ({
   room: { id: 12285 },
@@ -24,6 +24,17 @@ test('joins by provider machine ID and only displays timers for running cycles',
   expect(() => normalizeRoomStatus(statusFixture([]), '12285', catalog)).toThrow('Invalid room status');
 });
 
+test('room alerts can target an unavailable machine type only when its statuses are known', () => {
+  const machines = [
+    { type: 'Washer', status: 'Cycle Finished' },
+    { type: 'Dryer', status: 'Available' },
+  ];
+  expect(canWatchNextMachine(machines, 'Washer')).toBe(true);
+  expect(canWatchNextMachine(machines, 'Dryer')).toBe(false);
+  expect(canWatchNextMachine([{ type: 'Dryer', status: 'Unknown' }], 'Dryer')).toBe(false);
+  expect(canWatchNextMachine([], 'Washer')).toBe(false);
+});
+
 test('the bundled room directory accepts known provider IDs and deep-link aliases', () => {
   expect(laundryRooms).toHaveLength(44);
   const liveRooms = laundryRooms.filter((room) => room.providerId);
@@ -32,15 +43,26 @@ test('the bundled room directory accepts known provider IDs and deep-link aliase
   expect(findLaundryRoom('12247').id).toBe('central_campus_6');
   expect(findLaundryRoom('ccrh 7').providerId).toBe('12247');
   expect(findLaundryRoom('12285')).toEqual(findLaundryRoom('wing-hall-1st-flr'));
+  expect(roomLabel(findLaundryRoom('austin'))).toBe('Marsh and Austin Hall');
+  expect(roomLabel(findLaundryRoom('cottage256'))).toBe('The Cottages · Cottage #256');
   expect(findLaundryRoom('Living%20%26%20Learning%20D140')).toMatchObject({ id: 'lll_d140' });
   expect(findLaundryRoom('university-heights-north-2')).toMatchObject({ id: 'uheightsn2', historyId: 'loc_fe37ab' });
-  expect(roomLabel(findLaundryRoom('university-heights-north-2'))).toBe('UHeights North · Towers 2+3');
-  expect(roomLabel(findLaundryRoom('uheightsn1'))).toBe('UHeights North · Tower 1');
-  expect(roomLabel(findLaundryRoom('uheightss1'))).toBe('UHeights South · Tower 1');
-  expect(roomLabel(findLaundryRoom('uheightss2'))).toBe('UHeights South · Towers 2+3');
+  expect(roomLabel(findLaundryRoom('university-heights-north-2'))).toBe('University Heights North · Towers 2+3');
+  expect(roomLabel(findLaundryRoom('uheightsn1'))).toBe('University Heights North · Tower 1');
+  expect(roomLabel(findLaundryRoom('uheightss1'))).toBe('University Heights South · Tower 1');
+  expect(roomLabel(findLaundryRoom('uheightss2'))).toBe('University Heights South · Towers 2+3');
   expect(laundryRooms.filter(room => room.displayName === 'CCRH').map(roomLabel))
     .toEqual([2, 3, 4, 5, 6, 7].map(floor => `CCRH · Floor ${floor}`));
-  expect(roomLabel(findLaundryRoom('L/L D140'))).toBe('L/L D140');
+  expect(laundryRooms.filter(room => room.id.startsWith('lll_')).map(roomLabel)).toEqual([
+    'Living-Learning A · Room 140',
+    'Living-Learning A · Room 180',
+    'Living-Learning B · Room 110',
+    'Living-Learning C · Room 131',
+    'Living-Learning D · Room 110',
+    'Living-Learning D · Room 140',
+    'Living-Learning E · Room 110',
+    'Living-Learning E · Room 160',
+  ]);
   expect(roomLabel(findLaundryRoom('wing-hall-1st-flr'))).toBe('Wing Hall');
   expect(roomPath(findLaundryRoom('ccrh 7'))).toBe('#room/central-campus-flr-7');
   expect(new Set(laundryRooms.map(roomLabel)).size).toBe(laundryRooms.length);
@@ -49,6 +71,7 @@ test('the bundled room directory accepts known provider IDs and deep-link aliase
 test('opens the room directory without a network request', async () => {
   global.IS_REACT_ACT_ENVIRONMENT = true;
   window.matchMedia = jest.fn(() => ({ matches: false, addEventListener: jest.fn(), removeEventListener: jest.fn() }));
+  localStorage.setItem('uvmLaundryFavorites', '[]');
   const fetch = jest.fn();
   global.fetch = fetch;
   const container = document.createElement('div');
@@ -59,25 +82,165 @@ test('opens the room directory without a network request', async () => {
     await act(async () => { root.render(<App />); });
     expect(container.textContent).toContain('All Laundry Rooms');
     expect(container.textContent).toContain('Wing Hall');
-    expect(container.querySelectorAll('h3')).toHaveLength(laundryRooms.length);
+    expect(container.querySelector('.ll-home-hero').textContent).not.toContain('Independent student project');
+    expect(container.querySelector('.ll-campus-filter-heading').textContent).toBe('Campuses');
+    expect(container.querySelectorAll('.ll-room-card__title')).toHaveLength(laundryRooms.length);
+    expect(container.querySelectorAll('.ll-room-card')).toHaveLength(laundryRooms.length);
+    expect(container.querySelectorAll('.ll-room-card__action')).toHaveLength(laundryRooms.length);
+    const cottagesCard = [...container.querySelectorAll('.ll-room-card')]
+      .find(card => card.querySelector('.ll-room-card__title').textContent === 'The Cottages');
+    expect(cottagesCard.querySelector('.ll-room-card__location').textContent).toBe('Cottage #256');
     const campusGroup = container.querySelector('[aria-label="Filter rooms by campus"]');
     const buttons = [...campusGroup.querySelectorAll('button')];
     expect(buttons.map(button => button.textContent)).toEqual(['All', 'Redstone', 'Athletic', 'Central', 'Trinity/North']);
     const cases = [
-      [1, 12, 'Wing Hall'], [2, 16, 'UHeights North'], [3, 7, 'CCRH'], [4, 9, 'The Cottages'],
+      ['redstone', 'Wing Hall', ['CWPSCR', 'MSH', 'WDW']],
+      ['athletic', 'University Heights North', ['Harris-Millis', 'Living-Learning Complex', 'MAT', 'University Heights North Complex', 'University Heights South Complex']],
+      ['central', 'CCRH', ['CCRH', 'Other Buildings']],
+      ['north', 'The Cottages', ['The Back Five', 'Other Buildings']],
     ];
-    for (const [index, count, example] of cases) {
-      await act(async () => { buttons[index].click(); });
-      expect(buttons[index].getAttribute('aria-pressed')).toBe('true');
-      expect(container.querySelectorAll('h3')).toHaveLength(count);
-      expect([...container.querySelectorAll('h3')].some(heading => heading.textContent === example)).toBe(true);
+    for (const [index, button] of buttons.slice(1).entries()) {
+      const [expectedCampus, expectedExample, expectedGroups] = cases[index];
+      expect(button.textContent).toBe(expectedCampus === 'north' ? 'Trinity/North' : expectedCampus[0].toUpperCase() + expectedCampus.slice(1));
+      await act(async () => { button.click(); });
+      const campusSection = container.querySelector(`#campus-rooms-${expectedCampus}`);
+      expect(button.getAttribute('aria-pressed')).toBe('true');
+      expect(container.querySelectorAll('.ll-campus-section')).toHaveLength(1);
+      expect(container.querySelectorAll('.ll-room-card__title'))
+        .toHaveLength(laundryRooms.filter(room => room.campus === expectedCampus).length);
+      expect([...campusSection.querySelectorAll('.ll-room-card__title')].some(heading => heading.textContent === expectedExample)).toBe(true);
+      expect([...campusSection.querySelectorAll('.ll-complex-section__title')].map(heading => heading.textContent)).toEqual(expectedGroups);
     }
     await act(async () => { buttons[0].click(); });
-    expect(container.querySelectorAll('h3')).toHaveLength(44);
+    expect(container.querySelectorAll('.ll-room-card__title')).toHaveLength(laundryRooms.length);
+    await act(async () => { container.querySelector('.ll-favorites-toggle').click(); });
+    expect(container.querySelector('.ll-empty-state p').textContent).toBe('No Favorite Rooms Yet');
     expect(fetch).not.toHaveBeenCalled();
   } finally {
     act(() => root.unmount());
     container.remove();
+    delete global.IS_REACT_ACT_ENVIRONMENT;
+  }
+});
+
+test('room cards separate favorite and room controls accessibly', async () => {
+  global.IS_REACT_ACT_ENVIRONMENT = true;
+  window.matchMedia = jest.fn(() => ({ matches: false, addEventListener: jest.fn(), removeEventListener: jest.fn() }));
+  global.fetch = jest.fn(async () => ({ ok: false }));
+  window.history.replaceState(null, '', '/');
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  const root = createRoot(container);
+
+  try {
+    await act(async () => { root.render(<App />); });
+    const firstCard = container.querySelector('.ll-room-card');
+    const favorite = firstCard.querySelector('.ll-room-card__favorite');
+    expect(firstCard.querySelectorAll('button')).toHaveLength(3);
+    expect(firstCard.querySelector('button button')).toBeNull();
+    expect(favorite.getAttribute('aria-pressed')).toBe('false');
+    await act(async () => { favorite.click(); });
+    expect(favorite.getAttribute('aria-pressed')).toBe('true');
+    expect(window.location.hash).toBe('');
+  } finally {
+    act(() => root.unmount());
+    container.remove();
+    window.history.replaceState(null, '', '/');
+    delete global.IS_REACT_ACT_ENVIRONMENT;
+  }
+});
+
+test('static-page header routes open the app overlays', async () => {
+  global.IS_REACT_ACT_ENVIRONMENT = true;
+  window.matchMedia = jest.fn(() => ({ matches: false, addEventListener: jest.fn(), removeEventListener: jest.fn() }));
+  localStorage.clear();
+  global.fetch = jest.fn(async () => ({ ok: false }));
+
+  for (const [route, expectedText] of [
+    ['my-laundry', 'My Laundry'],
+    ['information', 'What if a machine will not start?'],
+    ['settings', 'Settings'],
+  ]) {
+    window.history.replaceState(null, '', `/?view=${route}`);
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    try {
+      await act(async () => { root.render(<App />); });
+      expect(container.textContent).toContain(expectedText);
+      expect(container.querySelector('main h2').className).toBe('text-3xl lg:text-4xl font-bold');
+      expect(window.location.search).toBe('');
+      if (route === 'information') {
+        const informationHeader = container.querySelector('main h2').parentElement;
+        expect(informationHeader.tagName).toBe('HEADER');
+        expect(informationHeader.querySelector('.ll-back-button')).not.toBeNull();
+        expect(container.textContent).toContain('Frequently Asked Questions');
+        expect(container.textContent).toContain('How do I find my room?');
+        expect(container.textContent).toContain('What should I bring?');
+        expect(container.textContent).not.toContain('Know who to contact');
+        expect(container.textContent).not.toContain('Laundry basics and video guides');
+        expect(container.querySelector('a[href="/about/"]')).not.toBeNull();
+        expect(container.querySelector('a[href="/compare/"]')).not.toBeNull();
+        expect(container.querySelector('a[href="/sitemap/"]')).not.toBeNull();
+        expect(container.querySelector('a[href="/status/"]')).not.toBeNull();
+        expect(Array.from(container.querySelectorAll('a[href="/about/"], a[href="/compare/"], a[href="/status/"], a[href="/sitemap/"]'), (anchor) => anchor.textContent.trim()))
+          .toEqual(['About UVM LaundryLink', 'Compare trackers', 'Service status', 'Site map']);
+      }
+    } finally {
+      act(() => root.unmount());
+      container.remove();
+    }
+  }
+
+  localStorage.clear();
+  window.history.replaceState(null, '', '/');
+  delete global.IS_REACT_ACT_ENVIRONMENT;
+});
+
+test('main views share the same back control', async () => {
+  global.IS_REACT_ACT_ENVIRONMENT = true;
+  window.matchMedia = jest.fn(() => ({ matches: false, addEventListener: jest.fn(), removeEventListener: jest.fn() }));
+  window.history.replaceState(null, '', '/');
+  localStorage.clear();
+  global.fetch = jest.fn(async () => ({ ok: false }));
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  const root = createRoot(container);
+  const backButton = () => container.querySelector('.ll-back-button');
+
+  try {
+    await act(async () => { root.render(<App />); });
+    expect(container.querySelector('[aria-label="My Laundry"]').textContent.trim()).toBe('');
+    expect(container.querySelectorAll('footer.ll-site-footer a')).toHaveLength(0);
+    await act(async () => { container.querySelector('[aria-label="Information"]').click(); });
+    expect(backButton().textContent.trim()).toBe('Back');
+    expect(container.textContent).toContain('What if a machine will not start?');
+    expect(container.textContent).not.toContain('payment');
+    await act(async () => { backButton().click(); });
+
+    await act(async () => { container.querySelector('[aria-label="My Laundry"]').click(); });
+    expect(backButton().textContent.trim()).toBe('Back');
+    await act(async () => { backButton().click(); });
+
+    await act(async () => { container.querySelector('[aria-label="Settings"]').click(); });
+    expect(backButton().textContent.trim()).toBe('Back');
+    const rememberRoomToggle = container.querySelector('#rememberRoomToggle');
+    expect(rememberRoomToggle.getAttribute('role')).toBe('switch');
+    expect(rememberRoomToggle.getAttribute('aria-label')).toBe('Open my last room on startup');
+    expect(rememberRoomToggle.getAttribute('aria-checked')).toBe('false');
+    await act(async () => { rememberRoomToggle.click(); });
+    expect(rememberRoomToggle.getAttribute('aria-checked')).toBe('true');
+    expect(localStorage.getItem('uvmLaundryRememberRoom')).toBe('true');
+    await act(async () => { backButton().click(); });
+
+    await act(async () => { container.querySelector('.ll-room-card__title').click(); });
+    expect(backButton().textContent.trim()).toBe('All Rooms');
+  } finally {
+    act(() => root.unmount());
+    container.remove();
+    localStorage.clear();
+    window.history.replaceState(null, '', '/');
     delete global.IS_REACT_ACT_ENVIRONMENT;
   }
 });
@@ -121,8 +284,14 @@ test('switching CCRH floors excludes the legacy combined cache and saves each fl
     expect(cards()).toEqual(['Washer 45', 'Dryer 55']);
     expect(container.textContent).not.toContain('Notify me when a washer opens');
     expect(container.querySelector('main h2').textContent).toBe('CCRH');
+    const header = container.querySelector('.ll-room-header');
+    expect(header.querySelector('#room-switcher')).not.toBeNull();
+    expect([...header.querySelectorAll('button')].map(button => button.textContent.trim())).toEqual(['All Rooms', 'Share Room']);
+    expect(header.querySelector('a')).toBeNull();
+    expect(container.querySelector('#statusFilter').style.backgroundImage).toBe('');
+    expect(container.querySelectorAll('#room-switcher')).toHaveLength(1);
     expect(container.querySelector('#room-switcher').selectedOptions[0].textContent).toBe('CCRH · Floor 6');
-    expect(container.querySelector('#room-switcher option[value="cottage256"]').textContent).toBe('The Cottages');
+    expect(container.querySelector('#room-switcher option[value="cottage256"]').textContent).toBe('The Cottages · Cottage #256');
 
     await act(async () => {
       window.history.replaceState(null, '', '#room/central-campus-flr-7?machine=62');
@@ -131,7 +300,7 @@ test('switching CCRH floors excludes the legacy combined cache and saves each fl
     expect(cards()).toEqual(['Washer 56', 'Dryer 62']);
     expect(container.textContent).toContain('Notify me when a washer opens');
     expect(document.activeElement.id).toBe('machine-card-62');
-    expect(container.querySelector('[aria-label="Link to Dryer 62"]').getAttribute('href')).toBe('#room/central-campus-flr-7?machine=62');
+    expect(container.querySelectorAll('a[aria-label^="Link to "]')).toHaveLength(0);
     expect(container.querySelector('main h2').textContent).toBe('CCRH');
     expect(container.querySelector('#room-switcher').selectedOptions[0].textContent).toBe('CCRH · Floor 7');
     const snapshot = (floor) => JSON.parse(localStorage.getItem(`washAlertRoom-v2-central_campus_${floor}`));
@@ -163,6 +332,7 @@ test('text and email setup uses the vendor embed and keeps the selected CCRH flo
     await act(async () => { container.querySelector('[aria-label="Set Cycle Alert for Washer 56"]').click(); });
     const button = Array.from(container.querySelectorAll('button')).find((item) => item.textContent.trim() === 'Text or Email Alert');
     await act(async () => { button.click(); });
+    expect(container.querySelector('.ll-back-button').textContent.trim()).toBe('Back to push alerts');
     expect(container.querySelector('iframe').getAttribute('src')).toBe('https://laundryconnectlive.com/live/loc_44963c?embed=1');
     expect(container.querySelector('dialog').textContent).toContain('CCRH · Floor 7 · Washer 56');
     expect(container.querySelector('dialog').textContent).toContain('choose Text or Email');
@@ -202,7 +372,7 @@ test('favorite counts distinguish CCRH floors that share a provider feed', async
   const root = createRoot(container);
   try {
     await act(async () => { root.render(<App />); });
-    const card = (floor) => [...container.querySelectorAll('[role="button"]')]
+    const card = (floor) => [...container.querySelectorAll('.ll-room-card')]
       .find((element) => element.textContent.includes(`Floor ${floor}`) && element.textContent.includes('CCRH'));
     expect(card(6).textContent).toContain('1 washer free · 0 dryers free');
     expect(card(7).textContent).toContain('0 washers free · 1 dryer free');
@@ -238,6 +408,9 @@ test('My Laundry loads legacy alerts, shows their machine links and cancels thro
   try {
     await act(async () => { root.render(<App />); });
     await act(async () => { container.querySelector('[aria-label="My Laundry"]').click(); });
+    const header = container.querySelector('main h2').parentElement;
+    expect(header.tagName).toBe('HEADER');
+    expect(header.querySelector('.ll-back-button')).not.toBeNull();
     const machineLink = container.querySelector('main a');
     expect(machineLink.textContent).toBe('Washer 56');
     expect(machineLink.getAttribute('href')).toBe('#room/central-campus-flr-7?machine=56');
@@ -248,7 +421,7 @@ test('My Laundry loads legacy alerts, shows their machine links and cancels thro
     await act(async () => { container.querySelector('[aria-label="Cancel alert for Washer 56"]').click(); });
     expect(JSON.parse(global.fetch.mock.calls.find(([url]) => url.endsWith('/alerts/cancel'))[1].body)).toEqual({ roomId, id });
     expect(localStorage.getItem(key)).toBeNull();
-    expect(container.textContent).toContain('No active push alerts');
+    expect(container.textContent).toContain('No active push alerts. Set one on a running machine or when a room has no free washers or dryers.');
   } finally {
     act(() => root.unmount());
     container.remove();

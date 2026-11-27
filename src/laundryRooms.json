@@ -6,6 +6,7 @@
     "providerId": "12305",
     "historyId": "loc_2a8c9d",
     "officialName": "Austin Hall",
+    "displayName": "Marsh and Austin Hall",
     "campus": "athletic"
   },
   {
@@ -174,7 +175,8 @@
     "providerId": "12259",
     "historyId": "loc_0768af",
     "officialName": "Living & Learning Lounge A140",
-    "displayName": "L/L A140",
+    "displayName": "Living-Learning A",
+    "locationLabel": "Room 140",
     "campus": "athletic"
   },
   {
@@ -184,7 +186,8 @@
     "providerId": "12260",
     "historyId": "loc_beb029",
     "officialName": "Living & Learning Lounge A180",
-    "displayName": "L/L A180",
+    "displayName": "Living-Learning A",
+    "locationLabel": "Room 180",
     "campus": "athletic"
   },
   {
@@ -194,7 +197,8 @@
     "providerId": "12261",
     "historyId": "loc_56a455",
     "officialName": "Living & Learning Lounge B110",
-    "displayName": "L/L B110",
+    "displayName": "Living-Learning B",
+    "locationLabel": "Room 110",
     "campus": "athletic"
   },
   {
@@ -204,7 +208,8 @@
     "providerId": "12262",
     "historyId": "loc_a9714c",
     "officialName": "Living & Learning Lounge C131",
-    "displayName": "L/L C131",
+    "displayName": "Living-Learning C",
+    "locationLabel": "Room 131",
     "campus": "athletic"
   },
   {
@@ -214,7 +219,8 @@
     "providerId": "12263",
     "historyId": "loc_0a4aec",
     "officialName": "Living & Learning Lounge D110",
-    "displayName": "L/L D110",
+    "displayName": "Living-Learning D",
+    "locationLabel": "Room 110",
     "campus": "athletic"
   },
   {
@@ -224,7 +230,8 @@
     "providerId": "12264",
     "historyId": "loc_0bfea5",
     "officialName": "Living & Learning Lounge D140",
-    "displayName": "L/L D140",
+    "displayName": "Living-Learning D",
+    "locationLabel": "Room 140",
     "campus": "athletic"
   },
   {
@@ -234,7 +241,8 @@
     "providerId": "12265",
     "historyId": "loc_1f1d23",
     "officialName": "Living & Learning Lounge E110",
-    "displayName": "L/L E110",
+    "displayName": "Living-Learning E",
+    "locationLabel": "Room 110",
     "campus": "athletic"
   },
   {
@@ -244,7 +252,8 @@
     "providerId": "12266",
     "historyId": "loc_66909a",
     "officialName": "Living & Learning Lounge E160",
-    "displayName": "L/L E160",
+    "displayName": "Living-Learning E",
+    "locationLabel": "Room 160",
     "campus": "athletic"
   },
   {
@@ -367,6 +376,7 @@
     "providerId": "12253",
     "historyId": "loc_32521b",
     "officialName": "Cottage 256",
+    "locationLabel": "Cottage #256",
     "campus": "north"
   },
   {
@@ -385,7 +395,7 @@
     "providerId": "12280",
     "historyId": "loc_a8e4e8",
     "officialName": "University Heights North 1",
-    "displayName": "UHeights North",
+    "displayName": "University Heights North",
     "campus": "athletic",
     "locationLabel": "Tower 1"
   },
@@ -396,7 +406,7 @@
     "providerId": "12281",
     "historyId": "loc_fe37ab",
     "officialName": "University Heights North 2",
-    "displayName": "UHeights North",
+    "displayName": "University Heights North",
     "campus": "athletic",
     "locationLabel": "Towers 2+3"
   },
@@ -407,7 +417,7 @@
     "providerId": "12282",
     "historyId": "loc_e7b03b",
     "officialName": "University Heights South 1",
-    "displayName": "UHeights South",
+    "displayName": "University Heights South",
     "campus": "athletic",
     "locationLabel": "Tower 1"
   },
@@ -418,7 +428,7 @@
     "providerId": "12283",
     "historyId": "loc_1a2fdd",
     "officialName": "University Heights South 2",
-    "displayName": "UHeights South",
+    "displayName": "University Heights South",
     "campus": "athletic",
     "locationLabel": "Towers 2+3"
   },

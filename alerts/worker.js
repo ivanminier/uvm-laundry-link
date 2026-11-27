@@ -1,5 +1,5 @@
 import { DurableObject } from 'cloudflare:workers';
-import { fetchRoomStatus, filterRoomMachines, findLaundryRoom, roomLabel, machinePath, normalizeRoomStatus, canWatchNextWasher, NEXT_WASHER, NEXT_WASHER_LABEL } from '../src/laundryData';
+import { fetchRoomMachines, fetchRoomStatus, filterRoomMachines, findLaundryRoom, roomLabel, machinePath, normalizeRoomStatus, canWatchNextMachine, NEXT_WASHER, NEXT_WASHER_LABEL, NEXT_DRYER, NEXT_DRYER_LABEL } from '../src/laundryData';
 import { deliverPush, parseSubscription } from './push';
 import ccrhMachines from './ccrh-machines.json';
 import roomWashers from './room-washers.json';
@@ -13,6 +13,10 @@ const ALERT_LIFETIME = 4 * 60 * 60 * 1000;
 const MAX_ALERTS_PER_ROOM = 60;
 const RUNNING = new Set(['IN_USE', 'ALMOST_DONE', 'LUCKY_CYCLE']);
 const FINISHED = new Set(['COMPLETE', 'END_OF_CYCLE', 'CYCLE_COMPLETE', 'CYCLE_FINISHED', 'CLOTHES_LEFT', 'EOC']);
+const ROOM_WATCH_ALERTS = new Map([
+  [NEXT_WASHER, { type: 'Washer', label: NEXT_WASHER_LABEL, metric: 'next_washer' }],
+  [NEXT_DRYER, { type: 'Dryer', label: NEXT_DRYER_LABEL, metric: 'next_dryer' }],
+]);
 
 const validAlertId = (id) => typeof id === 'string' && /^[0-9a-f-]{36}$/.test(id);
 
@@ -138,11 +142,14 @@ export default {
       return reply({ cancelled: true });
     }
     const subscription = parseSubscription(data.subscription);
-    if (data.machineId === NEXT_WASHER) {
-      if (!subscription || !Array.isArray(data.washerIds) ||
-          data.washerIds.length < 1 || data.washerIds.length > 128 ||
-          data.washerIds.some((id) => typeof id !== 'string' || !/^\d{1,15}$/.test(id))) {
-        return reply({ error: 'Invalid washer list or browser subscription.' }, 400);
+    const watchAlert = ROOM_WATCH_ALERTS.get(data.machineId);
+    const machineIds = data.machineIds ?? (data.machineId === NEXT_WASHER ? data.washerIds : null);
+    if (watchAlert) {
+      if (!subscription || !Array.isArray(machineIds) ||
+          machineIds.length < 1 || machineIds.length > 128 ||
+          new Set(machineIds).size !== machineIds.length ||
+          machineIds.some((id) => typeof id !== 'string' || !/^\d{1,15}$/.test(id))) {
+        return reply({ error: 'Invalid machine list or browser subscription.' }, 400);
       }
     } else if (!subscription || typeof data.machineId !== 'string' || !/^\d{1,15}$/.test(data.machineId) ||
         ![0, 5].includes(data.leadMinutes)) {
@@ -150,7 +157,9 @@ export default {
     }
 
     try {
-      const result = await roomAlerts.register(room.id, data.machineId, data.machineName, data.machineId === NEXT_WASHER ? 0 : data.leadMinutes, subscription, data.washerIds, request.headers.get('Sec-GPC') !== '1' && request.headers.get('DNT') !== '1');
+      const result = await roomAlerts.register(room.id, data.machineId, data.machineName,
+        watchAlert ? 0 : data.leadMinutes, subscription, watchAlert ? machineIds : null,
+        request.headers.get('Sec-GPC') !== '1' && request.headers.get('DNT') !== '1');
       return reply(result, result.status ?? 200);
     } catch (failure) {
       console.warn('alert_registration_failed', { roomId: room.id, reason: String(failure.message).slice(0, 150) });
@@ -160,7 +169,7 @@ export default {
 };
 
 function verifiedWashers(room) {
-  return (roomWashers[room.id] ?? []).map(([id, number]) => ({ id, machineName: `Washer ${number}` }));
+  return (roomWashers[room.id] ?? []).map(([id, number]) => ({ id, number, type: 'Washer', machineName: `Washer ${number}` }));
 }
 
 export class RoomAlerts extends DurableObject {
@@ -171,12 +180,16 @@ export class RoomAlerts extends DurableObject {
       CREATE TABLE IF NOT EXISTS alerts (
         id TEXT PRIMARY KEY, dedupe_key TEXT NOT NULL UNIQUE, room_id TEXT NOT NULL,
         machine_id TEXT NOT NULL, machine_name TEXT NOT NULL, lead_minutes INTEGER NOT NULL,
-        subscription TEXT NOT NULL, expires_at INTEGER NOT NULL, attempts INTEGER NOT NULL DEFAULT 0
+        subscription TEXT NOT NULL, watch_machines TEXT,
+        expires_at INTEGER NOT NULL, attempts INTEGER NOT NULL DEFAULT 0
       )
     `);
+    if (!this.sql.exec('PRAGMA table_info(alerts)').toArray().some(({ name }) => name === 'watch_machines')) {
+      this.sql.exec('ALTER TABLE alerts ADD COLUMN watch_machines TEXT');
+    }
   }
 
-  async register(roomId, machineId, name, leadMinutes, subscription, washerIds, countSubscription) {
+  async register(roomId, machineId, name, leadMinutes, subscription, machineIds, countSubscription) {
     const room = findLaundryRoom(roomId);
     const now = Date.now();
     this.sql.exec('DELETE FROM alerts WHERE expires_at <= ?', now);
@@ -189,27 +202,35 @@ export class RoomAlerts extends DurableObject {
       return existing;
     }
 
-    const watchRoom = machineId === NEXT_WASHER;
-    const mappedMachine = !watchRoom && room.machineRange && filterRoomMachines(room, ccrhMachines).find(({ id }) => id === machineId);
-    if (!watchRoom && room.machineRange && !mappedMachine) return rejected(404, 'Machine not found in this room.');
+    const watchAlert = ROOM_WATCH_ALERTS.get(machineId);
+    const mappedMachine = !watchAlert && room.machineRange && filterRoomMachines(room, ccrhMachines).find(({ id }) => id === machineId);
+    if (!watchAlert && room.machineRange && !mappedMachine) return rejected(404, 'Machine not found in this room.');
 
-    const payload = await fetchRoomStatus(room.providerId, AbortSignal.timeout(8_000));
+    const catalogPromise = watchAlert?.type === 'Dryer'
+      ? fetchRoomMachines(room.providerId, AbortSignal.timeout(8_000))
+        .then((catalog) => filterRoomMachines(room, catalog).filter(({ type }) => type === watchAlert.type))
+      : Promise.resolve(watchAlert ? verifiedWashers(room) : null);
+    const [payload, catalog] = await Promise.all([
+      fetchRoomStatus(room.providerId, AbortSignal.timeout(8_000)),
+      catalogPromise,
+    ]);
     if (String(payload?.room?.id) !== room.providerId || !payload.machines) {
       return rejected(503, 'The provider could not verify this room.');
     }
-    let machineName = NEXT_WASHER_LABEL;
-    if (watchRoom) {
-      const catalog = verifiedWashers(room);
-      const ids = new Set(washerIds);
-      if (ids.size !== catalog.length || !catalog.every(({ id }) => ids.has(id))) {
-        return rejected(503, 'The washer list changed. This room alert is temporarily unavailable.');
+    let machineName = watchAlert?.label ?? '';
+    let watchMachines = null;
+    if (watchAlert) {
+      const ids = new Set(machineIds);
+      if (!catalog.length || ids.size !== catalog.length || !catalog.every(({ id }) => ids.has(id))) {
+        return rejected(503, `The ${watchAlert.type.toLowerCase()} list changed. This room alert is temporarily unavailable.`);
       }
-      const washers = normalizeRoomStatus(payload, room.providerId, catalog);
-      if (!canWatchNextWasher(washers)) {
-        return rejected(409, washers.some(({ status }) => status === 'Available')
-          ? 'A washer is free now. Refresh the room to see which one.'
-          : 'Could not confirm that all washers are unavailable. Try again shortly.');
+      const statuses = normalizeRoomStatus(payload, room.providerId, catalog);
+      if (!canWatchNextMachine(statuses, watchAlert.type)) {
+        return rejected(409, statuses.some(({ status }) => status === 'Available')
+          ? `A ${watchAlert.type.toLowerCase()} is free now. Refresh the room to see which one.`
+          : `Could not confirm that all ${watchAlert.type.toLowerCase()}s are unavailable. Try again shortly.`);
       }
+      watchMachines = catalog.map(({ id, machineName }) => ({ id, machineName }));
     } else {
       if (!Object.prototype.hasOwnProperty.call(payload.machines, machineId)) {
         return rejected(404, 'Machine not found in this room.');
@@ -225,16 +246,16 @@ export class RoomAlerts extends DurableObject {
     const id = crypto.randomUUID();
     const expiresAt = now + ALERT_LIFETIME;
     const inserted = this.sql.exec(`
-      INSERT INTO alerts (id, dedupe_key, room_id, machine_id, machine_name, lead_minutes, subscription, expires_at)
-      SELECT ?, ?, ?, ?, ?, ?, ?, ? WHERE (SELECT COUNT(*) FROM alerts) < ?
+      INSERT INTO alerts (id, dedupe_key, room_id, machine_id, machine_name, lead_minutes, subscription, watch_machines, expires_at)
+      SELECT ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE (SELECT COUNT(*) FROM alerts) < ?
       ON CONFLICT(dedupe_key) DO NOTHING
       RETURNING id, expires_at AS expiresAt
     `, id, dedupe, roomId, machineId, machineName, leadMinutes, JSON.stringify(subscription),
-    expiresAt, MAX_ALERTS_PER_ROOM).toArray()[0];
+    watchMachines ? JSON.stringify(watchMachines) : null, expiresAt, MAX_ALERTS_PER_ROOM).toArray()[0];
     const saved = inserted ?? this.sql.exec(
       'SELECT id, expires_at AS expiresAt FROM alerts WHERE dedupe_key = ?', dedupe
     ).toArray()[0];
-    if (inserted && countSubscription) this.ctx.waitUntil(countMetric(this.env.REFERRALS, 'subscription', watchRoom ? 'next_washer' : 'cycle'));
+    if (inserted && countSubscription) this.ctx.waitUntil(countMetric(this.env.REFERRALS, 'subscription', watchAlert?.metric ?? 'cycle'));
     if (!saved) return rejected(429, 'This room has reached its active alert limit. Try again shortly.');
     await this.arm();
     return saved;
@@ -269,9 +290,13 @@ export class RoomAlerts extends DurableObject {
       if (String(payload?.room?.id) !== providerId || !payload.machines) return;
 
       const due = alerts.flatMap((alert) => {
-        if (alert.machine_id === NEXT_WASHER) {
+        const watchAlert = ROOM_WATCH_ALERTS.get(alert.machine_id);
+        if (watchAlert) {
           const room = findLaundryRoom(alert.room_id);
-          const open = verifiedWashers(room).find(({ id }) => payload.machines[id]?.statusId === 'AVAILABLE');
+          const watchedMachines = alert.watch_machines
+            ? JSON.parse(alert.watch_machines)
+            : watchAlert.type === 'Washer' ? verifiedWashers(room) : [];
+          const open = watchedMachines.find(({ id }) => payload.machines[id]?.statusId === 'AVAILABLE');
           return open ? [{ alert, title: `${open.machineName} just opened`, machineId: open.id }] : [];
         }
 

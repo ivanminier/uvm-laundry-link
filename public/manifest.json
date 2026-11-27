@@ -1,8 +1,8 @@
 {
   "id": "/?homescreen",
   "name": "UVM LaundryLink",
-  "short_name": "LaundryLink",
-  "description": "Track real-time washer & dryer availability across UVM residence halls with LaundryLink.",
+  "short_name": "UVM LaundryLink",
+  "description": "See reported washer and dryer status across UVM residence halls with UVM LaundryLink, an independent student project.",
   "dir": "ltr",
   "lang": "en-US",
   "start_url": "./?source=pwa",
@@ -10,31 +10,13 @@
   "display": "standalone",
   "orientation": "portrait",
   "theme_color": "#154734",
-  "background_color": "#ffffff",
+  "background_color": "#f3f4ef",
   "icons": [
     {
-      "src": "favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon",
-      "purpose": "any"
-    },
-    {
-      "src": "favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon",
-      "purpose": "maskable"
-    },
-    {
       "src": "logo192.png",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "any"
-    },
-    {
-      "src": "logo192.png",
-      "type": "image/png",
-      "sizes": "192x192",
-      "purpose": "maskable"
     },
     {
       "src": "logo512.png",
@@ -55,20 +37,6 @@
   "categories": [
     "utilities",
     "education"
-  ],
-  "screenshots": [
-    {
-      "src": "screenshots/home.png",
-      "sizes": "540x720",
-      "type": "image/png",
-      "label": "Home screen showing room list"
-    },
-    {
-      "src": "screenshots/room-detail.png",
-      "sizes": "540x720",
-      "type": "image/png",
-      "label": "Room detail view"
-    }
   ],
   "prefer_related_applications": false,
   "related_applications": [],

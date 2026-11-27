@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
-import { machinePath, roomLabel, roomPath, NEXT_WASHER, NEXT_WASHER_LABEL } from './laundryData';
+import { BackButton } from './BackButton';
+import { machinePath, roomLabel, roomPath, NEXT_WASHER, NEXT_WASHER_LABEL, NEXT_DRYER, NEXT_DRYER_LABEL } from './laundryData';
 import { alertsRequest, listSavedAlerts, removeSavedAlert } from './pushAlerts';
 import { useLaundryStatus } from './useLaundryStatus';
 
@@ -23,9 +23,11 @@ async function checkSavedAlerts(alerts, signal) {
 function AlertRow({ alert, roomStatus, onOpenMachine, onCancel }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const watchRoom = alert.machineId === NEXT_WASHER;
+  const watchType = alert.machineId === NEXT_WASHER ? 'Washer' : alert.machineId === NEXT_DRYER ? 'Dryer' : null;
+  const watchRoom = !!watchType;
   const machine = roomStatus.machines?.find(({ id }) => id === alert.machineId);
-  const machineName = watchRoom ? NEXT_WASHER_LABEL : machine?.machineName ?? alert.machineName ?? `Machine ${alert.machineId}`;
+  const machineName = watchType === 'Washer' ? NEXT_WASHER_LABEL : watchType === 'Dryer' ? NEXT_DRYER_LABEL
+    : machine?.machineName ?? alert.machineName ?? `Machine ${alert.machineId}`;
 
   async function cancel() {
     setBusy(true);
@@ -51,7 +53,7 @@ function AlertRow({ alert, roomStatus, onOpenMachine, onCancel }) {
           {roomLabel(alert.room)}{!roomStatus.stale && machine?.timeRemaining > 0 && ` · About ${machine.timeRemaining} min left`}
         </p>
         <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
-          {watchRoom ? 'One push when a washer opens' : alert.leadMinutes ? 'Push about 5 min before the cycle ends' : 'Push when the cycle ends'}
+          {watchRoom ? `One push when a ${watchType.toLowerCase()} opens` : alert.leadMinutes ? 'Push about 5 min before the cycle ends' : 'Push when the cycle ends'}
         </p>
         {error && <p role="alert" className="mt-1 text-sm text-red-700 dark:text-red-300">{error}</p>}
       </div>
@@ -136,18 +138,18 @@ export function MyLaundry({ onBack, onOpenMachine }) {
   }
 
   return (
-    <section className="mx-auto max-w-2xl rounded-2xl bg-white p-5 shadow-xl dark:bg-slate-800 sm:p-8">
-      <button onClick={onBack} className="mb-4 inline-flex min-h-[44px] items-center gap-2 rounded-lg px-2 text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-700">
-        <ArrowLeft size={18} /> Back
-      </button>
-      <h2 className="text-3xl font-bold">My Laundry</h2>
+    <section className="ll-panel mx-auto max-w-2xl p-5 sm:p-8">
+      <header className="mb-6 flex items-center justify-between gap-4">
+        <h2 className="text-3xl lg:text-4xl font-bold">My Laundry</h2>
+        <BackButton onClick={onBack} />
+      </header>
       <h3 className="mb-3 mt-6 text-lg font-semibold">Push alerts on this device</h3>
       {statusFailed && <p role="status" className="mb-3 text-sm text-amber-800 dark:text-amber-300">Could not check all alerts. Saved alerts are shown below.</p>}
       {alerts.length ? (
         <ul className="space-y-3" aria-busy={checking}>
           {Array.from(rooms, ([id, group]) => <RoomAlerts key={id} alerts={group} onOpenMachine={onOpenMachine} onCancel={cancelAlert} />)}
         </ul>
-      ) : <p className="text-sm text-slate-700 dark:text-slate-200">No active push alerts. Set one on a running machine or when a room has no free washers.</p>}
+      ) : <p className="text-sm text-slate-700 dark:text-slate-200">No active push alerts. Set one on a running machine or when a room has no free washers or dryers.</p>}
       <p className="mt-5 border-t border-slate-200 pt-4 text-sm text-slate-600 dark:border-slate-700 dark:text-slate-300">
         Automatic Laundry handles text and email alerts.
       </p>

@@ -10,6 +10,15 @@
 
 # production
 /build
+/public/residence-halls/
+/public/laundry-guide/
+/public/faq/
+/public/status/
+/public/about/
+/public/compare/
+/public/404.html
+/public/sitemap.xml
+/public/sitemap/
 
 # misc
 .DS_Store

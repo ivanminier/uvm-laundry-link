@@ -24,7 +24,7 @@ export const articles = [
     intro: 'How to check your room, read machine status, and choose the right alert.',
     html: `<h2>How do I track my laundry at UVM?</h2><p>Find your hall in the <a href="/residence-halls/">laundry directory</a>, open the live tracker for your particular room, and select your machine. A machine may show time remaining if the provider reports it.</p>
       <h2>Is there a UVM laundry app?</h2><p>LaundryLink is a website you can use on a phone or computer. You can add it to your phone’s Home Screen. For push notifications on iPhone or iPad, open LaundryLink from its Home Screen icon and allow notifications when prompted.</p>
-      <h2>Can I get a text, email, or push notification?</h2><p>Open Set Cycle Alert on a running machine. LaundryLink supplies push alerts. Automatic Laundry’s embedded panel supplies text and email setup. When the tracker confirms the room has no available washers, LaundryLink can also send a one-time push when a washer opens in that room.</p>
+      <h2>Can I get a text, email, or push notification?</h2><p>Open Set Cycle Alert on a running machine. LaundryLink supplies push alerts. Automatic Laundry’s embedded panel supplies text and email setup. When the tracker confirms no washer or dryer of the selected type is available in a room, LaundryLink can send a one-time push when one opens there.</p>
       <h2>What do the status labels mean?</h2><p>Available means the provider reports an open machine. Cycle Finished means a cycle has ended. A saved snapshot shows a past observation with its timestamp. When there’s no usable status, the tracker says it is unavailable. See <a href="/status/">service status</a> if a refresh fails.</p>
       <h2>What are Peak Times?</h2><p>Peak Times summarize past machine usage. Use the chart to plan a visit and the tracker to check current availability. The provider publishes a shared history for CCRH Floors 6 and 7 even though LaundryLink separates their live machine lists.</p>
       <h2>How do I report a broken washer or dryer?</h2><p>Use Report a problem on the machine card or <a href="${service}">submit a service request to Automatic Laundry</a>. Include the building, room, and machine number.</p>`,
@@ -34,20 +34,20 @@ export const articles = [
     title: 'About UVM LaundryLink',
     description: 'Who built UVM LaundryLink, where its laundry data comes from, and how it differs from the official laundry provider.',
     intro: 'UVM LaundryLink is an independent, student-created website by Ivan Minier for tracking residence hall laundry at the University of Vermont.',
-    html: `<h2>What LaundryLink does</h2><p>It shows provider-reported machine status with searchable room listings, campus filters, favorites, a mobile-friendly layout, and dark mode. Machine status and usage history come from provider feeds. LaundryLink is unaffiliated with the University of Vermont and Automatic Laundry.</p>
-      <h2>Where to get help</h2><p>For equipment service, use <a href="${service}">Automatic Laundry’s service request form</a>. For housing rules and resident access, see <a href="${handbook}">UVM’s Hallways Handbook</a>. For a site or feed issue, see <a href="/status/">LaundryLink service status</a>.</p>
-      <h2>Privacy</h2><p>Room preferences and saved alert controls are stored in your browser. A push subscription is used to send the requested alert. Contact details entered in the embedded text or email form go to Automatic Laundry. LaundryLink counts page and room views, broad referral sources such as search and ChatGPT, and aggregate push service outcomes. It stores totals without cookies, account IDs, or referrer URLs for analytics.</p>
+    html: `<h2>What UVM LaundryLink does</h2><p>It shows provider-reported machine status with searchable room listings, campus filters, favorites, a mobile-friendly layout, and dark mode. Machine status and usage history come from provider feeds. UVM LaundryLink is an independent project, unaffiliated with or endorsed by the University of Vermont or Automatic Laundry.</p>
+      <h2>Where to get help</h2><p>For equipment service, use <a href="${service}">Automatic Laundry’s service request form</a>. For housing rules and resident access, see <a href="${handbook}">UVM’s Hallways Handbook</a>. For a site or feed issue, see <a href="/status/">UVM LaundryLink service status</a>.</p>
+      <h2>Privacy</h2><p>Room preferences and saved alert controls are stored in your browser. A push subscription is used to send the requested alert. Contact details entered in the embedded text or email form go to Automatic Laundry. UVM LaundryLink counts page and room views, broad referral sources such as search and ChatGPT, and aggregate push service outcomes. It stores totals without cookies, account IDs, or referrer URLs for analytics.</p>
       <p>Read the <a href="/compare/">comparison with LaundryConnect Live</a> or open the <a href="/residence-halls/">UVM laundry directory</a>.</p>`,
   },
   {
     slug: 'compare',
-    title: 'LaundryLink and the official UVM laundry tracker',
+    title: 'UVM LaundryLink and the official UVM laundry tracker',
     description: 'Compare UVM LaundryLink and Automatic Laundry’s LaundryConnect Live for machine status, alerts, usage history, and repairs.',
-    intro: 'Both can help you check residence hall laundry. LaundryLink is a student-built interface. LaundryConnect Live is operated by the laundry provider.',
-    html: `<h2>Check machines and plan a trip</h2><p>LaundryLink groups rooms by campus and provides favorites, room links, dark mode, and separate live machine lists for CCRH Floors 6 and 7. It displays machine status from the provider and can show a last saved snapshot during an outage. The official room view is a useful second check when LaundryLink is unavailable.</p>
-      <h2>Choose an alert</h2><p>LaundryLink offers browser push for individual cycles and a push when a washer opens in a confirmed full room. Automatic Laundry supplies the text and email options used in the embedded provider form. Check the <a href="/faq/">notification FAQ</a> for device setup.</p>
+    intro: 'Both can help you check residence hall laundry. UVM LaundryLink is an independent student-built interface. LaundryConnect Live is operated by the laundry provider.',
+    html: `<h2>Check machines and plan a trip</h2><p>LaundryLink groups rooms by campus and provides favorites, room links, dark mode, and separate live machine lists for CCRH Floors 6 and 7. It displays machine status from the provider and can show a last saved snapshot during an outage. The LaundryConnect page is a useful second check when LaundryLink is unavailable.</p>
+      <h2>Choose an alert</h2><p>LaundryLink offers browser push for individual cycles and a push when the next washer or dryer of the selected type opens. Automatic Laundry supplies the text and email options used in the embedded provider form. Find device setup in LaundryLink’s <a href="/faq/">notification FAQ</a>.</p>
       <h2>Report a machine issue</h2><p>Automatic Laundry handles maintenance. LaundryLink links you to the vendor’s reporting flow and identifies the machine so you can give the correct details.</p>
       <p>Sources <a href="${vendor}">Automatic Laundry’s alert overview</a> and <a href="${service}">its service form</a>.</p>
-      <p><a href="/residence-halls/">Find your hall and its official room link</a>.</p>`,
+      <p><a href="/residence-halls/">Find your hall in the UVM LaundryLink directory</a>.</p>`,
   },
 ];

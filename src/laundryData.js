@@ -50,9 +50,13 @@ export function roomPath(room) {
 
 export const NEXT_WASHER = 'nextWasher';
 export const NEXT_WASHER_LABEL = 'Next available washer';
+export const NEXT_DRYER = 'nextDryer';
+export const NEXT_DRYER_LABEL = 'Next available dryer';
 
-export function canWatchNextWasher(washers) {
-  return washers.length > 0 && washers.every(({ status }) => status !== 'Available' && status !== 'Unknown');
+export function canWatchNextMachine(machines, type) {
+  const matchingMachines = machines.filter((machine) => machine.type === type);
+  return matchingMachines.length > 0 &&
+    matchingMachines.every(({ status }) => status !== 'Available' && status !== 'Unknown');
 }
 
 export function machinePath(room, machineId) {

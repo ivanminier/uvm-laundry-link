@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Clock, ExternalLink } from 'lucide-react';
-import { getOfficialRoomUrl, getRoomHistoryId } from './laundryData';
+import { Clock } from 'lucide-react';
+import { getRoomHistoryId } from './laundryData';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
@@ -63,7 +63,7 @@ function UsageChart({ grid, totalSamples, capturedAt }) {
       )}
       <dl className="my-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
         {summarize(grid).map(([label, value]) => (
-          <div key={label} className="rounded-lg bg-slate-100 p-3 dark:bg-slate-700/60">
+          <div key={label} className="ll-subpanel rounded-lg p-3">
             <dt className="text-xs text-slate-600 dark:text-slate-300">{label}</dt>
             <dd className="mt-1 font-semibold text-slate-900 dark:text-white">{value}</dd>
           </div>
@@ -138,7 +138,7 @@ export function RoomPeakTimes({ room }) {
   const data = snapshot?.rooms[room.historyRoomId ?? room.id];
 
   return (
-    <section className="mb-8 rounded-xl bg-white px-5 py-4 shadow-lg dark:bg-slate-800/70 sm:px-6">
+    <section className="ll-panel mb-8 px-5 py-4 sm:px-6">
       <h3>
         <button type="button" aria-expanded={open} aria-controls="room-peak-times"
           className="flex w-full items-center justify-between gap-3 rounded-md text-left text-lg font-semibold text-slate-900 focus-visible:ring-2 focus-visible:ring-uvm-green dark:text-slate-100 dark:focus-visible:ring-uvm-gold"
@@ -159,12 +159,6 @@ export function RoomPeakTimes({ room }) {
           <p role="status" className="mt-3 text-sm text-slate-600 dark:text-slate-300">
             {failed ? 'Could not load historical usage.' : 'Historical usage is unavailable for this room.'}
           </p>
-        )}
-        {open && historyId && (
-          <a className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-uvm-green hover:underline dark:text-uvm-gold"
-            target="_blank" rel="noopener noreferrer" href={getOfficialRoomUrl(room)}>
-            Open LaundryConnect Live <ExternalLink size={13} />
-          </a>
         )}
       </div>
     </section>
