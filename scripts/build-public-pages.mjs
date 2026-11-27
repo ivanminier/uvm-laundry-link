@@ -105,7 +105,7 @@ const complexCards = (complexes) => `<ul class="ll-room-grid site-complex-grid">
 )).join('')}</ul>`;
 const campusDirectory = (showRooms = false) => directoryCampuses.map(({ id, name, path: campusPath, complexes }) =>
   `<section class="ll-campus-section" id="${id}" aria-labelledby="${id}-title">
-    <h2 class="ll-campus-section__title" id="${id}-title">${showRooms ? link(campusPath, name) : escape(name)}</h2>
+    <h2 class="ll-campus-section__title" id="${id}-title">${link(campusPath, name)}</h2>
     ${showRooms ? complexes.map(({ title, path, halls }) => {
       const headingId = id + '-' + slugify(title);
       return `<section class="ll-complex-section" aria-labelledby="${headingId}">
@@ -189,7 +189,7 @@ const directory = {
   heading: 'UVM campus laundry directory', description: 'Find UVM residence hall laundry rooms by campus. Open your hall’s page for floor, tower, and room options and live machine tracking.',
   intro: 'Browse by campus and complex to find your laundry room and open the tracker.',
   trail: siteTrail, type: 'CollectionPage', layout: 'directory',
-  html: `<nav class="site-directory-campuses" aria-label="Campus areas">${directoryCampuses.map(({ path, name }) => link(path, name)).join('')}</nav>${campusDirectory()}`,
+  html: campusDirectory(),
 };
 const campusPages = directoryCampuses.map(({ id, path, complexes }) => {
   const count = complexes.reduce((total, complex) => total + complex.rooms.length, 0);

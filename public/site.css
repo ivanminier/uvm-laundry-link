@@ -317,30 +317,6 @@ html.dark .public-page {
   font-size: clamp(1rem, 1.5vw, 1.15rem);
 }
 
-.site-directory-campuses {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
-}
-
-.site-directory-campuses a {
-  display: inline-flex;
-  min-height: 2.75rem;
-  align-items: center;
-  padding-inline: 1rem;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--card);
-  font-size: 0.875rem;
-  font-weight: 650;
-  text-decoration: none;
-}
-
-.site-directory-campuses a:hover {
-  border-color: var(--green);
-}
-
 .site-directory .ll-campus-section {
   scroll-margin-top: 5.5rem;
 }
@@ -560,6 +536,7 @@ html.dark .public-page {
   margin-top: 1.25rem;
 }
 
+.site-directory .ll-campus-section__title a,
 .site-directory .ll-complex-section__title a {
   color: inherit;
 }
