@@ -249,14 +249,34 @@ html.dark .public-page {
 
 .hall-room-facts {
   display: grid;
-  gap: 0.35rem;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 0.35rem 0.75rem;
   margin: 0.4rem 0 0.6rem;
 }
 
+/* Rows share the list's columns so every value starts at the same position. */
 .hall-room-facts div {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 0.5rem;
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: baseline;
+}
+
+/* Narrow cards stack each label above its value instead of wrapping mid-value. */
+.hall-grid > li {
+  container-type: inline-size;
+}
+
+@container (max-width: 24rem) {
+  .hall-room-facts {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.5rem;
+  }
+
+  .hall-room-facts div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.05rem;
+  }
 }
 
 .hall-room-facts dt {
