@@ -32,6 +32,18 @@ function UsageChart({ grid, totalSamples, capturedAt, quietHours }) {
   const [selection, setSelection] = useState(null);
   const [activeCell, setActiveCell] = useState({ day: 0, hour: 0 });
   const chart = useRef(null);
+  const scroller = useRef(null);
+  const [overflows, setOverflows] = useState(false);
+  useEffect(() => {
+    const container = scroller.current;
+    const update = () => setOverflows(container.scrollWidth > container.clientWidth);
+    update();
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(update);
+    observer.observe(container);
+    observer.observe(chart.current);
+    return () => observer.disconnect();
+  }, []);
   const instructions = useId();
 
   function moveFocus(event, day, hour) {
@@ -63,7 +75,7 @@ function UsageChart({ grid, totalSamples, capturedAt, quietHours }) {
     <>
       {quietHours && (
         <p className="mt-4 rounded-lg bg-teal-50 p-3 text-sm text-teal-950 dark:bg-teal-950/50 dark:text-teal-100">
-          <strong>Usually quieter from {quietHours}.</strong> Based on past usage across the week, Burlington time.
+          <strong>Usually quieter daytime window: {quietHours}.</strong> Windows start at 7 AM or later in Burlington time. The quietest hour can be overnight.
         </p>
       )}
       <dl className="my-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
@@ -74,7 +86,8 @@ function UsageChart({ grid, totalSamples, capturedAt, quietHours }) {
           </div>
         ))}
       </dl>
-      <div className="relative overflow-x-auto pb-2" tabIndex={-1}>
+      {overflows && <p aria-hidden="true" className="mb-1 text-xs text-slate-600 dark:text-slate-300">Scroll sideways to see all hours.</p>}
+      <div ref={scroller} className="relative overflow-x-auto pb-2" tabIndex={-1}>
         <p id={instructions} className="sr-only">Use the arrow keys to move by day or hour. Press Enter or Space to show details.</p>
         <table ref={chart} role="grid" aria-label="Weekly usage chart" aria-describedby={instructions}
           className="w-full min-w-[660px] border-separate text-sm" style={{ borderSpacing: '3px' }}>
@@ -172,7 +185,7 @@ export function RoomPeakTimes({ room, defaultOpen = false }) {
       </h2>
       {!open && quietHours && (
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-          Usually quieter from {quietHours} (Burlington time).
+          Usually quieter daytime window: {quietHours} (Burlington time).
         </p>
       )}
       {room.machineRange && (open || quietHours) && (

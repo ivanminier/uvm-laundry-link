@@ -96,7 +96,8 @@ test('opens the room directory without a network request', async () => {
     await act(async () => { root.render(<App />); });
     expect(container.textContent).toContain('All Laundry Rooms');
     expect(container.textContent).toContain('Wing Hall');
-    expect(container.querySelector('.ll-home-hero').textContent).not.toContain('Independent student project');
+    expect(container.querySelector('a[href="/about/"]').parentElement.textContent).toContain('Independent student project');
+    expect(document.title).toBe('UVM Laundry Tracker | UVM LaundryLink');
     expect(container.querySelector('.ll-campus-jump-heading').textContent).toBe('Campuses');
     expect(container.querySelectorAll('.ll-room-card__title')).toHaveLength(laundryRooms.length);
     expect(container.querySelectorAll('.ll-room-card')).toHaveLength(laundryRooms.length);
@@ -158,6 +159,7 @@ test('room cards separate favorite and room controls accessibly', async () => {
     expect(window.location.hash).toBe('');
     await act(async () => { roomLink.click(); });
     expect(window.location.hash).toBe('#room/christie-hall');
+    expect(document.title).toBe('Christie Hall Laundry | UVM LaundryLink');
   } finally {
     act(() => root.unmount());
     container.remove();
@@ -212,10 +214,12 @@ test('overlay navigation resets scroll and Back restores the original position',
     for (const label of ['Information', 'My Laundry', 'Settings']) {
       await act(async () => { container.querySelector(`header [aria-label="${label}"]`).click(); });
       expect(container.querySelector('main h1').textContent).toBe(label);
+      expect(document.title).toBe(`${label} | UVM LaundryLink`);
       expect(window.scrollTo).toHaveBeenLastCalledWith({ top: 0, behavior: 'instant' });
     }
     await act(async () => { container.querySelector('main .ll-overlay-heading .ll-back-button').click(); });
     expect(window.scrollTo).toHaveBeenLastCalledWith({ top: 450, behavior: 'instant' });
+    expect(document.title).toBe('UVM Laundry Tracker | UVM LaundryLink');
   } finally {
     act(() => root.unmount());
     container.remove();
@@ -389,6 +393,9 @@ test('switching CCRH floors excludes the legacy combined cache and saves each fl
     await act(async () => { root.render(<App />); });
     const cards = () => [...container.querySelectorAll('[id^="machine-card-"] h3')].map(node => node.textContent);
     expect(cards()).toEqual(['Washer 45', 'Dryer 55']);
+    expect(document.title).toBe('CCRH · Floor 6 Laundry | UVM LaundryLink');
+    expect(container.querySelector('#machine-card-45').textContent).toContain('May still contain laundry');
+    expect(container.querySelector('button[aria-label="Washer 45 · Cycle Finished"]').title).toBe('Washer 45 · Cycle Finished');
     expect(window.location.hash).toBe('#room/ccrh-floor-6');
     expect(container.textContent).not.toContain('Notify me when a washer opens');
     expect(container.querySelector('main h1').textContent).toContain('CCRH');
@@ -426,6 +433,7 @@ test('switching CCRH floors excludes the legacy combined cache and saves each fl
       window.dispatchEvent(new HashChangeEvent('hashchange'));
     });
     expect(cards()).toEqual(['Washer 56', 'Dryer 62']);
+    expect(document.title).toBe('CCRH · Floor 7 Laundry | UVM LaundryLink');
     expect(window.location.hash).toBe('#room/ccrh-floor-7?machine=62');
     expect(container.textContent).toContain('Notify me when a washer opens');
     expect(document.activeElement.id).toBe('machine-card-62');
@@ -598,7 +606,7 @@ test('Peak Times shows bundled guidance immediately and keeps one recommendation
     await act(async () => { root.render(<RoomPeakTimes room={room} />); });
     const toggle = container.querySelector('h2 button');
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
-    expect(container.textContent).toMatch(/Usually quieter from .+\(Burlington time\)/);
+    expect(container.textContent).toMatch(/Usually quieter daytime window: .+\(Burlington time\)/);
     expect(container.textContent).toContain('one usage history for CCRH Floors 6 and 7');
     expect(container.querySelector('[role="grid"]')).toBeNull();
 

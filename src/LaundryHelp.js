@@ -5,7 +5,7 @@ import { HomeScreenSteps } from './HomeScreenHelp';
 
 import { informationQuestions, informationResources, urgentMachinePhone, urgentMachineTel } from './informationContent.mjs';
 
-function Question({ question, answer, afterHomeScreenSteps }) {
+function Question({ question, answer, afterHomeScreenSteps, definitions }) {
   const [open, setOpen] = useState(false);
   const answerId = useId();
 
@@ -21,6 +21,11 @@ function Question({ question, answer, afterHomeScreenSteps }) {
             <p>{answer.map((part, index) => typeof part === 'string' ? part : (
               <a key={index} href={part.href} className="text-uvm-green underline dark:text-uvm-gold">{part.label}</a>
             ))}</p>
+            {definitions && <dl className="mt-3 space-y-2">
+              {definitions.map(([label, meaning]) => (
+                <div key={label}><dt className="font-semibold">{label}</dt><dd>{meaning}</dd></div>
+              ))}
+            </dl>}
             {afterHomeScreenSteps && (
               <>
                 <div className="mt-2"><HomeScreenSteps /></div>
@@ -43,8 +48,8 @@ export function LaundryHelp({ onBack }) {
       </header>
       <section className="mt-6">
         <h2 className="mb-3 text-lg font-semibold">Frequently Asked Questions</h2>
-        {informationQuestions.map(([question, answer, afterHomeScreenSteps]) =>
-          <Question key={question} question={question} answer={answer} afterHomeScreenSteps={afterHomeScreenSteps} />)}
+        {informationQuestions.map(([question, answer, afterHomeScreenSteps, definitions]) =>
+          <Question key={question} question={question} answer={answer} afterHomeScreenSteps={afterHomeScreenSteps} definitions={definitions} />)}
       </section>
       <section className="mt-6">
         <h2 className="mb-3 text-lg font-semibold">More Resources</h2>

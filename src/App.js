@@ -8,6 +8,7 @@ import { CAMPUS_SECTIONS, campusHeading, groupCampusRooms, roomDirectorySearchTe
 import { RoomSwitcher, RoomTools } from './RoomTools';
 import { MyLaundry } from './MyLaundry';
 import { PushAlertForm } from './PushAlertForm';
+import { independenceDisclosure, trackerTitle } from './informationContent.mjs';
 import { LaundryHelp } from './LaundryHelp';
 import { HomeScreenPrompt } from './HomeScreenHelp';
 import { BackButton } from './BackButton';
@@ -129,6 +130,7 @@ const MachineLayoutIcon = ({ machine, effectiveDarkMode, onMachineClick }) => {
         statusText = 'Open';
     }
     
+    const statusLabel = `${machine.machineName} · ${actualStatus}${timeRemaining ? ` (${timeRemaining} left)` : ''}`;
     const machineBodyBg = effectiveDarkMode ? 'bg-slate-700' : 'bg-slate-200';
     const machineAccentBg = effectiveDarkMode ? 'bg-slate-600' : 'bg-slate-300';
     const machineTextColor = effectiveDarkMode ? 'text-slate-200' : 'text-slate-700';
@@ -140,7 +142,8 @@ const MachineLayoutIcon = ({ machine, effectiveDarkMode, onMachineClick }) => {
         <button
             onClick={() => onMachineClick(machineIdForScroll)}
             className={`flex-shrink-0 w-24 h-32 rounded-md flex flex-col items-center justify-between p-2 text-center shadow-md hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-uvm-gold ${machineBodyBg} ${machineTextColor} border border-transparent hover:border-uvm-gold`}
-            title={`${machine.machineName} - ${machine.type} - ${actualStatus}${timeRemaining ? ` (${timeRemaining} left)` : ''}`}
+            title={statusLabel}
+            aria-label={statusLabel}
         >
             <div className={`w-full flex items-center justify-between px-1 py-0.5 rounded-t-sm border-b border-slate-400/50 ${machineAccentBg}`}>
                 <MachineTypeIcon size={16} className={machineIconColor} />
@@ -234,10 +237,10 @@ const MachineCard = React.memo(({ machine, room, stale, checkedAt }) => {
 
 
   let placeholderText;
-  if (actualStatus === 'Available') placeholderText = "Ready for use";
-  else if (actualStatus === 'Out of Order') placeholderText = "Awaiting service";
+  if (actualStatus === 'Available') placeholderText = "Reported available";
+  else if (actualStatus === 'Out of Order') placeholderText = "Reported out of order";
   else if (actualStatus === 'Offline') placeholderText = "The machine is not reporting status";
-  else if (actualStatus === 'Cycle Finished') placeholderText = machine.type === 'Washer' ? "Clothes left in washer" : "Clothes left in dryer";
+  else if (actualStatus === 'Cycle Finished') placeholderText = "May still contain laundry";
 
   return (
     <article id={machineIdForScroll} tabIndex={-1} aria-label={machine.machineName} className={`ll-machine-card rounded-xl border ${borderColor} flex flex-col justify-between transition-shadow duration-200 hover:shadow-md`}>
@@ -520,6 +523,13 @@ function jumpToCampus(id) {
   section.scrollIntoView({ block: 'start', behavior: reduceMotion ? 'instant' : 'smooth' });
 }
 
+const VIEW_TITLES = {
+  help: 'Information',
+  myLaundry: 'My Laundry',
+  settings: 'Settings',
+  notFound: 'Page not found',
+};
+
 // --- Main App Component ---
 const normalizeRoomSearch = (value) => value?.toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').trim();
 
@@ -559,6 +569,14 @@ const App = () => {
   const machines = roomStatus.machines ?? EMPTY_MACHINES;
 
   // --- Effects ---
+
+  useEffect(() => {
+    const title = currentView === 'roomDetail' && currentRoom
+      ? `${roomLabel(currentRoom)} Laundry`
+      : VIEW_TITLES[currentView];
+    document.title = title ? `${title} | UVM LaundryLink` : trackerTitle;
+  }, [currentView, currentRoom]);
+
 
   useEffect(() => {
     const updateConnection = () => setIsOffline(navigator.onLine === false);
@@ -829,6 +847,10 @@ const App = () => {
                 </button>
               </div>
             </div>
+            <p className="-mt-5 mb-5 text-xs text-slate-600 dark:text-slate-300">
+              {independenceDisclosure}{' '}
+              <a href="/about/" className="text-uvm-green underline dark:text-uvm-gold">About LaundryLink</a>
+            </p>
             {favoriteSummaryEnabled && filteredHomeRooms.length > 0 && (
               <FavoriteSummary rooms={filteredHomeRooms} statuses={favoriteStatuses} offline={isOffline} onSelectRoom={handleSelectRoom} />
             )}

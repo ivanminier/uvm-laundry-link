@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { roomPath } from '../src/roomLinks.mjs';
-import { informationPath, informationQuestions } from '../src/informationContent.mjs';
+import { independenceDisclosure, machineStatusDefinitions, informationPath, informationQuestions } from '../src/informationContent.mjs';
 import { readFile } from 'node:fs/promises';
 import { runInNewContext } from 'node:vm';
 
@@ -38,6 +38,7 @@ for (let index = 0; index < routes.length; index += 6) {
     assert.ok(body.includes(`property="og:url" content="${href}"`), pathname);
     assert.match(body, /rel="icon" type="image\/svg\+xml" href="\/favicon\.svg"/, pathname);
     assert.match(body, /id="laundrylink-theme-init"/, pathname);
+    assert.equal((body.match(/<script src="\/scroll-edge\.js"/g) ?? []).length, 1, pathname);
     assert.doesNotMatch(body, /noindex|You need to enable JavaScript/i, pathname);
     assert.doesNotMatch(body, /aria-label="Laundry resources"|href="\/(?:laundry-guide|faq)\//, pathname);
     assert.equal((body.match(/<h1>/g) ?? []).length, 1, pathname);
@@ -89,7 +90,12 @@ const sitemapPage = await read('/sitemap/');
 for (const path of paths) if (path !== '/sitemap/') assert.ok(sitemapPage.includes(`href="${path}"`), `HTML sitemap entry for ${path}`);
 assert.doesNotMatch(sitemapPage, /href="\/sitemap\/"/);
 for (const view of ['my-laundry', 'settings']) assert.ok(sitemapPage.includes(`href="/?view=${view}"`));
+assert.match(sitemapPage, /href="\/\?view=my-laundry">My Laundry<\/a>/);
+assert.ok((await read('/')).includes(independenceDisclosure));
 const information = await read(informationPath);
+for (const [label, meaning] of machineStatusDefinitions) {
+  assert.ok(information.includes(`<dt><strong>${label}</strong></dt><dd>${meaning}</dd>`), label);
+}
 for (const [question] of informationQuestions) assert.ok(information.includes(`<summary>${question}</summary>`), question);
 assert.match(information, /<strong>Add to Home Screen<\/strong>/);
 const directoryPage = await read('/residence-halls/');

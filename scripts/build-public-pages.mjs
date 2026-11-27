@@ -1,7 +1,7 @@
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { CAMPUS_SECTIONS, groupCampusRooms } from '../src/campusDirectory.mjs';
 import { roomPath } from '../src/roomLinks.mjs';
-import { homeScreenSteps, informationPath, informationQuestions, informationResources, urgentMachinePhone, urgentMachineTel } from '../src/informationContent.mjs';
+import { independenceDisclosure, trackerTitle, homeScreenSteps, informationPath, informationQuestions, informationResources, urgentMachinePhone, urgentMachineTel } from '../src/informationContent.mjs';
 import { checkSources } from './check-sources.mjs';
 import { articles, service } from './site-content.mjs';
 
@@ -160,7 +160,7 @@ function head(page) {
   <link rel="stylesheet" href="/site.css">
   ${page.path !== '/' ? '<link rel="stylesheet" href="/room-directory.css">' : ''}
   <script src="/referrals.js" defer></script>
-  <script src="/scroll-edge.js" defer></script>
+  ${page.path !== '/' ? '<script src="/scroll-edge.js" defer></script>' : ''}
   <script type="application/ld+json">${pageSchema(page)}</script>`;
 }
 
@@ -178,9 +178,9 @@ function content(page) {
 }
 
 const home = {
-  path: '/', title: 'UVM Laundry Tracker | UVM LaundryLink', heading: 'UVM residence hall laundry tracker',
+  path: '/', title: trackerTitle, heading: 'UVM residence hall laundry tracker',
   description: 'Find your University of Vermont residence hall laundry room. Check washer and dryer status, see Peak Times, and set cycle alerts with UVM LaundryLink.',
-  intro: `Find laundry at ${hallList.length} UVM residence hall buildings or complexes across ${Object.keys(campusNames).length} campus areas. UVM LaundryLink is an independent, student-created site.`,
+  intro: `Find laundry at ${hallList.length} UVM residence hall buildings or complexes across ${Object.keys(campusNames).length} campus areas. ${independenceDisclosure}`,
   html: `<p class="site-note">Live machine status and alerts require JavaScript. The campus directory and hall pages work without it.</p>
     <h2>Find your laundry room</h2><p>${link('/residence-halls/', 'Browse the full campus laundry directory')} or pick a campus below.</p>
     ${list(directoryCampuses.map(({ path, name }) => link(path, name)), 'campus-grid')}
@@ -323,9 +323,10 @@ const information = {
   layout: 'information', trail: siteTrail, backHref: '/',
   html: `<section class="site-panel site-information-panel">
     <h2>Frequently Asked Questions</h2>
-    ${informationQuestions.map(([question, answer, afterHomeScreenSteps]) => `<details>
+    ${informationQuestions.map(([question, answer, afterHomeScreenSteps, definitions]) => `<details>
       <summary>${escape(question)}</summary>
       <div><p>${informationParts(answer)}</p>
+        ${definitions ? `<dl>${definitions.map(([label, meaning]) => `<div><dt><strong>${escape(label)}</strong></dt><dd>${escape(meaning)}</dd></div>`).join('')}</dl>` : ''}
         ${afterHomeScreenSteps ? `<ol>${homeScreenSteps.map(step => `<li>${informationParts(step)}</li>`).join('')}</ol><p>${escape(afterHomeScreenSteps)}</p>` : ''}
       </div></details>`).join('')}
     <h2>More Resources</h2>
@@ -344,7 +345,7 @@ const sitemapPage = {
     link('/compare/', 'Compare trackers'),
     link(informationPath, 'Information'),
     link('/', 'Laundry tracker home'),
-    link('/?view=my-laundry', 'Notifications'),
+    link('/?view=my-laundry', 'My Laundry'),
     link('/status/', 'Service status'),
     link('/?view=settings', 'Settings'),
   ], 'site-map-key-links')}</section>${campusDirectory(true)}`,
