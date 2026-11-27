@@ -316,6 +316,12 @@ test('switching CCRH floors excludes the legacy combined cache and saves each fl
     });
     expect(document.activeElement).toBe(switcher);
 
+    await act(async () => { switcher.click(); });
+    // A tap can blur the selected option before it dispatches a click on the trigger.
+    await act(async () => { document.activeElement.blur(); });
+    await act(async () => { switcher.click(); });
+    expect(switcher.getAttribute('aria-expanded')).toBe('false');
+
     const availability = container.querySelector('[aria-label="Machine availability"]');
     expect(availability.nextElementSibling.querySelector('h3').textContent).toContain('Peak Times');
     expect(availability.querySelector('time').dateTime).toBeTruthy();

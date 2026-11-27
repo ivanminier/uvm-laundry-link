@@ -27,7 +27,12 @@ export function RoomSwitcher({ room, onSelectRoom }) {
       if (!root.current?.contains(event.target)) setOpen(false);
     }
     document.addEventListener('pointerdown', dismissOutside);
-    return () => document.removeEventListener('pointerdown', dismissOutside);
+    // Wait for focus to land outside. Touch browsers can blur an option before clicking the trigger.
+    document.addEventListener('focusin', dismissOutside);
+    return () => {
+      document.removeEventListener('pointerdown', dismissOutside);
+      document.removeEventListener('focusin', dismissOutside);
+    };
   }, [open]);
 
   useLayoutEffect(() => {
@@ -92,8 +97,7 @@ export function RoomSwitcher({ room, onSelectRoom }) {
   }
 
   return (
-    <div className="ll-dropdown" ref={root}
-      onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}>
+    <div className="ll-dropdown" ref={root}>
       <h2>
         <button id="room-switcher" ref={trigger} type="button" className="ll-dropdown__trigger"
           aria-label={'Switch room: ' + roomLabel(room)}

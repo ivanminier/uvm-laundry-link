@@ -598,7 +598,7 @@ html.dark .ll-room-share-button {
 @media (max-width: 30rem) {
   .ll-campus-jumps {
     flex-wrap: nowrap;
-    gap: 0.25rem;
+    gap: clamp(0.25rem, calc(2.5vw - 0.25rem), 0.5rem);
     margin-inline: -0.25rem;
     padding: 0.25rem;
     overflow-x: auto;
@@ -610,10 +610,14 @@ html.dark .ll-room-share-button {
   }
 
   .ll-campus-jump {
-    flex: 0 0 auto;
+    flex: 1 0 auto;
     padding-inline: clamp(0.25rem, 1.25vw, 0.625rem);
     font-size: clamp(0.65625rem, 3.1vw, 0.8125rem);
     white-space: nowrap;
+  }
+
+  .ll-campus-jump:only-child {
+    flex-grow: 0;
   }
 
   .ll-site-header--room .ll-header-inner {
