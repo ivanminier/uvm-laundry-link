@@ -458,6 +458,13 @@ test('text and email setup uses the vendor embed and keeps the selected CCRH flo
     expect(container.querySelector('iframe').getAttribute('src')).toBe('https://laundryconnectlive.com/live/loc_44963c?embed=1');
     expect(container.querySelector('dialog').textContent).toContain('CCRH · Floor 7 · Washer 56');
     expect(container.querySelector('dialog').textContent).toContain('choose Text or Email');
+    const fallback = container.querySelector('dialog a');
+    expect(fallback.textContent.trim()).toBe('Open LaundryConnect in a new tab');
+    expect(fallback.getAttribute('href')).toBe('https://laundryconnectlive.com/live/loc_44963c');
+    expect(fallback.getAttribute('target')).toBe('_blank');
+    await act(async () => { container.querySelector('.ll-back-button').click(); });
+    expect(container.querySelector('iframe')).toBeNull();
+    expect(container.querySelector('dialog a')).toBeNull();
   } finally {
     act(() => root.unmount());
     container.remove();

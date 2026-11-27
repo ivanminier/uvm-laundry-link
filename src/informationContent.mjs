@@ -23,7 +23,7 @@ export const informationQuestions = [
     'Free counts include Available, Cycle Finished, and Door Open. A finished cycle may still have laundry inside. Check the room’s last refresh time before relying on the list. If the room is full, check Peak Times for a historically quieter window.',
   ]],
   ['Can I get a text, email, or push notification?', [
-    'Open Set Cycle Alert on a running machine. LaundryLink sends browser push alerts. Automatic Laundry provides text and email setup in its embedded panel. When a room has no free washers or no free dryers, LaundryLink can send a one-time push when a machine of that type becomes free.',
+    'Open Set Cycle Alert on a running machine. LaundryLink sends browser push alerts. For text or email, select the same machine in the Automatic Laundry panel and open Notify Me. If the panel is unavailable, open LaundryConnect in a new tab from the alert dialog. When a room has no free washers or no free dryers, LaundryLink can send a one-time push when a machine of that type becomes free.',
   ]],
   ['What do the status labels mean?', [
     'Available means the provider reports an open machine. Cycle Finished means a cycle has ended. A saved snapshot shows an earlier observation with its timestamp. If there is no usable status, the tracker marks the data unavailable. See ',

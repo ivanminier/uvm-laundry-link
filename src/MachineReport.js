@@ -43,7 +43,7 @@ function MachineDialog({ machine, room, mode, canSetAlert, onClose, onModeChange
         {reporting
           ? `Select ${machine.machineName} on the LaundryConnect page, then choose Report a problem.`
           : contactAlert
-            ? `Select ${machine.machineName} below, then choose Text or Email. Automatic Laundry sends the alert.`
+            ? `Select ${machine.machineName} below, open Notify Me, then choose Text or Email. Automatic Laundry sends the alert.`
             : 'Push alerts work even after you close UVM LaundryLink.'}
       </p>
       {(reporting || contactAlert) && room.machineRange && (
@@ -65,6 +65,10 @@ function MachineDialog({ machine, room, mode, canSetAlert, onClose, onModeChange
       {contactAlert && (
         <>
           <BackButton onClick={() => onModeChange('alerts')} className="my-2">Back to push alerts</BackButton>
+          <a href={roomUrl} target="_blank" rel="noopener noreferrer"
+            className="mb-2 flex min-h-[44px] w-fit items-center gap-2 rounded px-2 text-sm font-semibold text-uvm-green underline focus-visible:ring-2 focus-visible:ring-uvm-green dark:text-uvm-gold dark:focus-visible:ring-uvm-gold">
+            Open LaundryConnect in a new tab <ExternalLink size={16} aria-hidden="true" />
+          </a>
           <iframe src={`${roomUrl}?embed=1`} title="Automatic Laundry text or email alert setup"
             sandbox="allow-scripts allow-forms allow-same-origin"
             className="block h-[min(55dvh,32rem)] min-h-[18rem] w-full rounded-lg border border-slate-300 bg-white dark:border-slate-600" />
