@@ -481,6 +481,14 @@ function RefreshRoomButton({ busy, refresh }) {
   );
 }
 
+function jumpToCampus(id) {
+  const section = document.getElementById(`campus-rooms-${id}`);
+  if (!section) return;
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  section.focus({ preventScroll: true });
+  section.scrollIntoView({ block: 'start', behavior: reduceMotion ? 'instant' : 'smooth' });
+}
+
 // --- Main App Component ---
 const App = () => {
   const [currentView, setCurrentView] = useState('home');
@@ -503,7 +511,6 @@ const App = () => {
   const [savedFavorites, setFavorites] = usePreference('uvmLaundryFavorites', []);
   const favorites = useMemo(() => resolveFavoriteIds(savedFavorites), [savedFavorites]);
   const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
-  const [campus, setCampus] = useState('all');
 
   const currentRoom = findLaundryRoom(selectedRoomId);
   const roomStatus = useLaundryStatus(currentView === 'roomDetail' ? currentRoom : null);
@@ -656,7 +663,7 @@ const App = () => {
 
   // --- Memoized Selectors for Filtering and Derived Data ---
   const filteredHomeRooms = useMemo(() => {
-    let roomsToDisplay = campus === 'all' ? laundryRooms : laundryRooms.filter(room => room.campus === campus);
+    let roomsToDisplay = laundryRooms;
     if (showOnlyFavorites) roomsToDisplay = roomsToDisplay.filter(room => favorites.includes(room.id));
     if (homeSearchTerm.trim() !== '') {
       const lowerSearchTerm = homeSearchTerm.trim().toLowerCase();
@@ -665,7 +672,7 @@ const App = () => {
       ].some(label => label?.toLowerCase().includes(lowerSearchTerm)));
     }
     return roomsToDisplay;
-  }, [campus, showOnlyFavorites, homeSearchTerm, favorites]);
+  }, [showOnlyFavorites, homeSearchTerm, favorites]);
   const visibleCampusSections = useMemo(() => CAMPUS_SECTIONS.map(([id, label]) => ({
     id,
     label,
@@ -747,17 +754,20 @@ const App = () => {
                 </button>
               </div>
             </div>
-            <>
-              <h3 className="ll-campus-filter-heading">Campuses</h3>
-              <div role="group" aria-label="Filter rooms by campus" className="mb-5 flex flex-wrap gap-2">
-                {[['all', 'All'], ...CAMPUS_SECTIONS].map(([id, label]) => (
-                  <button type="button" key={id} aria-pressed={campus === id} onClick={() => setCampus(id)}
-                    className="ll-campus-filter min-h-[44px] rounded-full border px-4 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-uvm-gold">
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </>
+            {visibleCampusSections.length > 0 && (
+              <>
+                <h3 className="ll-campus-jump-heading">Campuses</h3>
+                <div role="group" aria-label="Jump to campus" className="mb-5 flex flex-wrap gap-2">
+                  {visibleCampusSections.map(({ id, label }) => (
+                    <button type="button" key={id} aria-controls={`campus-rooms-${id}`}
+                      onClick={() => jumpToCampus(id)}
+                      className="ll-campus-jump min-h-[44px] rounded-full border px-4 py-2 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-uvm-gold">
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
             {filteredHomeRooms.length === 0 ? (
               <div className="ll-empty-state text-center py-16 p-8">
                 <Info size={64} className="mx-auto opacity-50 mb-4 text-uvm-green dark:text-uvm-gold" />
@@ -765,15 +775,15 @@ const App = () => {
                   {homeSearchTerm.trim() !== '' ? 'No Rooms Match Your Search' : (showOnlyFavorites ? "No Favorite Rooms Yet" : "No Laundry Rooms Found")}
                 </p>
                 <p className="text-sm mt-2 opacity-80">
-                  {homeSearchTerm.trim() !== '' ? 'Try a different search term or choose All.' : (showOnlyFavorites ? "Choose another campus or add a room to your favorites." : "We couldn't find any laundry rooms at the moment.")}
+                  {homeSearchTerm.trim() !== '' ? 'Try a different search term.' : (showOnlyFavorites ? "Add a room to your favorites." : "We couldn't find any laundry rooms at the moment.")}
                 </p>
               </div>
             ) : (
               visibleCampusSections.map(({ id: campusId, label, rooms }) => {
-                const headingId = `campus-rooms-${campusId}`;
+                const sectionId = `campus-rooms-${campusId}`;
                 return (
-                  <section key={campusId} id={headingId} className="ll-campus-section" aria-labelledby={headingId}>
-                    <h3 className="ll-campus-section__title">{label}</h3>
+                  <section key={campusId} id={sectionId} className="ll-campus-section" aria-labelledby={`${sectionId}-title`} tabIndex={-1}>
+                    <h3 id={`${sectionId}-title`} className="ll-campus-section__title">{label}</h3>
                     {groupCampusRooms(rooms, campusId).map(section => renderComplexSection(section, campusId, 4))}
                   </section>
                 );

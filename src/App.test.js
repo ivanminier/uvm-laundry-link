@@ -88,36 +88,35 @@ test('opens the room directory without a network request', async () => {
     expect(container.textContent).toContain('All Laundry Rooms');
     expect(container.textContent).toContain('Wing Hall');
     expect(container.querySelector('.ll-home-hero').textContent).not.toContain('Independent student project');
-    expect(container.querySelector('.ll-campus-filter-heading').textContent).toBe('Campuses');
+    expect(container.querySelector('.ll-campus-jump-heading').textContent).toBe('Campuses');
     expect(container.querySelectorAll('.ll-room-card__title')).toHaveLength(laundryRooms.length);
     expect(container.querySelectorAll('.ll-room-card')).toHaveLength(laundryRooms.length);
     expect(container.querySelectorAll('.ll-room-card__action')).toHaveLength(laundryRooms.length);
     const cottagesCard = [...container.querySelectorAll('.ll-room-card')]
       .find(card => card.querySelector('.ll-room-card__title').textContent === 'The Cottages');
     expect(cottagesCard.querySelector('.ll-room-card__location').textContent).toBe('Cottage #256');
-    const campusGroup = container.querySelector('[aria-label="Filter rooms by campus"]');
+    const campusGroup = container.querySelector('[aria-label="Jump to campus"]');
     const buttons = [...campusGroup.querySelectorAll('button')];
-    expect(buttons.map(button => button.textContent)).toEqual(['All', 'Redstone', 'Athletic', 'Central', 'Trinity and North']);
+    expect(buttons.map(button => button.textContent)).toEqual(['Redstone', 'Athletic', 'Central', 'Trinity and North']);
     const cases = [
       ['redstone', 'Wing Hall', ['CWPSCR', 'MSH', 'WDW']],
       ['athletic', 'University Heights North', ['Harris-Millis', 'Living-Learning Complex', 'MAT', 'University Heights North Complex', 'University Heights South Complex']],
       ['central', 'CCRH', ['CCRH', 'Other Buildings']],
       ['north', 'The Cottages', ['The Back Five', 'Other Buildings']],
     ];
-    for (const [index, button] of buttons.slice(1).entries()) {
+    for (const [index, button] of buttons.entries()) {
       const [expectedCampus, expectedExample, expectedGroups] = cases[index];
       expect(button.textContent).toBe(expectedCampus === 'north' ? 'Trinity and North' : expectedCampus[0].toUpperCase() + expectedCampus.slice(1));
-      await act(async () => { button.click(); });
       const campusSection = container.querySelector(`#campus-rooms-${expectedCampus}`);
-      expect(button.getAttribute('aria-pressed')).toBe('true');
-      expect(container.querySelectorAll('.ll-campus-section')).toHaveLength(1);
-      expect(container.querySelectorAll('.ll-room-card__title'))
-        .toHaveLength(laundryRooms.filter(room => room.campus === expectedCampus).length);
+      campusSection.scrollIntoView = jest.fn();
+      await act(async () => { button.click(); });
+      expect(document.activeElement).toBe(campusSection);
+      expect(campusSection.scrollIntoView).toHaveBeenCalledWith({ block: 'start', behavior: 'smooth' });
+      expect(container.querySelectorAll('.ll-campus-section')).toHaveLength(cases.length);
+      expect(container.querySelectorAll('.ll-room-card__title')).toHaveLength(laundryRooms.length);
       expect([...campusSection.querySelectorAll('.ll-room-card__title')].some(heading => heading.textContent === expectedExample)).toBe(true);
       expect([...campusSection.querySelectorAll('.ll-complex-section__title')].map(heading => heading.textContent)).toEqual(expectedGroups);
     }
-    await act(async () => { buttons[0].click(); });
-    expect(container.querySelectorAll('.ll-room-card__title')).toHaveLength(laundryRooms.length);
     await act(async () => { container.querySelector('.ll-favorites-toggle').click(); });
     expect(container.querySelector('.ll-empty-state p').textContent).toBe('No Favorite Rooms Yet');
     expect(fetch).not.toHaveBeenCalled();

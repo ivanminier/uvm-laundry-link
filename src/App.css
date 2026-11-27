@@ -350,6 +350,16 @@ html.dark .ll-room-share-button {
   margin-bottom: 1.8rem;
 }
 
+@media (max-width: 767px) {
+  .ll-home-hero {
+    display: none;
+  }
+}
+
+.ll-app .ll-campus-section {
+  scroll-margin-top: 5.5rem;
+}
+
 .ll-home-tagline {
   margin: 0.35rem 0 0;
   color: var(--ll-ink);
@@ -401,30 +411,18 @@ html.dark .ll-room-share-button {
   color: #362508;
 }
 
-.ll-campus-filter {
+.ll-campus-jump {
   border-color: var(--ll-line);
   background: var(--ll-surface);
   color: var(--ll-green);
   transition: background-color 140ms ease, border-color 140ms ease;
 }
 
-.ll-campus-filter:hover {
+.ll-campus-jump:hover {
   border-color: var(--ll-green);
 }
 
-.ll-campus-filter[aria-pressed="true"] {
-  border-color: var(--ll-green);
-  background: var(--ll-green);
-  color: #fff;
-}
-
-html.dark .ll-campus-filter[aria-pressed="true"] {
-  border-color: var(--ll-gold);
-  background: var(--ll-gold);
-  color: #10372a;
-}
-
-.ll-campus-filter-heading {
+.ll-campus-jump-heading {
   margin: 0 0 0.65rem;
   color: var(--ll-ink);
   font-size: 0.95rem;
