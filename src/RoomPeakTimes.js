@@ -118,8 +118,8 @@ function UsageChart({ grid, totalSamples, capturedAt }) {
   );
 }
 
-export function RoomPeakTimes({ room }) {
-  const [open, setOpen] = useState(false);
+export function RoomPeakTimes({ room, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen);
   const [snapshot, setSnapshot] = useState(null);
   const [failed, setFailed] = useState(false);
   const historyId = getRoomHistoryId(room);
@@ -143,7 +143,7 @@ export function RoomPeakTimes({ room }) {
         <button type="button" aria-expanded={open} aria-controls="room-peak-times"
           className="flex w-full items-center justify-between gap-3 rounded-md text-left text-lg font-semibold text-slate-900 focus-visible:ring-2 focus-visible:ring-uvm-green dark:text-slate-100 dark:focus-visible:ring-uvm-gold"
           onClick={() => { setOpen(!open); setFailed(false); }}>
-          <span className="flex items-center gap-2"><Clock size={19} className="text-uvm-green dark:text-uvm-gold" /> Peak Times</span>
+          <span className="flex items-center gap-2"><Clock size={19} className="text-uvm-gold" aria-hidden="true" /> Peak Times</span>
           <span className="text-sm font-medium text-uvm-green dark:text-uvm-gold">{open ? 'Hide' : 'Show'}</span>
         </button>
       </h3>

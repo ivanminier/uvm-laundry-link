@@ -465,6 +465,27 @@ function resolveFavoriteIds(saved) {
     : [];
 }
 
+function RoomLayoutPanel({ defaultOpen, machines, effectiveDarkMode, onMachineClick }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <section className="ll-panel mb-8 px-5 py-4 sm:px-6">
+      <h3>
+        <button type="button" aria-expanded={open} aria-controls="room-layout"
+          className="flex w-full items-center justify-between gap-3 rounded-md text-left text-lg font-semibold text-slate-900 focus-visible:ring-2 focus-visible:ring-uvm-green dark:text-slate-100 dark:focus-visible:ring-uvm-gold"
+          onClick={() => setOpen(!open)}>
+          <span className="flex items-center gap-2"><LayoutGrid size={19} className="text-uvm-gold" aria-hidden="true" /> Room Layout</span>
+          <span className="text-sm font-medium text-uvm-green dark:text-uvm-gold">{open ? 'Hide' : 'Show'}</span>
+        </button>
+      </h3>
+      <div id="room-layout" hidden={!open}>
+        {open && <div className="mt-5">
+          <RoomLayout machines={machines} effectiveDarkMode={effectiveDarkMode} onMachineClick={onMachineClick} />
+        </div>}
+      </div>
+    </section>
+  );
+}
+
 function RefreshRoomButton({ busy, refresh }) {
   const [spinning, setSpinning] = useState(false);
   const [refreshed, setRefreshed] = useState(false);
@@ -513,7 +534,8 @@ const App = () => {
   
   const [useSystemTheme, setUseSystemTheme] = usePreference('uvmLaundryUseSystemTheme', true);
   const [manualDarkMode, setManualDarkMode] = usePreference('uvmLaundryManualDarkMode', false);
-  const [showVisualLayout, setShowVisualLayout] = usePreference('uvmLaundryShowVisualLayout', window.innerWidth > 800);
+  const [expandRoomLayout, setExpandRoomLayout] = usePreference('uvmLaundryExpandRoomLayout', true);
+  const [expandPeakTimes, setExpandPeakTimes] = usePreference('uvmLaundryExpandPeakTimes', false);
   const [rememberRoom, setRememberRoom] = usePreference(REMEMBER_ROOM_KEY, false);
   const [machineScrollTarget, setMachineScrollTarget] = useState(null);
 
@@ -807,7 +829,7 @@ const App = () => {
             {roomStatus.busy && !roomStatus.checkedAt && (
               <p role="status" className="mb-6 text-gray-600 dark:text-slate-300">Loading live machine status…</p>
             )}
-            <RoomPeakTimes key={`peak-${currentRoom.id}`} room={currentRoom} />
+            <RoomPeakTimes key={`peak-${currentRoom.id}`} room={currentRoom} defaultOpen={expandPeakTimes} />
             {roomStatus.checkedAt && !hasUsableStatus && (
               <p role="status" className="mb-6 rounded-lg bg-amber-100 p-4 text-amber-900 dark:bg-amber-950 dark:text-amber-200">
                 The provider returned no usable machine statuses. <a className="font-semibold underline" href="/status/">Service status</a>
@@ -848,21 +870,8 @@ const App = () => {
             </div>
 
             {machines.length > 0 && (
-              <section className="ll-panel mb-8 px-5 py-4 sm:px-6">
-                <h3>
-                  <button type="button" aria-expanded={showVisualLayout} aria-controls="room-layout"
-                    className="flex w-full items-center justify-between gap-3 rounded-md text-left text-lg font-semibold text-slate-900 focus-visible:ring-2 focus-visible:ring-uvm-green dark:text-slate-100 dark:focus-visible:ring-uvm-gold"
-                    onClick={() => setShowVisualLayout(!showVisualLayout)}>
-                    <span className="flex items-center gap-2"><LayoutGrid size={19} className="text-uvm-gold" aria-hidden="true" /> Room Layout</span>
-                    <span className="text-sm font-medium text-uvm-green dark:text-uvm-gold">{showVisualLayout ? 'Hide' : 'Show'}</span>
-                  </button>
-                </h3>
-                <div id="room-layout" hidden={!showVisualLayout}>
-                  {showVisualLayout && <div className="mt-5">
-                    <RoomLayout machines={machines} effectiveDarkMode={effectiveDarkMode} onMachineClick={handleScrollToMachine} />
-                  </div>}
-                </div>
-              </section>
+              <RoomLayoutPanel key={currentRoom.id} defaultOpen={expandRoomLayout} machines={machines}
+                effectiveDarkMode={effectiveDarkMode} onMachineClick={handleScrollToMachine} />
             )}
             <div id="machine-list">
             {machines.length === 0 ? (
@@ -917,26 +926,27 @@ const App = () => {
                     <label htmlFor="manualDarkModeToggle" className="text-gray-700 dark:text-slate-200 flex items-center text-sm sm:text-base cursor-pointer"><span className="mr-2.5">{manualDarkMode ? <Moon size={20} className="text-uvm-gold" /> : <Sun size={20} className="text-yellow-500" />}</span>Dark Mode</label>
                     <button id="manualDarkModeToggle" role="switch" aria-checked={manualDarkMode} onClick={() => setManualDarkMode(!manualDarkMode)} className={`relative inline-flex items-center h-7 rounded-full w-12 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-uvm-gold ${manualDarkMode ? 'bg-green-600 dark:bg-green-600' : 'bg-gray-300 dark:bg-slate-500'}`}><span className={`inline-block w-5 h-5 transform bg-white rounded-full transition-transform ${manualDarkMode ? 'translate-x-6' : 'translate-x-1'}`} /></button>
                   </div>)}
-                  <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-700/60 rounded-lg">
-                    <label htmlFor="visualLayoutToggle" className="text-gray-700 dark:text-slate-200 flex items-center text-sm sm:text-base cursor-pointer"><span className="mr-2.5">{showVisualLayout ? <LayoutGrid size={20} className="text-uvm-green dark:text-uvm-gold" /> : <LayoutGrid size={20} className="text-gray-500 dark:text-slate-300" />}</span>Show Visual Room Layout</label>
-                    <button id="visualLayoutToggle" role="switch" aria-checked={showVisualLayout} onClick={() => setShowVisualLayout(!showVisualLayout)} className={`relative inline-flex items-center h-7 rounded-full w-12 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-800 focus:ring-uvm-gold ${showVisualLayout ? 'bg-green-600 dark:bg-green-600' : 'bg-gray-300 dark:bg-slate-500'}`}><span className={`inline-block w-5 h-5 transform bg-white rounded-full transition-transform ${showVisualLayout ? 'translate-x-6' : 'translate-x-1'}`} /></button>
-                  </div>
                 </div>
               </section>
               <section>
                 <h3 className="mb-4 text-xl font-semibold">Room Preferences</h3>
-                <div className="flex items-center justify-between rounded-lg bg-gray-50 p-4 dark:bg-slate-700/60">
-                  <div className="flex items-center text-sm text-gray-700 dark:text-slate-200 sm:text-base">
-                    <span className="mr-2.5">
-                      <Clock size={20} className={rememberRoom ? 'text-uvm-green dark:text-uvm-gold' : 'text-gray-500 dark:text-slate-300'} />
-                    </span>
-                    <span>Open my last room on startup</span>
-                  </div>
-                  <button id="rememberRoomToggle" type="button" role="switch" aria-label="Open my last room on startup"
-                    aria-checked={rememberRoom} onClick={() => setRememberRoom(previous => !previous)}
-                    className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-uvm-gold focus:ring-offset-2 dark:focus:ring-offset-slate-800 ${rememberRoom ? 'bg-green-600 dark:bg-green-600' : 'bg-gray-300 dark:bg-slate-500'}`}>
-                    <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${rememberRoom ? 'translate-x-6' : 'translate-x-1'}`} />
-                  </button>
+                <div className="space-y-5">
+                  {[
+                    ['rememberRoomToggle', 'Open my last room on startup', Star, rememberRoom, setRememberRoom],
+                    ['visualLayoutToggle', 'Expand Visual Room Layout by default', LayoutGrid, expandRoomLayout, setExpandRoomLayout],
+                    ['peakTimesToggle', 'Expand Peak Times by default', Clock, expandPeakTimes, setExpandPeakTimes],
+                  ].map(([id, label, Icon, checked, setChecked]) => (
+                    <div key={id} className="flex items-center justify-between gap-3 rounded-lg bg-gray-50 p-4 dark:bg-slate-700/60">
+                      <label htmlFor={id} className="flex cursor-pointer items-center gap-2.5 text-sm text-gray-700 dark:text-slate-200 sm:text-base">
+                        <Icon size={20} aria-hidden="true" className={`shrink-0 ${checked ? 'text-uvm-green dark:text-uvm-gold' : 'text-gray-500 dark:text-slate-300'}`} />
+                        {label}
+                      </label>
+                      <button id={id} type="button" role="switch" aria-checked={checked} onClick={() => setChecked(value => !value)}
+                        className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-uvm-gold focus:ring-offset-2 dark:focus:ring-offset-slate-800 ${checked ? 'bg-green-600 dark:bg-green-600' : 'bg-gray-300 dark:bg-slate-500'}`}>
+                        <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${checked ? 'translate-x-6' : 'translate-x-1'}`} />
+                      </button>
+                    </div>
+                  ))}
                 </div>
               </section>
               <section>

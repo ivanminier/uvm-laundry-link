@@ -230,7 +230,11 @@ test('main views share the same back control', async () => {
     expect(backButton().textContent.trim()).toBe('Back');
     const rememberRoomToggle = container.querySelector('#rememberRoomToggle');
     expect(rememberRoomToggle.getAttribute('role')).toBe('switch');
-    expect(rememberRoomToggle.getAttribute('aria-label')).toBe('Open my last room on startup');
+    expect(rememberRoomToggle.labels[0].textContent).toBe('Open my last room on startup');
+    const roomPreferences = rememberRoomToggle.closest('section');
+    expect(roomPreferences.querySelector('h3').textContent).toBe('Room Preferences');
+    expect(roomPreferences.querySelector('#visualLayoutToggle').getAttribute('aria-checked')).toBe('true');
+    expect(roomPreferences.querySelector('#peakTimesToggle').getAttribute('aria-checked')).toBe('false');
     expect(rememberRoomToggle.getAttribute('aria-checked')).toBe('false');
     await act(async () => { rememberRoomToggle.click(); });
     expect(rememberRoomToggle.getAttribute('aria-checked')).toBe('true');
