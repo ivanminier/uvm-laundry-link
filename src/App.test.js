@@ -4,6 +4,9 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import { MachineReport } from './MachineReport';
 import { quieterWindow, RoomPeakTimes } from './RoomPeakTimes';
+import { quieterWindows } from './peakTimesGuidance.mjs';
+import guidance from './peakTimesGuidance.json';
+import snapshot from './peakTimesSnapshot.json';
 import { canWatchNextMachine, filterRoomMachines, findLaundryRoom, getRoomHistoryId, laundryRooms, normalizeRoomStatus, roomLabel, roomPath } from './laundryData';
 
 beforeEach(() => jest.spyOn(window, 'scrollTo').mockImplementation(() => {}));
@@ -371,7 +374,11 @@ test('switching CCRH floors excludes the legacy combined cache and saves each fl
     machineType: { isWasher: number < 50 || number === 56, isDryer: number === 55 || number === 62 },
   }));
   const payload = { room: { id: 12247 }, machines: Object.fromEntries(
-    metadata.map(({ id }) => [id, { statusId: ({ 45: 'COMPLETE', 55: 'DOOR_OPEN', 56: 'IN_USE', 62: 'AVAILABLE' })[id] }])
+    metadata.map(({ id }) => [id, {
+      statusId: ({ 45: 'COMPLETE', 55: 'DOOR_OPEN', 56: 'IN_USE', 62: 'AVAILABLE' })[id],
+      remainingSeconds: 360,
+      createdAt: new Date().toISOString(),
+    }])
   ) };
   global.fetch = jest.fn(async (url) => ({ ok: true, json: async () => url.includes('/machines/') ? metadata : payload }));
   const container = document.createElement('div');
@@ -422,6 +429,13 @@ test('switching CCRH floors excludes the legacy combined cache and saves each fl
     expect(window.location.hash).toBe('#room/ccrh-floor-7?machine=62');
     expect(container.textContent).toContain('Notify me when a washer opens');
     expect(document.activeElement.id).toBe('machine-card-62');
+    const summary = container.querySelector('[aria-label="Machine availability"]');
+    expect(summary.textContent).toContain('Next reported washer finish in ~6 min');
+    expect(summary.textContent).not.toContain('Next reported dryer finish');
+    const finishLink = summary.querySelector('a');
+    expect(finishLink.getAttribute('href')).toBe('#room/ccrh-floor-7?machine=56');
+    await act(async () => { finishLink.click(); });
+    expect(document.activeElement.id).toBe('machine-card-56');
     expect(container.querySelectorAll('a[aria-label^="Link to "]')).toHaveLength(0);
     expect(container.querySelector('main h1').textContent).toContain('CCRH');
     expect(switcher.getAttribute('aria-label')).toBe('Switch room: CCRH · Floor 7');
@@ -474,6 +488,10 @@ test('text and email setup uses the vendor embed and keeps the selected CCRH flo
   }
 });
 
+
+test('the bundled collapsed guidance matches the full historical snapshot', () => {
+  expect(guidance).toEqual(quieterWindows(snapshot.rooms));
+});
 
 test('quiet guidance requires a recurring signal and sufficient history', () => {
   const grid = Array.from({ length: 7 }, () =>
@@ -563,6 +581,93 @@ test('My Laundry loads legacy alerts, shows their machine links and cancels thro
     container.remove();
     localStorage.clear();
     window.history.replaceState(null, '', '/');
+    delete global.IS_REACT_ACT_ENVIRONMENT;
+  }
+});
+
+test('Peak Times shows bundled guidance immediately and keeps one recommendation when expanded', async () => {
+  global.IS_REACT_ACT_ENVIRONMENT = true;
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  const root = createRoot(container);
+  const room = findLaundryRoom('ccrh 7');
+  const originalFetch = global.fetch;
+  global.fetch = jest.fn();
+
+  try {
+    await act(async () => { root.render(<RoomPeakTimes room={room} />); });
+    const toggle = container.querySelector('h2 button');
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    expect(container.textContent).toMatch(/Usually quieter from .+\(Burlington time\)/);
+    expect(container.textContent).toContain('one usage history for CCRH Floors 6 and 7');
+    expect(container.querySelector('[role="grid"]')).toBeNull();
+
+    await act(async () => { toggle.click(); });
+    expect(container.textContent.match(/Usually quieter/g)).toHaveLength(1);
+    const firstCell = container.querySelector('[data-usage-cell="0-0"]');
+    await act(async () => {
+      firstCell.focus();
+      firstCell.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    });
+    expect(document.activeElement.getAttribute('data-usage-cell')).toBe('0-1');
+
+    await act(async () => { root.render(<RoomPeakTimes key="missing" room={{ id: 'missing' }} defaultOpen />); });
+    expect(container.querySelector('h2 button').getAttribute('aria-expanded')).toBe('true');
+    expect(container.textContent).toContain('Historical usage is unavailable');
+    expect(container.textContent).not.toContain('Usually quieter');
+    expect(global.fetch).not.toHaveBeenCalled();
+  } finally {
+    act(() => root.unmount());
+    container.remove();
+    global.fetch = originalFetch;
+    delete global.IS_REACT_ACT_ENVIRONMENT;
+  }
+});
+
+test.each([true, false])('combined reporting keeps native navigation with clipboard success=%s', async (success) => {
+  global.IS_REACT_ACT_ENVIRONMENT = true;
+  const originalShowModal = HTMLDialogElement.prototype.showModal;
+  const originalClipboard = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', ''); };
+  const writeText = jest.fn(async () => {
+    if (!success) throw new Error('Clipboard access denied');
+  });
+  Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  const root = createRoot(container);
+
+  try {
+    const room = findLaundryRoom('ccrh 7');
+    await act(async () => {
+      root.render(<MachineReport machine={{ id: '99', machineName: 'Washer 56' }} room={room} />);
+    });
+    await act(async () => { container.querySelector('[aria-label="Report Washer 56"]').click(); });
+    expect(writeText).not.toHaveBeenCalled();
+    const [combined, direct, service] = [...container.querySelectorAll('dialog a')];
+    expect(combined.textContent).toContain('Copy Details & Open Reporting');
+    expect(combined.href).toBe('https://laundryconnectlive.com/live/loc_44963c');
+    expect(combined.getAttribute('rel')).toBe('noopener noreferrer');
+    expect(combined.target).toBe('_blank');
+    expect(direct.href).toBe(combined.href);
+    expect(service.href).toBe('https://automaticlaundry.com/request-service/');
+    expect(container.textContent).toContain('lists CCRH Floors 6 and 7 together under Floor 6');
+    await act(async () => {
+      const click = new MouseEvent('click', { bubbles: true, cancelable: true });
+      expect(combined.dispatchEvent(click)).toBe(true);
+      expect(writeText).toHaveBeenCalledWith('University of Vermont · CCRH · Floor 7 · Washer 56');
+    });
+    expect(container.querySelector('[role="status"]').textContent).toMatch(success ? /details copied/ : /couldn’t be copied/);
+    const copyButton = [...container.querySelectorAll('dialog button')].find(item => item.textContent === 'Copy Machine Details');
+    await act(async () => { copyButton.click(); });
+    expect(writeText).toHaveBeenCalledTimes(2);
+  } finally {
+    act(() => root.unmount());
+    container.remove();
+    if (originalShowModal) HTMLDialogElement.prototype.showModal = originalShowModal;
+    else delete HTMLDialogElement.prototype.showModal;
+    if (originalClipboard) Object.defineProperty(navigator, 'clipboard', originalClipboard);
+    else delete navigator.clipboard;
     delete global.IS_REACT_ACT_ENVIRONMENT;
   }
 });

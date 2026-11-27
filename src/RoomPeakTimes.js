@@ -1,15 +1,12 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { Clock } from 'lucide-react';
 import { getRoomHistoryId } from './laundryData';
+import { average, hourLabel, HOURS } from './peakTimesGuidance.mjs';
+import quietWindows from './peakTimesGuidance.json';
+
+export { quieterWindow } from './peakTimesGuidance.mjs';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
-const hourLabel = (hour) => `${hour % 12 || 12} ${hour < 12 ? 'AM' : 'PM'}`;
-const average = (values) => {
-  const measured = values.filter((value) => value !== null);
-  return measured.length ? measured.reduce((sum, value) => sum + value, 0) / measured.length : null;
-};
-
 const LEVELS = [
   { label: 'No data', color: 'bg-slate-200 dark:bg-slate-700' },
   { label: 'Quiet', color: 'bg-teal-300 dark:bg-teal-600' },
@@ -31,25 +28,7 @@ function summarize(grid) {
   ];
 }
 
-export function quieterWindow(grid) {
-  const firstHour = 7;
-  const windowHours = 3;
-  // Compare each window with the same room's daytime/evening use on the same days.
-  const coveredDays = grid.filter((row) => row.slice(firstHour).filter(Number.isFinite).length >= 12);
-  const windows = HOURS.slice(firstHour, 24 - windowHours + 1).flatMap((start) => {
-    const measurements = coveredDays.flatMap((row) => {
-      const hours = row.slice(start, start + windowHours);
-      return hours.every(Number.isFinite) ? [average(row.slice(firstHour)) - average(hours)] : [];
-    });
-    return measurements.length >= 5 && measurements.filter((difference) => difference >= 5).length >= 4
-      ? [{ start, improvement: average(measurements) }]
-      : [];
-  });
-  const best = windows.sort((first, second) => second.improvement - first.improvement)[0];
-  return best ? `${hourLabel(best.start)}–${hourLabel((best.start + windowHours) % 24)}` : null;
-}
-
-function UsageChart({ grid, totalSamples, capturedAt }) {
+function UsageChart({ grid, totalSamples, capturedAt, quietHours }) {
   const [selection, setSelection] = useState(null);
   const [activeCell, setActiveCell] = useState({ day: 0, hour: 0 });
   const chart = useRef(null);
@@ -79,7 +58,6 @@ function UsageChart({ grid, totalSamples, capturedAt }) {
   }
 
   const selectedValue = selection && grid[selection.day][selection.hour];
-  const quietHours = quieterWindow(grid);
 
   return (
     <>
@@ -178,8 +156,9 @@ export function RoomPeakTimes({ room, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen);
   const historyId = getRoomHistoryId(room);
   const { snapshot, failed } = usePeakTimesSnapshot(open && Boolean(historyId));
-
-  const data = snapshot?.rooms[room.historyRoomId ?? room.id];
+  const snapshotId = room.historyRoomId ?? room.id;
+  const data = snapshot?.rooms[snapshotId];
+  const quietHours = quietWindows[snapshotId];
 
   return (
     <section className="ll-panel mb-8 px-5 py-4 sm:px-6">
@@ -191,13 +170,18 @@ export function RoomPeakTimes({ room, defaultOpen = false }) {
           <span className="text-sm font-medium text-uvm-green dark:text-uvm-gold">{open ? 'Hide' : 'Show'}</span>
         </button>
       </h2>
+      {!open && quietHours && (
+        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+          Usually quieter from {quietHours} (Burlington time).
+        </p>
+      )}
+      {room.machineRange && (open || quietHours) && (
+        <p className={`${open ? 'mt-3 text-sm' : 'mt-1 text-xs'} text-slate-600 dark:text-slate-300`}>
+          The provider publishes one usage history for CCRH Floors 6 and 7.
+        </p>
+      )}
       <div id="room-peak-times" hidden={!open}>
-        {open && room.machineRange && (
-          <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
-            The provider publishes one usage history for CCRH Floors 6 and 7.
-          </p>
-        )}
-        {open && data && <UsageChart {...data} capturedAt={snapshot.capturedAt} />}
+        {open && data && <UsageChart {...data} capturedAt={snapshot.capturedAt} quietHours={quietHours} />}
         {open && historyId && !snapshot && !failed && <p role="status" className="mt-3 text-sm">Loading historical usage…</p>}
         {open && !data && (!historyId || snapshot || failed) && (
           <p role="status" className="mt-3 text-sm text-slate-600 dark:text-slate-300">

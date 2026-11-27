@@ -1,4 +1,5 @@
 import { readFile, writeFile } from 'node:fs/promises';
+import { quieterWindows } from '../src/peakTimesGuidance.mjs';
 
 const rooms = JSON.parse(await readFile(new URL('../src/laundryRooms.json', import.meta.url)));
 const history = {};
@@ -40,5 +41,9 @@ if (Object.keys(history).length === 0) throw new Error('No room history returned
 await writeFile(
   new URL('../src/peakTimesSnapshot.json', import.meta.url),
   JSON.stringify({ capturedAt: new Date().toISOString(), rooms: history }) + '\n'
+);
+await writeFile(
+  new URL('../src/peakTimesGuidance.json', import.meta.url),
+  JSON.stringify(quieterWindows(history)) + '\n'
 );
 console.log(`Downloaded peak times for ${Object.keys(history).length} rooms`);

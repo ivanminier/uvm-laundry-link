@@ -7,6 +7,8 @@ const STATUS_BASE_URL = 'https://vxpjcrk7iorjzymtfpuy5csrzm0rwugg.lambda-url.us-
 const MACHINE_BASE_URL = 'https://api.sqinsights.com/washAlert/machines';
 const ORGANIZATION_ID = '4052';
 
+export const STATUS_MAX_AGE_MS = 60_000;
+
 export const laundryRooms = [...rooms].sort((first, second) =>
   roomLabel(first).localeCompare(roomLabel(second), undefined, { numeric: true })
 );
@@ -106,6 +108,14 @@ const OTHER_STATES = new Map([
   ['READY_TO_START', 'Ready to Start'], ['DOOR_OPEN', 'Door Open'], ['RESERVED', 'Reserved'],
 ]);
 
+function parseObservationTime(value) {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?$/.test(value)) return undefined;
+  // The provider's timezone-less machine timestamps are UTC.
+  const iso = /(?:Z|[+-]\d{2}:\d{2})$/.test(value) ? value : `${value}Z`;
+  const timestamp = Date.parse(iso);
+  return Number.isFinite(timestamp) ? timestamp : undefined;
+}
+
 export function normalizeRoomStatus(payload, roomId, catalog) {
   if (!payload?.room || String(payload.room.id) !== String(roomId) ||
       !payload.machines || typeof payload.machines !== 'object' || Array.isArray(payload.machines) ||
@@ -114,8 +124,9 @@ export function normalizeRoomStatus(payload, roomId, catalog) {
   }
 
   return catalog.map((machine) => {
-    const status = payload.machines[machine.id]?.statusId;
-    const seconds = payload.machines[machine.id]?.remainingSeconds;
+    const reading = payload.machines[machine.id];
+    const status = reading?.statusId;
+    const seconds = reading?.remainingSeconds;
     const timeRemaining = IN_USE.has(status) && Number.isFinite(seconds) && seconds > 0
       ? Math.ceil(seconds / 60)
       : 0;
@@ -125,6 +136,8 @@ export function normalizeRoomStatus(payload, roomId, catalog) {
       ...machine,
       status: timeRemaining ? `${timeRemaining} min` : (status === 'ALMOST_DONE' ? 'Finishing Soon' : 'In Use'),
       timeRemaining,
+      remainingSeconds: timeRemaining ? seconds : undefined,
+      observedAt: parseObservationTime(reading.createdAt ?? reading.receivedAt),
     };
     if (FINISHED.has(status)) return { ...machine, status: 'Cycle Finished', timeRemaining };
     if (OUT_OF_ORDER.has(status)) return { ...machine, status: 'Out of Order', timeRemaining };

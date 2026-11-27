@@ -3,6 +3,7 @@ import { Zap, CheckCircle, XCircle, AlertTriangle, Clock, RefreshCw, Settings, S
 
 import { findLaundryRoom, getOfficialRoomUrl, laundryRooms, roomDisplayName, roomLabel, roomPath, machinePath, isFreeMachine, canWatchNextMachine, NEXT_WASHER_LABEL, NEXT_DRYER_LABEL } from './laundryData';
 import { useLaundryStatus } from './useLaundryStatus';
+import { nextReportedFinish } from './cycleEstimates';
 import { CAMPUS_SECTIONS, campusHeading, groupCampusRooms, roomDirectorySearchTerms } from './campusDirectory.mjs';
 import { RoomSwitcher, RoomTools } from './RoomTools';
 import { MyLaundry } from './MyLaundry';
@@ -224,7 +225,7 @@ const RoomLayout = ({ machines, effectiveDarkMode, onMachineClick }) => {
 };
 
 
-const MachineCard = React.memo(({ machine, room, stale }) => {
+const MachineCard = React.memo(({ machine, room, stale, checkedAt }) => {
   const { icon: statusIcon, textColor, bgColor, actualStatus, borderColor } = getStatusDetails(machine.status);
   const canSetAlert = !stale && (actualStatus === 'In Use' || actualStatus === 'Finishing Soon');
   const MachineTypeIcon = machine.type === 'Washer' ? Droplet : Wind;
@@ -242,7 +243,7 @@ const MachineCard = React.memo(({ machine, room, stale }) => {
     <article id={machineIdForScroll} tabIndex={-1} aria-label={machine.machineName} className={`ll-machine-card rounded-xl border ${borderColor} flex flex-col justify-between transition-shadow duration-200 hover:shadow-md`}>
       <div className="p-4">
         <div className="flex items-start justify-between mb-3">
-          <div>
+          <div className="min-w-0">
             <h3 className="text-lg font-semibold text-gray-800 dark:text-slate-100 truncate" title={String(machine.machineName || `Machine ${machine.id}`)}>
               {String(machine.machineName || `Machine ${machine.id}`)}
             </h3>
@@ -270,7 +271,7 @@ const MachineCard = React.memo(({ machine, room, stale }) => {
             {placeholderText}
           </div>
         )}
-        <MachineReport machine={machine} room={room} canSetAlert={canSetAlert} />
+        <MachineReport machine={machine} room={room} canSetAlert={canSetAlert} checkedAt={checkedAt} />
       </div>
     </article>
   );
@@ -757,6 +758,22 @@ const App = () => {
   const availableWashersInRoom = useMemo(() => allWashers.filter(isFreeMachine).length, [allWashers]);
   const availableDryersInRoom = useMemo(() => allDryers.filter(isFreeMachine).length, [allDryers]);
 
+  const checkedAtForEstimate = roomStatus.stale || isOffline ? undefined : roomStatus.checkedAt;
+  const estimateNow = Date.now();
+  const renderNextFinish = (machines, type) => {
+    const next = nextReportedFinish(machines, checkedAtForEstimate, estimateNow);
+    return next && (
+      <dd className="mt-1 break-words text-xs text-slate-600 dark:text-slate-300">
+        Next reported {type} finish in ~{Math.ceil((next.estimatedFinish - estimateNow) / 60_000)} min
+        {' · '}
+        <a href={machinePath(currentRoom, next.machine.id)} onClick={(event) => openMachine(event, currentRoom, next.machine.id)}
+          className="rounded font-semibold text-uvm-green underline focus-visible:ring-2 focus-visible:ring-uvm-green dark:text-uvm-gold dark:focus-visible:ring-uvm-gold">
+          {next.machine.machineName}
+        </a>
+      </dd>
+    );
+  };
+
   const inputBaseClasses = "ll-input w-full h-12 p-3 border rounded-lg shadow-sm transition-colors duration-200 focus:outline-none focus:ring-2";
   const inputFocusClasses = "focus:ring-uvm-gold focus:border-uvm-gold";
   const inputBorderClasses = "border-gray-300 dark:border-slate-600";
@@ -886,6 +903,7 @@ const App = () => {
                         <strong className="text-uvm-green dark:text-uvm-gold">{availableWashersInRoom} Free</strong>
                         <span className="text-xs text-slate-600 dark:text-slate-300"> / {allWashers.length} Total</span>
                       </dd>
+                      {renderNextFinish(allWashers, 'washer')}
                     </div>
                     <div className="border-l border-slate-200 pl-3 dark:border-slate-600">
                       <dt className="text-xs font-semibold text-slate-600 dark:text-slate-300">Dryers</dt>
@@ -893,6 +911,7 @@ const App = () => {
                         <strong className="text-uvm-green dark:text-uvm-gold">{availableDryersInRoom} Free</strong>
                         <span className="text-xs text-slate-600 dark:text-slate-300"> / {allDryers.length} Total</span>
                       </dd>
+                      {renderNextFinish(allDryers, 'dryer')}
                     </div>
                   </dl>
                 )}
@@ -926,7 +945,7 @@ const App = () => {
                     <NextMachineAlert key={`${currentRoom.id}-washers`} room={currentRoom} type="Washer" machines={allWashers}
                       eligible={!isOffline && !roomStatus.stale && canWatchNextMachine(allWashers, 'Washer')} />
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
-                      {allWashers.map(machine => <MachineCard key={machine.id || machine.machineName} machine={machine} room={currentRoom} stale={roomStatus.stale || isOffline} />)}
+                      {allWashers.map(machine => <MachineCard key={machine.id || machine.machineName} machine={machine} room={currentRoom} stale={roomStatus.stale || isOffline} checkedAt={checkedAtForEstimate} />)}
                     </div>
                   </div>
                 )}
@@ -936,7 +955,7 @@ const App = () => {
                     <NextMachineAlert key={`${currentRoom.id}-dryers`} room={currentRoom} type="Dryer" machines={allDryers}
                       eligible={!isOffline && !roomStatus.stale && canWatchNextMachine(allDryers, 'Dryer')} />
                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
-                       {allDryers.map(machine => <MachineCard key={machine.id || machine.machineName} machine={machine} room={currentRoom} stale={roomStatus.stale || isOffline} />)}
+                       {allDryers.map(machine => <MachineCard key={machine.id || machine.machineName} machine={machine} room={currentRoom} stale={roomStatus.stale || isOffline} checkedAt={checkedAtForEstimate} />)}
                      </div>
                   </div>
                 )}

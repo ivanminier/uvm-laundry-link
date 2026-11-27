@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { fetchRoomMachines, filterRoomMachines, fetchRoomStatus, normalizeRoomStatus } from './laundryData';
+import { fetchRoomMachines, filterRoomMachines, fetchRoomStatus, normalizeRoomStatus, STATUS_MAX_AGE_MS } from './laundryData';
 
 const REFRESH_INTERVAL_MS = 30_000;
 const REQUEST_TIMEOUT_MS = 10_000;
@@ -34,7 +34,7 @@ export function useLaundryStatus(room, { refreshInterval = REFRESH_INTERVAL_MS, 
     let nextRetry = 0;
 
     function show(busy) {
-      setState({ roomId, snapshot, busy, failed, stale: !!snapshot && (failed || Date.now() - snapshot.checkedAt > REFRESH_INTERVAL_MS * 2) });
+      setState({ roomId, snapshot, busy, failed, stale: !!snapshot && (failed || Date.now() - snapshot.checkedAt > STATUS_MAX_AGE_MS) });
     }
 
     async function update(force = false) {
