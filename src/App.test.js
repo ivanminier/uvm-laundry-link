@@ -13,6 +13,13 @@ import { canWatchNextMachine, filterRoomMachines, findLaundryRoom, getRoomHistor
 beforeEach(() => jest.spyOn(window, 'scrollTo').mockImplementation(() => {}));
 afterEach(() => jest.restoreAllMocks());
 
+// Back navigation inside the app uses history.back(), which completes on a later task as in browsers.
+const historyTraversal = () => new Promise((resolve) => {
+  const done = () => setTimeout(resolve, 0);
+  window.addEventListener('popstate', done, { once: true });
+  setTimeout(() => { window.removeEventListener('popstate', done); resolve(); }, 100);
+});
+
 const statusFixture = (entries) => ({
   room: { id: 12285 },
   machines: Object.fromEntries(entries.map(([id, statusId, remainingSeconds]) => [id, { statusId, remainingSeconds }])),
@@ -384,8 +391,9 @@ test('overlay navigation resets scroll and Back restores the original position',
       expect(document.title).toBe(`${label} | UVM LaundryLink`);
       expect(window.scrollTo).toHaveBeenLastCalledWith({ top: 0, behavior: 'instant' });
     }
-    await act(async () => { container.querySelector('main .ll-overlay-heading .ll-back-button').click(); });
+    await act(async () => { const traversal = historyTraversal(); container.querySelector('main .ll-overlay-heading .ll-back-button').click(); await traversal; });
     expect(window.scrollTo).toHaveBeenLastCalledWith({ top: 450, behavior: 'instant' });
+    expect(window.location.pathname + window.location.search + window.location.hash).toBe('/');
     expect(document.title).toBe('UVM Laundry Tracker | UVM LaundryLink');
   } finally {
     act(() => root.unmount());
@@ -440,7 +448,7 @@ test('static-page header routes open the app overlays', async () => {
       await act(async () => { root.render(<App />); });
       expect(container.textContent).toContain(expectedText);
       expect(container.querySelector('main h1').className).toBe('text-3xl lg:text-4xl font-bold');
-      expect(window.location.search).toBe('');
+      expect(window.location.search).toBe(route === 'information' ? '' : `?view=${route}`);
       if (route === 'information') {
         const informationHeader = container.querySelector('main h1').parentElement;
         expect(informationHeader.tagName).toBe('HEADER');
@@ -491,11 +499,11 @@ test('main views share the same back control', async () => {
     expect(backButton().textContent.trim()).toBe('Back');
     expect(container.textContent).toContain('What if a machine will not start?');
     expect(container.textContent).not.toContain('payment');
-    await act(async () => { backButton().click(); });
+    await act(async () => { const traversal = historyTraversal(); backButton().click(); await traversal; });
 
     await act(async () => { container.querySelector('[aria-label="My Laundry"]').click(); });
     expect(backButton().textContent.trim()).toBe('Back');
-    await act(async () => { backButton().click(); });
+    await act(async () => { const traversal = historyTraversal(); backButton().click(); await traversal; });
 
     await act(async () => { container.querySelector('[aria-label="Settings"]').click(); });
     expect(backButton().textContent.trim()).toBe('Back');
@@ -510,7 +518,7 @@ test('main views share the same back control', async () => {
     await act(async () => { rememberRoomToggle.click(); });
     expect(rememberRoomToggle.getAttribute('aria-checked')).toBe('true');
     expect(localStorage.getItem('uvmLaundryRememberRoom')).toBe('true');
-    await act(async () => { backButton().click(); });
+    await act(async () => { const traversal = historyTraversal(); backButton().click(); await traversal; });
 
     await act(async () => { container.querySelector('.ll-room-card__title').click(); });
     expect(backButton().textContent.trim()).toBe('All Rooms');
@@ -863,4 +871,163 @@ test.each([true, false])('combined reporting keeps native navigation with clipbo
     else delete navigator.clipboard;
     delete global.IS_REACT_ACT_ENVIRONMENT;
   }
+});
+
+async function withApp(url, run, { state = null, setup } = {}) {
+  global.IS_REACT_ACT_ENVIRONMENT = true;
+  window.matchMedia = jest.fn(() => ({ matches: false, addEventListener: jest.fn(), removeEventListener: jest.fn() }));
+  localStorage.clear();
+  setup?.();
+  window.history.replaceState(state, '', url);
+  global.fetch = jest.fn(async (request) => ({
+    ok: true,
+    json: async () => request.includes('/machines/') ? davisMachines
+      : request.endsWith('/alerts/status') ? { statuses: [{ active: true, machineName: 'Dryer 5' }] }
+        : { room: { id: 12254 }, machines: Object.fromEntries(davisMachines.map(({ id }) => [id, { statusId: 'IN_USE', remainingSeconds: 600 }])) },
+  }));
+  const container = document.body.appendChild(document.createElement('div'));
+  let root = createRoot(container);
+  const render = async () => { await act(async () => { root.render(<App />); }); };
+  const reload = async () => {
+    act(() => root.unmount());
+    root = createRoot(container);
+    await render();
+  };
+  const heading = () => container.querySelector('main h1')?.textContent;
+  const address = () => window.location.pathname + window.location.search + window.location.hash;
+  const click = async (element, traverses = false) => {
+    const traversal = traverses && historyTraversal();
+    await act(async () => { element.click(); await traversal; });
+  };
+  const traverse = async (direction) => {
+    const traversal = historyTraversal();
+    await act(async () => { window.history[direction](); await traversal; });
+  };
+  const back = () => container.querySelector('main .ll-overlay-heading .ll-back-button');
+  try {
+    await render();
+    await run({ container, heading, address, reload, click, traverse, back });
+  } finally {
+    act(() => root.unmount());
+    container.remove();
+    localStorage.clear();
+    window.history.replaceState(null, '', '/');
+    delete global.IS_REACT_ACT_ENVIRONMENT;
+  }
+}
+
+test('Settings and My Laundry URLs open directly and survive a refresh', async () => {
+  for (const [route, title] of [['settings', 'Settings'], ['my-laundry', 'My Laundry']]) {
+    await withApp(`/?view=${route}`, async ({ heading, address, reload, click, back }) => {
+      expect(heading()).toBe(title);
+      expect(address()).toBe(`/?view=${route}`);
+      expect(document.title).toBe(`${title} | UVM LaundryLink`);
+      await reload();
+      expect(heading()).toBe(title);
+      expect(address()).toBe(`/?view=${route}`);
+      // Opened directly, so Back stays in LaundryLink and returns to the directory.
+      await click(back());
+      expect(heading()).toBe('All Laundry Rooms');
+      expect(address()).toBe('/');
+    });
+  }
+});
+
+test('utility views opened from Home keep their URL through Back and Forward', async () => {
+  await withApp('/', async ({ container, heading, address, click, traverse, back }) => {
+    const search = container.querySelector('input[aria-label="Search rooms"]');
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(search, 'Davis');
+      search.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await click(container.querySelector('header [aria-label="Settings"]'));
+    expect(heading()).toBe('Settings');
+    expect(address()).toBe('/?view=settings');
+    await traverse('back');
+    expect(heading()).toBe('All Laundry Rooms');
+    expect(address()).toBe('/');
+    expect(container.querySelector('input[aria-label="Search rooms"]').value).toBe('Davis');
+    await traverse('forward');
+    expect(heading()).toBe('Settings');
+    expect(address()).toBe('/?view=settings');
+    // Switching utility views replaces the entry, so one Back returns home.
+    await click(container.querySelector('header [aria-label="My Laundry"]'));
+    expect(address()).toBe('/?view=my-laundry');
+    await click(container.querySelector('header [aria-label="Information"]'));
+    expect(heading()).toBe('Information');
+    expect(address()).toBe('/');
+    await click(container.querySelector('header [aria-label="My Laundry"]'));
+    await click(back(), true);
+    expect(heading()).toBe('All Laundry Rooms');
+    expect(address()).toBe('/');
+    await click(container.querySelector('header [aria-label="My Laundry"]'));
+    await click(container.querySelector('header [aria-label="UVM LaundryLink home"]'));
+    expect(heading()).toBe('All Laundry Rooms');
+    expect(address()).toBe('/');
+  });
+});
+
+test('utility views opened from a room return to that room, including after a refresh', async () => {
+  await withApp('/#room/davis-hall', async ({ container, heading, address, reload, click, traverse, back }) => {
+    expect(heading()).toContain('Davis Hall');
+    await click(container.querySelector('header [aria-label="My Laundry"]'));
+    expect(address()).toBe('/?view=my-laundry');
+    await click(back(), true);
+    expect(heading()).toContain('Davis Hall');
+    expect(address()).toBe('/#room/davis-hall');
+    await traverse('forward');
+    expect(heading()).toBe('My Laundry');
+    await traverse('back');
+    expect(heading()).toContain('Davis Hall');
+
+    await click(container.querySelector('header [aria-label="Settings"]'));
+    expect(address()).toBe('/?view=settings');
+    await reload();
+    expect(heading()).toBe('Settings');
+    expect(address()).toBe('/?view=settings');
+    await click(back());
+    expect(heading()).toContain('Davis Hall');
+    expect(address()).toBe('/#room/davis-hall');
+  });
+});
+
+test('utility URLs take precedence over the last-room startup preference', async () => {
+  const rememberRoom = () => {
+    localStorage.setItem('uvmLaundryRememberRoom', 'true');
+    localStorage.setItem('uvmLaundryLastRoom', JSON.stringify('davis'));
+  };
+  await withApp('/?view=settings', async ({ heading, address, click, back, container }) => {
+    expect(heading()).toBe('Settings');
+    expect(address()).toBe('/?view=settings');
+    expect(container.querySelector('#rememberRoomToggle').getAttribute('aria-checked')).toBe('true');
+    await click(back());
+    expect(heading()).toBe('All Laundry Rooms');
+  }, { setup: rememberRoom });
+  await withApp('/', async ({ heading, address }) => {
+    expect(heading()).toContain('Davis Hall');
+    expect(address()).toBe('/#room/davis-hall');
+  }, { setup: rememberRoom });
+  await withApp('/?view=settings#room/davis-hall?machine=5', async ({ heading, address }) => {
+    expect(heading()).toContain('Davis Hall');
+    expect(address()).toBe('/#room/davis-hall?machine=5');
+  });
+});
+
+test('My Laundry links leave the utility URL and saved alerts remain after a refresh', async () => {
+  const alertKey = 'uvmLaundryPushAlert-davis-5';
+  const id = '00000000-0000-0000-0000-000000000005';
+  await withApp('/?view=my-laundry', async ({ container, heading, address, reload, click, traverse }) => {
+    expect(container.textContent).toContain('Dryer 5');
+    await reload();
+    const machineLink = [...container.querySelectorAll('main a')].find(link => link.textContent === 'Dryer 5');
+    expect(machineLink.getAttribute('href')).toBe('#room/davis-hall?machine=5');
+    await click(machineLink);
+    expect(heading()).toContain('Davis Hall');
+    expect(address()).toBe('/#room/davis-hall?machine=5');
+    expect(document.activeElement.id).toBe('machine-card-5');
+    await traverse('back');
+    expect(heading()).toBe('My Laundry');
+    expect(address()).toBe('/?view=my-laundry');
+    expect(JSON.parse(localStorage.getItem(alertKey)).id).toBe(id);
+  }, { setup: () => localStorage.setItem(alertKey, JSON.stringify({ id, expiresAt: Date.now() + 60_000, leadMinutes: 0 })) });
 });
