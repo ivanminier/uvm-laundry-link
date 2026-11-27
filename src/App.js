@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef } from 'react';
 import { Zap, CheckCircle, XCircle, AlertTriangle, Clock, RefreshCw, Settings, Star, ArrowRight, ExternalLink, Droplet, Wind, Eye, EyeOff, Info, Search, Sun, Moon, LayoutGrid, Bell, X, Pencil, createLucideIcon } from 'lucide-react';
 
-import { findLaundryRoom, getOfficialRoomUrl, laundryRooms, roomDisplayName, roomLabel, roomPath, machinePath, isFreeMachine, canWatchNextMachine, NEXT_WASHER_LABEL, NEXT_DRYER_LABEL } from './laundryData';
+import { findLaundryRoom, getOfficialRoomUrl, laundryRooms, roomDisplayName, roomLabel, roomPath, machinePath, isFreeMachine, isReportingMachine, canWatchNextMachine, NEXT_WASHER_LABEL, NEXT_DRYER_LABEL } from './laundryData';
 import { useLaundryStatus } from './useLaundryStatus';
 import { nextReportedFinish } from './cycleEstimates';
 import { CAMPUS_SECTIONS, campusHeading, groupCampusRooms, roomDirectorySearchTerms } from './campusDirectory.mjs';
@@ -346,11 +346,12 @@ function FavoriteAvailability({ room, onStatus, offline }) {
   }, []);
 
   const counts = useMemo(() => {
-    const result = { washers: 0, dryers: 0, nextWasher: null, nextDryer: null, hasStatuses: false };
+    const result = { washers: 0, dryers: 0, nextWasher: null, nextDryer: null, hasStatuses: false, washerStatuses: false, dryerStatuses: false };
     for (const machine of machines ?? EMPTY_MACHINES) {
-      if (machine.status === 'Unknown' || machine.status === 'Offline') continue;
+      if (!isReportingMachine(machine)) continue;
       result.hasStatuses = true;
       const isWasher = machine.type === 'Washer';
+      result[isWasher ? 'washerStatuses' : 'dryerStatuses'] = true;
       if (isFreeMachine(machine)) result[isWasher ? 'washers' : 'dryers'] += 1;
       if (machine.timeRemaining > 0) {
         const key = isWasher ? 'nextWasher' : 'nextDryer';
@@ -359,7 +360,8 @@ function FavoriteAvailability({ room, onStatus, offline }) {
     }
     return result;
   }, [machines]);
-  const { washers, dryers, hasStatuses } = counts;
+  const { washers, dryers, hasStatuses, washerStatuses, dryerStatuses } = counts;
+  const hasType = (type) => machines?.some(machine => machine.type === type);
   const minutes = Math.max(0, Math.floor((Date.now() - checkedAt) / 60_000));
   const age = minutes >= 60 ? `${Math.floor(minutes / 60)} hr ago` : minutes ? `${minutes} min ago` : 'just now';
   const saved = offline || stale || minutes >= 2;
@@ -378,7 +380,11 @@ function FavoriteAvailability({ room, onStatus, offline }) {
   return (
     <div ref={container} className={keepHeight}>
       {hasStatuses ? (
-        <p className="text-sm font-semibold">{washers} {washers === 1 ? 'washer' : 'washers'} free · {dryers} {dryers === 1 ? 'dryer' : 'dryers'} free</p>
+        <p className="text-sm font-semibold">
+          {washerStatuses || !hasType('Washer') ? `${washers} ${washers === 1 ? 'washer' : 'washers'} free` : 'Washer availability unavailable'}
+          {' · '}
+          {dryerStatuses || !hasType('Dryer') ? `${dryers} ${dryers === 1 ? 'dryer' : 'dryers'} free` : 'Dryer availability unavailable'}
+        </p>
       ) : (
         <p>{machines?.length && machines.every(({ status }) => status === 'Unknown')
           ? 'All machine statuses are unknown' : 'Machine availability unavailable'}</p>
@@ -473,7 +479,7 @@ function RoomLayoutPanel({ defaultOpen, machines, effectiveDarkMode, onMachineCl
           className="flex w-full items-center justify-between gap-3 rounded-md text-left text-lg font-semibold text-slate-900 focus-visible:ring-2 focus-visible:ring-uvm-green dark:text-slate-100 dark:focus-visible:ring-uvm-gold"
           onClick={() => setOpen(!open)}>
           <span className="flex items-center gap-2"><LayoutGrid size={19} className="text-uvm-gold" aria-hidden="true" /> Room Layout</span>
-          <span className="text-sm font-medium text-uvm-green dark:text-uvm-gold">{open ? 'Hide' : 'Show'}</span>
+          <span aria-hidden="true" className="text-sm font-medium text-uvm-green dark:text-uvm-gold">{open ? 'Hide' : 'Show'}</span>
         </button>
       </h2>
       <div id="room-layout" hidden={!open}>
@@ -776,14 +782,46 @@ const App = () => {
   })).filter(({ rooms }) => rooms.length > 0), [filteredHomeRooms]);
   
   const allWashers = useMemo(() => machines.filter(machine => machine.type === 'Washer'), [machines]);
-  const unknownMachines = machines.filter(({ status }) => status === 'Unknown').length;
-  const hasUsableStatus = machines.length > unknownMachines;
+  const nonreportingMachines = machines.filter(machine => !isReportingMachine(machine)).length;
+  const offlineMachines = machines.filter(({ status }) => status === 'Offline').length;
+  const hasUsableStatus = machines.length > nonreportingMachines;
   const allDryers = useMemo(() => machines.filter(machine => machine.type === 'Dryer'), [machines]);
 
   const availableWashersInRoom = useMemo(() => allWashers.filter(isFreeMachine).length, [allWashers]);
   const availableDryersInRoom = useMemo(() => allDryers.filter(isFreeMachine).length, [allDryers]);
 
   const checkedAtForEstimate = roomStatus.stale || isOffline ? undefined : roomStatus.checkedAt;
+  const fallbackLinks = () => <>
+    <a className="font-semibold underline" href="/status/">Service status</a>
+    {' '}<a className="font-semibold underline" href={getOfficialRoomUrl(currentRoom)} target="_blank" rel="noopener noreferrer">LaundryConnect page</a>
+  </>;
+  const renderAvailability = (typeMachines, free, type) => {
+    const reporting = typeMachines.filter(isReportingMachine).length;
+    const unavailable = typeMachines.length - reporting;
+    const outOfOrder = typeMachines.filter(({ status }) => status === 'Out of Order').length;
+    return <>
+      {reporting || !typeMachines.length ? (
+        <dd className="mt-1 text-sm whitespace-nowrap">
+          <strong className="text-uvm-green dark:text-uvm-gold">{free} Free</strong>
+          <span className="text-xs text-slate-600 dark:text-slate-300"> / {typeMachines.length} Total</span>
+        </dd>
+      ) : (
+        <dd className="mt-1 text-sm">
+          <strong className="text-slate-800 dark:text-slate-100">Availability unavailable</strong>
+          <span className="text-xs text-slate-600 dark:text-slate-300"> · {typeMachines.length} Total</span>
+        </dd>
+      )}
+      {reporting > 0 && unavailable > 0 && (
+        <dd className="mt-1 text-xs text-slate-600 dark:text-slate-300">
+          {unavailable} {unavailable === 1 ? 'status' : 'statuses'} unavailable
+        </dd>
+      )}
+      {outOfOrder > 0 && outOfOrder === typeMachines.length && (
+        <dd className="mt-1 text-xs text-slate-600 dark:text-slate-300">All reported out of order</dd>
+      )}
+      {renderNextFinish(typeMachines, type)}
+    </>;
+  };
   const estimateNow = Date.now();
   const renderNextFinish = (machines, type) => {
     const next = nextReportedFinish(machines, checkedAtForEstimate, estimateNow);
@@ -914,35 +952,30 @@ const App = () => {
             )}
             {roomStatus.checkedAt && !hasUsableStatus && (
               <p role="status" className="mb-6 rounded-lg bg-amber-100 p-4 text-amber-900 dark:bg-amber-950 dark:text-amber-200">
-                The provider returned no usable machine statuses. <a className="font-semibold underline" href="/status/">Service status</a>
-                {' '}<a className="font-semibold underline" href={getOfficialRoomUrl(currentRoom)} target="_blank" rel="noopener noreferrer">LaundryConnect page</a>
+                {machines.length > 0 && offlineMachines === machines.length
+                  ? (machines.length === 1 ? 'The machine is reporting offline.' : `All ${machines.length} machines are reporting offline.`)
+                  : 'The provider returned no usable machine statuses.'}
+                {' '}{fallbackLinks()}
               </p>
             )}
             {roomStatus.checkedAt && (
               <section aria-label="Machine availability" className="ll-panel mb-8 px-5 py-4 sm:px-6">
-                {hasUsableStatus && (
+                {machines.length > 0 && (
                   <dl className="grid grid-cols-2 gap-3">
                     <div>
                       <dt className="text-xs font-semibold text-slate-600 dark:text-slate-300">Washers</dt>
-                      <dd className="mt-1 text-sm whitespace-nowrap">
-                        <strong className="text-uvm-green dark:text-uvm-gold">{availableWashersInRoom} Free</strong>
-                        <span className="text-xs text-slate-600 dark:text-slate-300"> / {allWashers.length} Total</span>
-                      </dd>
-                      {renderNextFinish(allWashers, 'washer')}
+                      {renderAvailability(allWashers, availableWashersInRoom, 'washer')}
                     </div>
                     <div className="border-l border-slate-200 pl-3 dark:border-slate-600">
                       <dt className="text-xs font-semibold text-slate-600 dark:text-slate-300">Dryers</dt>
-                      <dd className="mt-1 text-sm whitespace-nowrap">
-                        <strong className="text-uvm-green dark:text-uvm-gold">{availableDryersInRoom} Free</strong>
-                        <span className="text-xs text-slate-600 dark:text-slate-300"> / {allDryers.length} Total</span>
-                      </dd>
-                      {renderNextFinish(allDryers, 'dryer')}
+                      {renderAvailability(allDryers, availableDryersInRoom, 'dryer')}
                     </div>
                   </dl>
                 )}
-                {hasUsableStatus && unknownMachines > 0 && (
+                {hasUsableStatus && nonreportingMachines > 0 && (
                   <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                    Status unavailable for {unknownMachines} {unknownMachines === 1 ? 'machine' : 'machines'}.
+                    Status unavailable for {nonreportingMachines} {nonreportingMachines === 1 ? 'machine' : 'machines'}. These aren’t counted as free or in use.
+                    {' '}{fallbackLinks()}
                   </p>
                 )}
                 <p className={`mt-3 flex flex-wrap gap-x-2 gap-y-0.5 text-xs ${roomStatus.stale || isOffline ? 'text-yellow-700 dark:text-yellow-400' : 'text-gray-500 dark:text-slate-400'}`}>

@@ -52,10 +52,17 @@ export function isFreeMachine({ status }) {
   return FREE_MACHINE_STATUSES.has(status);
 }
 
+const NONREPORTING_MACHINE_STATUSES = new Set(['Unknown', 'Offline']);
+
+// Offline and unknown readings say nothing about whether a machine is free or in use.
+export function isReportingMachine({ status }) {
+  return !NONREPORTING_MACHINE_STATUSES.has(status);
+}
+
 export function canWatchNextMachine(machines, type) {
   const matchingMachines = machines.filter((machine) => machine.type === type);
   return matchingMachines.length > 0 &&
-    matchingMachines.every(machine => !isFreeMachine(machine) && machine.status !== 'Unknown');
+    matchingMachines.every(machine => isReportingMachine(machine) && !isFreeMachine(machine));
 }
 
 export function machinePath(room, machineId) {

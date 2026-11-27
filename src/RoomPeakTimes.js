@@ -180,7 +180,7 @@ export function RoomPeakTimes({ room, defaultOpen = false }) {
           className="flex w-full items-center justify-between gap-3 rounded-md text-left text-lg font-semibold text-slate-900 focus-visible:ring-2 focus-visible:ring-uvm-green dark:text-slate-100 dark:focus-visible:ring-uvm-gold"
           onClick={() => setOpen(!open)}>
           <span className="flex items-center gap-2"><Clock size={19} className="text-uvm-gold" aria-hidden="true" /> Peak Times</span>
-          <span className="text-sm font-medium text-uvm-green dark:text-uvm-gold">{open ? 'Hide' : 'Show'}</span>
+          <span aria-hidden="true" className="text-sm font-medium text-uvm-green dark:text-uvm-gold">{open ? 'Hide' : 'Show'}</span>
         </button>
       </h2>
       {!open && quietHours && (

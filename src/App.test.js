@@ -43,6 +43,171 @@ test('room alerts can target an unavailable machine type only when its statuses 
   expect(canWatchNextMachine(machines, 'Dryer')).toBe(false);
   expect(canWatchNextMachine([{ type: 'Dryer', status: 'Unknown' }], 'Dryer')).toBe(false);
   expect(canWatchNextMachine([], 'Washer')).toBe(false);
+  const washer = (status) => ({ type: 'Washer', status });
+  expect(canWatchNextMachine([washer('Offline'), washer('Offline')], 'Washer')).toBe(false);
+  expect(canWatchNextMachine([washer('Offline'), washer('Unknown')], 'Washer')).toBe(false);
+  expect(canWatchNextMachine([washer('In Use'), washer('Offline')], 'Washer')).toBe(false);
+  expect(canWatchNextMachine([washer('In Use'), washer('Unknown')], 'Washer')).toBe(false);
+  expect(canWatchNextMachine([washer('Offline'), { type: 'Dryer', status: 'In Use' }], 'Dryer')).toBe(true);
+  expect(canWatchNextMachine([washer('12 min'), washer('Finishing Soon'), washer('Out of Order')], 'Washer')).toBe(true);
+  expect(canWatchNextMachine([washer('Out of Order')], 'Washer')).toBe(true);
+  expect(canWatchNextMachine([washer('Reserved'), washer('Ready to Start')], 'Washer')).toBe(true);
+  expect(canWatchNextMachine([washer('In Use'), washer('Cycle Finished')], 'Washer')).toBe(false);
+});
+
+const davisMachines = [1, 2, 3, 4, 5, 6, 7, 8].map((id) => ({
+  id, machineNumber: id, washAlertIsVisible: true, machineType: { isWasher: id <= 4, isDryer: id > 4 },
+}));
+
+async function renderDavis(statusIds, assertions) {
+  global.IS_REACT_ACT_ENVIRONMENT = true;
+  window.matchMedia = jest.fn(() => ({ matches: false, addEventListener: jest.fn(), removeEventListener: jest.fn() }));
+  window.history.replaceState(null, '', '#room/davis-hall');
+  localStorage.clear();
+  let current = statusIds;
+  const payload = () => ({ room: { id: 12254 }, machines: Object.fromEntries(
+    current.map((statusId, index) => [index + 1, { statusId, remainingSeconds: 600, createdAt: new Date().toISOString() }])) });
+  global.fetch = jest.fn(async (url) => ({ ok: true, json: async () => url.includes('/machines/') ? davisMachines : payload() }));
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  const root = createRoot(container);
+  const summary = () => container.querySelector('[aria-label="Machine availability"]');
+  const values = () => [...summary().querySelectorAll('dd')].map(item => item.textContent);
+  try {
+    await act(async () => { root.render(<App />); });
+    await assertions({ container, summary, values, setStatuses: async (next) => {
+      current = next;
+      const refresh = container.querySelector('button[aria-label="Refresh machine status"]');
+      await act(async () => { refresh.click(); });
+      await act(async () => { refresh.querySelector('svg').dispatchEvent(new Event('animationend', { bubbles: true })); });
+    } });
+  } finally {
+    act(() => root.unmount());
+    container.remove();
+    localStorage.clear();
+    window.history.replaceState(null, '', '/');
+    delete global.IS_REACT_ACT_ENVIRONMENT;
+  }
+}
+
+const OFFLINE_ROOM = Array(8).fill('OFFLINE');
+
+test('an all-offline room reports unavailable availability instead of zero free machines', async () => {
+  await renderDavis(OFFLINE_ROOM, async ({ container, summary, values, setStatuses }) => {
+    expect(values()).toEqual(['Availability unavailable · 4 Total', 'Availability unavailable · 4 Total']);
+    expect(summary().textContent).not.toContain('Free');
+    expect(summary().textContent).toContain('Last checked');
+    expect(summary().textContent).not.toContain('Live');
+    expect(summary().querySelector('time').dateTime).toBeTruthy();
+    const notice = summary().previousElementSibling;
+    expect(notice.textContent).toContain('All 8 machines are reporting offline.');
+    expect(notice.querySelector('a[href="/status/"]')).not.toBeNull();
+    expect(notice.querySelector('a[href="https://laundryconnectlive.com/live/loc_c578c6"]')).not.toBeNull();
+    expect(container.textContent).not.toContain('Notify me when a washer opens');
+    expect(container.textContent).not.toContain('Notify me when a dryer opens');
+    expect(container.querySelectorAll('[id^="machine-card-"]')).toHaveLength(8);
+    expect(container.querySelector('#machine-card-1').textContent).toContain('Offline');
+
+    // Recovery to usable statuses restores counts and eligible alerts.
+    await setStatuses(['AVAILABLE', 'IN_USE', 'IN_USE', 'IN_USE', 'IN_USE', 'IN_USE', 'IN_USE', 'IN_USE']);
+    expect(values()).toEqual(['1 Free / 4 Total', '0 Free / 4 Total', 'Next reported dryer finish in ~10 min · Dryer 5']);
+    expect(summary().textContent).toContain('Live · Last updated');
+    expect(container.textContent).not.toContain('reporting offline');
+    expect(container.textContent).not.toContain('Notify me when a washer opens');
+    expect(container.textContent).toContain('Notify me when a dryer opens');
+  });
+});
+
+test('all-unknown and mixed nonreporting rooms keep the unavailable state', async () => {
+  await renderDavis(Array(8).fill('SOMETHING_NEW'), async ({ container, summary, values, setStatuses }) => {
+    expect(values()).toEqual(['Availability unavailable · 4 Total', 'Availability unavailable · 4 Total']);
+    expect(summary().previousElementSibling.textContent).toContain('The provider returned no usable machine statuses.');
+    await setStatuses(['OFFLINE', 'SOMETHING_NEW', 'OFFLINE', 'OFFLINE', 'OFFLINE', 'OFFLINE', 'SOMETHING_NEW', 'OFFLINE']);
+    expect(values()).toEqual(['Availability unavailable · 4 Total', 'Availability unavailable · 4 Total']);
+    expect(summary().previousElementSibling.textContent).toContain('The provider returned no usable machine statuses.');
+    expect(container.textContent).not.toContain('Notify me when');
+  });
+});
+
+test('partial reporting loss keeps known free counts per machine type', async () => {
+  // Washers: two available, two offline. Dryers: all offline.
+  await renderDavis(['AVAILABLE', 'DOOR_OPEN', 'OFFLINE', 'OFFLINE', 'OFFLINE', 'OFFLINE', 'OFFLINE', 'OFFLINE'], async ({ container, summary, values, setStatuses }) => {
+    expect(values()).toEqual(['2 Free / 4 Total', '2 statuses unavailable', 'Availability unavailable · 4 Total']);
+    expect(summary().textContent).toContain('Status unavailable for 6 machines. These aren’t counted as free or in use.');
+    expect(summary().querySelector('a[href="/status/"]')).not.toBeNull();
+    expect(summary().textContent).toContain('Live · Last updated');
+    expect(container.textContent).not.toContain('Notify me when');
+
+    // Washers all offline, dryers reporting normally and all running.
+    await setStatuses(['OFFLINE', 'OFFLINE', 'OFFLINE', 'OFFLINE', 'IN_USE', 'IN_USE', 'IN_USE', 'IN_USE']);
+    expect(values()).toEqual(['Availability unavailable · 4 Total', '0 Free / 4 Total', 'Next reported dryer finish in ~10 min · Dryer 5']);
+    expect(container.textContent).not.toContain('Notify me when a washer opens');
+    expect(container.textContent).toContain('Notify me when a dryer opens');
+
+    // A running washer alongside an offline washer is not a confirmed full room.
+    await setStatuses(['IN_USE', 'IN_USE', 'IN_USE', 'OFFLINE', 'COMPLETE', 'IN_USE', 'IN_USE', 'IN_USE']);
+    expect(values()[0]).toBe('0 Free / 4 Total');
+    expect(values()[1]).toBe('1 status unavailable');
+    expect(container.textContent).not.toContain('Notify me when a washer opens');
+    expect(container.textContent).not.toContain('Notify me when a dryer opens');
+  });
+});
+
+test('genuinely full and out-of-order rooms keep known zero-free states', async () => {
+  await renderDavis(['IN_USE', 'IN_USE', 'READY_TO_START', 'RESERVED', 'OUT_OF_ORDER', 'OUT_OF_ORDER', 'OUT_OF_ORDER', 'OUT_OF_ORDER'], async ({ container, summary, values }) => {
+    expect(values()).toEqual(['0 Free / 4 Total', 'Next reported washer finish in ~10 min · Washer 1', '0 Free / 4 Total', 'All reported out of order']);
+    expect(summary().textContent).not.toContain('Status unavailable');
+    expect(summary().previousElementSibling.textContent).not.toContain('offline');
+    expect(container.textContent).toContain('Notify me when a washer opens');
+    expect(container.textContent).toContain('Notify me when a dryer opens');
+  });
+});
+
+test('a stale saved snapshot keeps its label and offers no new room alerts', async () => {
+  global.IS_REACT_ACT_ENVIRONMENT = true;
+  window.matchMedia = jest.fn(() => ({ matches: false, addEventListener: jest.fn(), removeEventListener: jest.fn() }));
+  window.history.replaceState(null, '', '#room/davis-hall');
+  localStorage.clear();
+  const checkedAt = Date.now() - 30 * 60_000;
+  localStorage.setItem('washAlertRoom-v2-davis', JSON.stringify({ checkedAt, machines: [
+    { id: '1', number: '1', type: 'Washer', machineName: 'Washer 1', status: 'Offline', timeRemaining: 0 },
+    { id: '5', number: '5', type: 'Dryer', machineName: 'Dryer 5', status: 'In Use', timeRemaining: 0 },
+  ] }));
+  global.fetch = jest.fn(async () => { throw new Error('Network down'); });
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  const root = createRoot(container);
+  try {
+    await act(async () => { root.render(<App />); });
+    const summary = container.querySelector('[aria-label="Machine availability"]');
+    expect(container.textContent).toContain('Live refresh failed. Showing the last saved machine statuses.');
+    expect([...summary.querySelectorAll('dd')].map(item => item.textContent)).toEqual(['Availability unavailable · 1 Total', '0 Free / 1 Total']);
+    expect(summary.textContent).toContain('Saved snapshot');
+    expect(summary.querySelector('time').dateTime).toBe(new Date(checkedAt).toISOString());
+    expect(container.textContent).not.toContain('Notify me when');
+  } finally {
+    act(() => root.unmount());
+    container.remove();
+    localStorage.clear();
+    window.history.replaceState(null, '', '/');
+    delete global.IS_REACT_ACT_ENVIRONMENT;
+  }
+});
+
+test('Peak Times and Room Layout headings keep their names separate from the disclosure state', async () => {
+  await renderDavis(OFFLINE_ROOM, async ({ container }) => {
+    for (const name of ['Peak Times', 'Room Layout']) {
+      const heading = [...container.querySelectorAll('h2')].find(element => element.textContent.trim().startsWith(name));
+      const button = heading.querySelector('button[aria-expanded]');
+      const hidden = [...button.querySelectorAll('[aria-hidden="true"]')].filter(element => !element.matches('svg'));
+      expect(hidden.map(element => element.textContent)).toEqual([button.getAttribute('aria-expanded') === 'true' ? 'Hide' : 'Show']);
+      const visibleName = [...button.childNodes].filter(node => !node.matches?.('[aria-hidden="true"]')).map(node => node.textContent).join('').trim();
+      expect(visibleName).toBe(name);
+      const expanded = button.getAttribute('aria-expanded');
+      await act(async () => { button.click(); });
+      expect(button.getAttribute('aria-expanded')).toBe(expanded === 'true' ? 'false' : 'true');
+    }
+  });
 });
 
 test('the bundled room directory accepts known provider IDs and deep-link aliases', () => {
@@ -528,7 +693,7 @@ test('quiet guidance requires a recurring signal and sufficient history', () => 
 test('favorite counts distinguish CCRH floors that share a provider feed', async () => {
   global.IS_REACT_ACT_ENVIRONMENT = true;
   window.matchMedia = jest.fn(() => ({ matches: false, addEventListener: jest.fn(), removeEventListener: jest.fn() }));
-  localStorage.setItem('uvmLaundryFavorites', JSON.stringify(['central_campus_6', 'central_campus_7', 'christie']));
+  localStorage.setItem('uvmLaundryFavorites', JSON.stringify(['central_campus_6', 'central_campus_7', 'christie', 'davis']));
   const metadata = [45, 56, 62].map((id) => ({
     id, machineNumber: id, washAlertIsVisible: true,
     machineType: { isWasher: id !== 62, isDryer: id === 62 },
@@ -539,8 +704,11 @@ test('favorite counts distinguish CCRH floors that share a provider feed', async
   const christie = findLaundryRoom('christie');
   global.fetch = jest.fn(async (url) => ({
     ok: true,
-    json: async () => url.includes('/machines/') ? metadata
-      : url.endsWith('/12247') ? payload : { room: { id: christie.providerId }, machines: { 45: { statusId: 'UNKNOWN' } } },
+    json: async () => url.endsWith('/machines/12254') ? davisMachines.filter(({ id }) => id === 1 || id === 5)
+      : url.includes('/machines/') ? metadata
+      : url.endsWith('/12247') ? payload
+        : url.endsWith('/12254') ? { room: { id: 12254 }, machines: { 1: { statusId: 'OFFLINE' }, 5: { statusId: 'IN_USE' } } }
+          : { room: { id: christie.providerId }, machines: { 45: { statusId: 'UNKNOWN' } } },
   }));
   const container = document.createElement('div');
   document.body.appendChild(container);
@@ -554,6 +722,8 @@ test('favorite counts distinguish CCRH floors that share a provider feed', async
     const christieCard = container.querySelector('[aria-label="Remove Christie Hall from favorites"]').closest('article');
     expect(christieCard.textContent).toContain('All machine statuses are unknown');
     expect(christieCard.textContent).not.toContain('0 washers free');
+    const davisCard = container.querySelector('[aria-label="Remove Davis Hall from favorites"]').closest('article');
+    expect(davisCard.textContent).toContain('Washer availability unavailable · 0 dryers free');
   } finally {
     act(() => root.unmount());
     container.remove();

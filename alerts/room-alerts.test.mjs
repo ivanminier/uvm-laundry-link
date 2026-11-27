@@ -176,3 +176,87 @@ test('directory analytics accept only aggregate categories and honor privacy sig
   assert.equal(await post('/referrals', { category: 'google', page: 'campus' }, { 'Sec-GPC': '1' }), 204);
   assert.equal(writes.length, 6);
 });
+
+test('next-room alerts require usable statuses for every watched machine and keep existing alerts through outages', async (t) => {
+  const db = new DatabaseSync(':memory:');
+  t.after(() => db.close());
+  let alarmTime = null;
+  const deliveries = [];
+  const env = {
+    VAPID_PRIVATE_KEY: 'fixture', VAPID_PUBLIC_KEY: 'fixture',
+    ALERT_REQUESTS: { limit: async () => ({ success: true }) },
+    testDeliver: async (message) => { deliveries.push(message); return 'accepted'; },
+  };
+  const alertRoom = new RoomAlerts({
+    waitUntil() {},
+    storage: {
+      getAlarm: async () => alarmTime,
+      setAlarm: async (time) => { alarmTime = time; },
+      sql: { exec: (sql, ...args) => {
+        const statement = db.prepare(sql);
+        if (statement.columns().length) return { toArray: () => statement.all(...args) };
+        statement.run(...args);
+        return { toArray: () => [] };
+      } },
+    },
+  }, env);
+  env.ROOM_ALERTS = { getByName: () => alertRoom };
+  const machines = Object.fromEntries(catalog.map(({ id }) => [id, { statusId: 'IN_USE', receivedAt: '2026-11-27T05:00:00Z' }]));
+  t.mock.method(globalThis, 'fetch', async (url) => url.includes('/washAlert/machines/')
+    ? Response.json(catalog.map(({ id, number, type }) => ({
+      id, machineNumber: number, washAlertIsVisible: true,
+      machineType: { isWasher: type === 'Washer', isDryer: type === 'Dryer' },
+    })))
+    : Response.json({ room: { id: roomId }, machines }));
+  const call = (path, body) => worker.fetch(new Request('https://alerts.uvmlaundry.com' + path, {
+    method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+  }), env);
+  const washerIds = washers[floor6].map(([id]) => id);
+  const dryerIds = dryers.map(({ id }) => id);
+  const setAll = (ids, statusId) => ids.forEach((id) => { machines[id] = { statusId, receivedAt: '2026-11-27T05:00:00Z' }; });
+  const register = (floor, machineId, machineIds) => call('/alerts', { roomId: floor, machineId, machineIds, subscription });
+  const status = async (floor, id) => (await call('/alerts/status', { roomId: floor, id })).json();
+
+  for (const statusId of ['OFFLINE', 'UNAVAILABLE', 'NETWORK_ERROR', 'SOMETHING_NEW']) {
+    setAll(washerIds, statusId);
+    const response = await register(floor6, 'nextWasher', washerIds);
+    assert.equal(response.status, 409, statusId);
+    assert.match((await response.json()).error ?? '', /Could not confirm/);
+  }
+  // Mixed offline and unknown, and one nonreporting machine among confirmed running machines.
+  setAll(washerIds, 'IN_USE');
+  machines[washerIds[0]].statusId = 'OFFLINE';
+  assert.equal((await register(floor6, 'nextWasher', washerIds)).status, 409);
+  if (washerIds.length > 1) machines[washerIds[1]].statusId = 'SOMETHING_NEW';
+  assert.equal((await register(floor6, 'nextWasher', washerIds)).status, 409);
+  assert.equal(db.prepare('SELECT COUNT(*) AS count FROM alerts').get().count, 0);
+
+  // One type entirely offline does not block the other type.
+  setAll(dryerIds, 'IN_USE');
+  setAll(washers[floor7].map(([id]) => id), 'OFFLINE');
+  const dryer = await (await register(floor7, 'nextDryer', dryerIds)).json();
+  assert.ok(dryer.id);
+
+  // Known out-of-order machines remain a known status, as before.
+  setAll(washerIds, 'IN_USE');
+  machines[washerIds[0]].statusId = 'OUT_OF_ORDER';
+  const washer = await (await register(floor6, 'nextWasher', washerIds)).json();
+  assert.ok(washer.id);
+
+  // Existing alerts stay active, re-registration returns the same alert, and nothing is sent while machines report offline.
+  setAll(washerIds, 'OFFLINE');
+  setAll(dryerIds, 'OFFLINE');
+  assert.equal((await (await register(floor6, 'nextWasher', washerIds)).json()).id, washer.id);
+  await alertRoom.alarm();
+  assert.equal(deliveries.length, 0);
+  assert.equal((await status(floor6, washer.id)).active, true);
+  assert.equal((await status(floor7, dryer.id)).active, true);
+  assert.equal((await call('/alerts/cancel', { roomId: floor7, id: dryer.id })).status, 200);
+  assert.equal((await status(floor7, dryer.id)).active, false);
+
+  // Recovery: a watched washer reporting free again delivers the existing alert.
+  machines[washerIds[0]] = { statusId: 'AVAILABLE', receivedAt: '2026-11-27T05:00:01Z' };
+  await alertRoom.alarm();
+  assert.deepEqual(deliveries.map(({ path }) => path), [`#room/ccrh-floor-6?machine=${washerIds[0]}`]);
+  assert.equal((await status(floor6, washer.id)).active, false);
+});

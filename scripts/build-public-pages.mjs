@@ -240,7 +240,11 @@ const hallPages = hallList.map((hall) => {
     : livingLearning ? ` in rooms ${formatList.format(roomCodes)}`
     : locationNames.length ? ` in ${formatList.format(locationNames)}` : '';
   const campusLocation = hall.campus === 'north' ? 'in the Trinity and North campus area' : `on ${campusPlace(hall.campus)}`;
-  const intro = `${hall.name}’s laundry ${hall.rooms.length === 1 ? 'room is' : 'rooms are'}${complexLocation} ${campusLocation}${locations}.`;
+  const roomCount = hall.rooms.length === 1 ? 'room' : 'rooms';
+  const roomVerb = hall.rooms.length === 1 ? 'is' : 'are';
+  const intro = hall.name.endsWith('s')
+    ? `The laundry ${roomCount} at ${hall.name} ${roomVerb}${complexLocation} ${campusLocation}${locations}.`
+    : `${hall.name}’s laundry ${roomCount} ${roomVerb}${complexLocation} ${campusLocation}${locations}.`;
   const splitNote = central
     ? '<p class="site-note">UVM LaundryLink groups machine numbers 45–55 under Floor 6 and 56–62 under Floor 7. LaundryConnect Live lists those two floors together, including their shared Peak Times history.</p>' : '';
   const roomCards = list(hall.rooms.map((room) => {

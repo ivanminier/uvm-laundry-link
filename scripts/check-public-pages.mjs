@@ -127,7 +127,20 @@ for (const text of [about, await read(informationPath), await read('/sitemap/')]
   assert.match(text, /href="\/terms\/">Terms of Use<\/a>/);
 }
 for (const text of [privacy, terms]) assert.match(text, /href="\/about\/">About UVM LaundryLink<\/a>/);
-assert.doesNotMatch(await read('/compare/'), /filter by campus|search for a machine number|filter by status/);
+const compare = await read('/compare/');
+assert.doesNotMatch(compare, /filter by campus|search for a machine number|filter by status/);
+for (const fact of [/Search or browse the UVM room selector/, /Save Room option/, /browser push notification option for finished laundry/,
+  /email or text notice when the cycle finishes or about five minutes early/, /weekly heatmap and its busiest and quietest hours/,
+  /problem report and a full service request/, /laundry tips, and FAQs/]) assert.match(compare, fact);
+const cottages = await read('/residence-halls/the-cottages/');
+assert.doesNotMatch(cottages, /s’s laundry/);
+assert.match(cottages, /The laundry room at The Cottages is /);
+const manifest = JSON.parse(await read('/manifest.json'));
+assert.equal(manifest.name, 'UVM LaundryLink');
+assert.equal(manifest.start_url, './?source=pwa');
+assert.equal(manifest.display, 'standalone');
+assert.equal(manifest.icons.length, 3);
+assert.equal('iarc_rating_id' in manifest, false);
 const status = await read('/status/');
 assert.match(status, /Machine status feed responded with status data for \d+ of \d+ provider rooms\./);
 assert.match(status, /<time datetime="\d{4}-\d{2}-\d{2}T/);
