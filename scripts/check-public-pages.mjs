@@ -58,6 +58,7 @@ for (let index = 0; index < routes.length; index += 6) {
     assert.doesNotMatch(body, /<footer\b/, pathname);
     for (const [, target] of body.matchAll(/<a [^>]*href="(\/[^"#]*)(?:#[^"]*)?"/g)) {
       const targetPath = new URL(target, canonicalOrigin).pathname;
+      if (pathname === '/about/' && targetPath === '/cdn-cgi/l/email-protection') continue;
       assert.ok(paths.has(targetPath), `Broken link on ${pathname}: ${target}`);
     }
     if (pathname.startsWith('/residence-halls/') && pathname !== '/residence-halls/' && !pathname.includes('/campuses/')) {
@@ -70,7 +71,15 @@ const about = await read('/about/');
 assert.match(about, /Independent student project by Ivan Minier · \d{4}/);
 assert.match(about, /operates independently of the University of Vermont and Automatic Laundry/);
 assert.match(about, /based on data reported by Automatic Laundry/);
-assert.match(about, /href="mailto:ivan.minier@uvm.edu"/);
+const feedbackLink = about.match(/href="([^"]+)">email Ivan Minier<\/a>/)?.[1];
+const protectedEmail = feedbackLink?.match(/^\/cdn-cgi\/l\/email-protection#([0-9a-f]+)$/i)?.[1];
+let feedbackAddress = feedbackLink?.replace(/^mailto:/, '');
+if (protectedEmail) {
+  // Cloudflare obfuscates mailto links on the production domain.
+  const [key, ...bytes] = Buffer.from(protectedEmail, 'hex');
+  feedbackAddress = Buffer.from(bytes.map(byte => byte ^ key)).toString('utf8');
+}
+assert.equal(feedbackAddress, 'ivan.minier@uvm.edu');
 assert.match(about, /Alerts expire after four hours/);
 assert.doesNotMatch(await read('/compare/'), /filter by campus|search for a machine number|filter by status/);
 const status = await read('/status/');
