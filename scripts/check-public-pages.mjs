@@ -132,13 +132,17 @@ const headerRules = await readFile(new URL('../public/_headers', import.meta.url
 assert.ok(headerRules.includes(themeHash), 'Report-only CSP permits the current theme initializer');
 assert.doesNotMatch(headerRules, /^\s*Content-Security-Policy:/mi, 'CSP enforcement requires approval');
 if (endpoint && origin === canonicalOrigin) {
-  for (const path of ['/', '/residence-halls/wright-hall/', informationPath, '/about/', '/service-worker.js']) {
+  for (const [path, status] of [
+    ['/', 200], ['/residence-halls/wright-hall/', 200], [informationPath, 200], ['/about/', 200],
+    ['/this-laundrylink-page-does-not-exist/', 404],
+  ]) {
     const response = await fetch(origin + path, { method: 'HEAD', signal: AbortSignal.timeout(10_000) });
-    assert.equal(response.status, 200, path);
+    assert.equal(response.status, status, path);
     assert.equal(response.headers.get('strict-transport-security'), 'max-age=86400', path);
     assert.equal(response.headers.get('x-frame-options'), 'DENY', path);
     assert.equal(response.headers.get('permissions-policy'), 'camera=(), microphone=(), geolocation=()', path);
     assert.ok(response.headers.get('content-security-policy-report-only')?.includes(themeHash), path);
+    assert.equal(response.headers.get('content-security-policy'), null, path);
   }
 }
 const evaluateTheme = (preferences, systemDark) => {
