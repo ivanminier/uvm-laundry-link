@@ -85,7 +85,13 @@ assert.equal(feedbackAddress, 'ivan.minier@uvm.edu');
 const privacy = await read('/privacy/');
 const terms = await read('/terms/');
 assert.match(privacy, /Alerts expire after four hours/);
+assert.match(privacy, /A pending alert can still be active on the alerts service/);
+assert.match(privacy, /no automatic expiration set for these counts/);
+assert.match(privacy, /It still counts aggregate push outcomes/);
+assert.match(privacy, /If this Privacy Policy changes, the effective date on this page will be updated/);
 assert.match(terms, /Reasonable use and availability/);
+assert.match(terms, /To the extent permitted by applicable law/);
+assert.match(terms, /These terms may change/);
 for (const text of [about, await read(informationPath), await read('/sitemap/')]) {
   assert.match(text, /href="\/privacy\/">Privacy Policy<\/a>/);
   assert.match(text, /href="\/terms\/">Terms of Use<\/a>/);
