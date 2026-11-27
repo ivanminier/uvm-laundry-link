@@ -1,0 +1,9 @@
+# Only the LaundryLink custom domain gets the initial 24-hour HSTS policy.
+https://uvmlaundry.com/*
+  Strict-Transport-Security: max-age=86400
+
+/*
+  X-Frame-Options: DENY
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  # Review console violations before enabling enforcement. The theme hash is checked at build validation.
+  Content-Security-Policy-Report-Only: default-src 'none'; base-uri 'none'; object-src 'none'; script-src 'self' 'sha256-M1magliuYPfwVsXaZrK2sRYpZMJYqrP5lfHZkfTo3PU=' https://static.cloudflareinsights.com/beacon.min.js; script-src-attr 'none'; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self'; font-src 'self'; connect-src 'self' https://alerts.uvmlaundry.com https://api.sqinsights.com https://vxpjcrk7iorjzymtfpuy5csrzm0rwugg.lambda-url.us-east-1.on.aws; frame-src https://laundryconnectlive.com; worker-src 'self'; manifest-src 'self'; form-action 'self'

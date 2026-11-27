@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { roomPath } from '../src/roomLinks.mjs';
 import { independenceDisclosure, machineStatusDefinitions, informationPath, informationQuestions } from '../src/informationContent.mjs';
 import { readFile } from 'node:fs/promises';
@@ -126,6 +127,20 @@ for (const room of rooms) {
 }
 const themeScript = (await read('/')).match(/<script id="laundrylink-theme-init">([\s\S]*?)<\/script>/)?.[1];
 assert.ok(themeScript, 'Theme initialization script');
+const themeHash = `'sha256-${createHash('sha256').update(themeScript).digest('base64')}'`;
+const headerRules = await readFile(new URL('../public/_headers', import.meta.url), 'utf8');
+assert.ok(headerRules.includes(themeHash), 'Report-only CSP permits the current theme initializer');
+assert.doesNotMatch(headerRules, /^\s*Content-Security-Policy:/mi, 'CSP enforcement requires approval');
+if (endpoint && origin === canonicalOrigin) {
+  for (const path of ['/', '/residence-halls/wright-hall/', informationPath, '/about/', '/service-worker.js']) {
+    const response = await fetch(origin + path, { method: 'HEAD', signal: AbortSignal.timeout(10_000) });
+    assert.equal(response.status, 200, path);
+    assert.equal(response.headers.get('strict-transport-security'), 'max-age=86400', path);
+    assert.equal(response.headers.get('x-frame-options'), 'DENY', path);
+    assert.equal(response.headers.get('permissions-policy'), 'camera=(), microphone=(), geolocation=()', path);
+    assert.ok(response.headers.get('content-security-policy-report-only')?.includes(themeHash), path);
+  }
+}
 const evaluateTheme = (preferences, systemDark) => {
   const root = { dataset: {}, dark: false, classList: { toggle: (_, value) => { root.dark = value; } } };
   runInNewContext(themeScript, {
