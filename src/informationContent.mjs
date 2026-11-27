@@ -65,6 +65,8 @@ export const informationResources = [
   ['Compare trackers', '/compare/'],
   ['Service status', '/status/'],
   ['Site map', '/sitemap/'],
+  ['Privacy Policy', '/privacy/'],
+  ['Terms of Use', '/terms/'],
   ['Request service', requestService, true],
   ['Automatic Laundry app help', 'https://automaticlaundry.com/faq/for-our-apps/', true],
   ['UVM Housing help center', 'https://www.uvm.edu/housingdining/help-center', true],
