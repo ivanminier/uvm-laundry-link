@@ -389,6 +389,40 @@ html.dark .ll-back-button {
   color: var(--ll-muted);
 }
 
+.ll-select {
+  position: relative;
+}
+
+.ll-select__trigger {
+  display: flex;
+  width: 100%;
+  min-height: 2.75rem;
+  margin-top: 0.4rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--ll-line);
+  border-radius: 0.5rem;
+  background: var(--ll-surface);
+  color: var(--ll-ink);
+  font-size: 0.875rem;
+  text-align: left;
+}
+
+.ll-select__trigger:focus-visible {
+  outline: 3px solid var(--ll-focus);
+  outline-offset: 2px;
+}
+
+.ll-select__trigger[aria-expanded="true"] .ll-dropdown__arrow {
+  transform: rotate(180deg);
+}
+
+.ll-select__list {
+  max-width: none;
+}
+
 .ll-room-location {
   margin: -0.5rem 0 1.25rem;
   color: var(--ll-muted);

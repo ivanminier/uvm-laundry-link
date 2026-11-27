@@ -107,7 +107,7 @@ const campusDirectory = (showRooms = false) => directoryCampuses.map(({ id, name
     <h2 class="ll-campus-section__title" id="${id}-title">${link(campusPath, name)}</h2>
     ${showRooms ? complexes.map(({ title, path, halls }) => {
       const headingId = id + '-' + slugify(title);
-      return `<section class="ll-complex-section" aria-labelledby="${headingId}">
+      return `<section class="ll-complex-section" aria-labelledby="${id}-title ${headingId}">
         <h3 class="ll-complex-section__title" id="${headingId}">${link(path, title)}</h3>
         <ul class="ll-room-grid">${halls.map(sitemapHallCard).join('')}</ul>
       </section>`;

@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Check, ChevronDown } from 'lucide-react';
 
 import { NEXT_WASHER, NEXT_WASHER_LABEL, NEXT_DRYER, NEXT_DRYER_LABEL } from './laundryData';
 import { alertsRequest, getSavedAlert, recordKey, removeSavedAlert, saveAlert } from './pushAlerts';
@@ -10,6 +11,103 @@ export { hasPushAlert } from './pushAlerts';
 function decodeApplicationKey(base64url) {
   const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/').padEnd(88, '=');
   return Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
+}
+
+const TIMING_OPTIONS = [
+  { value: 0, label: 'When the cycle ends' },
+  { value: 5, label: 'About 5 minutes early' },
+];
+
+// Uses the room switcher's listbox styling instead of the platform's native select.
+function TimingSelect({ value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const [activeValue, setActiveValue] = useState(value);
+  const root = useRef(null);
+  const trigger = useRef(null);
+  const list = useRef(null);
+  const selected = TIMING_OPTIONS.find((option) => option.value === value);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    function dismissOutside(event) {
+      if (!root.current?.contains(event.target)) setOpen(false);
+    }
+    document.addEventListener('pointerdown', dismissOutside);
+    document.addEventListener('focusin', dismissOutside);
+    return () => {
+      document.removeEventListener('pointerdown', dismissOutside);
+      document.removeEventListener('focusin', dismissOutside);
+    };
+  }, [open]);
+
+  useLayoutEffect(() => {
+    if (open) list.current.querySelector('[data-active]')?.focus({ preventScroll: true });
+  }, [open, activeValue]);
+
+  function openList() {
+    setActiveValue(value);
+    setOpen(true);
+  }
+
+  function closeList() {
+    setOpen(false);
+    trigger.current.focus({ preventScroll: true });
+  }
+
+  function choose(optionValue) {
+    onChange(optionValue);
+    closeList();
+  }
+
+  function handleListKey(event) {
+    const index = TIMING_OPTIONS.findIndex((option) => option.value === activeValue);
+    const last = TIMING_OPTIONS.length - 1;
+    if (event.key === 'Escape') {
+      // Close only the list, not the surrounding dialog.
+      event.preventDefault();
+      event.stopPropagation();
+      closeList();
+    } else if (event.key === 'Tab') {
+      trigger.current.focus({ preventScroll: true });
+      setOpen(false);
+    } else if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
+      event.preventDefault();
+      const next = { ArrowDown: index + 1, ArrowUp: index - 1, Home: 0, End: last }[event.key];
+      setActiveValue(TIMING_OPTIONS[Math.max(0, Math.min(next, last))].value);
+    }
+  }
+
+  return (
+    <div className="ll-select" ref={root}>
+      <span id="alert-timing-label" className="block text-sm font-medium">Send a push notification</span>
+      <button id="alert-timing" ref={trigger} type="button" className="ll-select__trigger"
+        aria-haspopup="listbox" aria-expanded={open} aria-controls={open ? 'alert-timing-options' : undefined}
+        aria-labelledby="alert-timing-label alert-timing"
+        onClick={() => open ? closeList() : openList()}
+        onKeyDown={(event) => {
+          if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault();
+            openList();
+          }
+        }}>
+        <span>{selected.label}</span>
+        <ChevronDown className="ll-dropdown__arrow" size={17} aria-hidden="true" />
+      </button>
+      {open && (
+        <div id="alert-timing-options" ref={list} role="listbox" aria-labelledby="alert-timing-label"
+          className="ll-dropdown__list ll-select__list" onKeyDown={handleListKey}>
+          {TIMING_OPTIONS.map((option) => (
+            <button key={option.value} type="button" role="option" tabIndex={-1}
+              aria-selected={option.value === value} data-active={option.value === activeValue ? '' : undefined}
+              className="ll-dropdown__option" onClick={() => choose(option.value)}>
+              <span>{option.label}</span>
+              {option.value === value && <Check size={16} aria-hidden="true" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function PushAlertForm({ machine, room, canSetAlert, watchType, machines }) {
@@ -155,16 +253,7 @@ export function PushAlertForm({ machine, room, canSetAlert, watchType, machines 
         </>
       ) : canSetAlert ? (
         <>
-          {!watchRoom && (
-            <>
-              <label htmlFor="alert-timing" className="block text-sm font-medium">Send a push notification</label>
-              <select id="alert-timing" value={leadMinutes} onChange={(event) => setLeadMinutes(Number(event.target.value))}
-                className="ll-input min-h-[44px] w-full rounded-lg border px-3 text-sm">
-                <option value={0}>When the cycle ends</option>
-                <option value={5}>About 5 minutes early</option>
-              </select>
-            </>
-          )}
+          {!watchRoom && <TimingSelect value={leadMinutes} onChange={setLeadMinutes} />}
           <button type="button" onClick={subscribe} disabled={busy || !publicKey}
             className="min-h-[44px] w-full rounded-lg bg-uvm-green px-3 text-sm font-semibold text-white hover:bg-green-900 disabled:opacity-50">
             {busy ? 'Setting alert…' : watchRoom ? 'Notify me' : 'Set Push Alert'}

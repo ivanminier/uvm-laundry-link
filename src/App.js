@@ -920,7 +920,7 @@ const App = () => {
   const renderComplexSection = (section, sectionCampus) => {
     const headingId = `room-group-${sectionCampus}-${section.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
     return (
-      <section key={headingId} className="ll-complex-section" aria-labelledby={headingId}>
+      <section key={headingId} className="ll-complex-section" aria-labelledby={`campus-rooms-${sectionCampus}-title ${headingId}`}>
         <h3 id={headingId} className="ll-complex-section__title">{section.title}</h3>
         {renderRoomCards(section.rooms, 4)}
       </section>

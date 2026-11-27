@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Bell, ExternalLink, Smartphone, Wrench, XCircle } from 'lucide-react';
+import { Bell, CalendarPlus, ExternalLink, Smartphone, Wrench, XCircle } from 'lucide-react';
 import { BackButton } from './BackButton';
 import { getOfficialRoomUrl, getRoomHistoryId, roomLabel, STATUS_MAX_AGE_MS } from './laundryData';
 import { hasPushAlert, PushAlertForm } from './PushAlertForm';
@@ -31,7 +31,7 @@ function CalendarReminder({ machine, room, checkedAt }) {
     }
     try {
       downloadCycleCalendar({ machine, room, finish, now });
-      setMessage('Open the calendar file to import the reminder.');
+      setMessage('Calendar file ready. Open it to add the reminder.');
     } catch {
       setMessage('The calendar file could not be opened or downloaded.');
     }
@@ -40,17 +40,17 @@ function CalendarReminder({ machine, room, checkedAt }) {
   return (
     <>
       {finish && (
-        <div className="mt-4 border-t border-slate-200 pt-3 dark:border-slate-600">
+        <>
           <button type="button" onClick={download}
-            className="min-h-[44px] rounded font-semibold text-uvm-green underline focus-visible:ring-2 focus-visible:ring-uvm-green dark:text-uvm-gold dark:focus-visible:ring-uvm-gold">
-            Add calendar reminder
+            className="mt-3 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-lg border border-slate-300 px-3 text-sm font-semibold text-uvm-green hover:bg-green-50 dark:border-slate-600 dark:text-uvm-gold dark:hover:bg-slate-700">
+            <CalendarPlus size={16} aria-hidden="true" /> Add to Calendar
           </button>
-          <p className="text-xs text-slate-600 dark:text-slate-300">
-            Uses the current finish estimate. Changes to the cycle won’t update this reminder. Alerts depend on your calendar app and settings.
+          <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">
+            Calendar reminders use the current finish estimate and won’t update if the cycle changes.
           </p>
-        </div>
+        </>
       )}
-      {message && <p role="status" className="mt-2 text-sm">{message}</p>}
+      {message && <p role="status" className="mt-2 text-xs text-slate-600 dark:text-slate-300">{message}</p>}
     </>
   );
 }
