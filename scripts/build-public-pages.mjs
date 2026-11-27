@@ -1,6 +1,7 @@
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { CAMPUS_SECTIONS, groupCampusRooms } from '../src/campusDirectory.mjs';
 import { roomPath } from '../src/roomLinks.mjs';
+import { homeScreenSteps, informationPath, informationQuestions, informationResources, urgentMachinePhone, urgentMachineTel } from '../src/informationContent.mjs';
 import { checkSources } from './check-sources.mjs';
 import { articles, service } from './site-content.mjs';
 
@@ -43,7 +44,7 @@ const header = () => `<header class="ll-site-header"><div class="ll-header-inner
   <a href="/" class="ll-brand"><img src="/brand-mark.svg" alt="" aria-hidden="true" class="ll-brand__mark"><span class="ll-brand__name">UVM LaundryLink</span></a>
   <div class="ll-header-actions">
     <a class="ll-icon-button" href="/?view=my-laundry" aria-label="My Laundry" title="My Laundry"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg></a>
-    <a class="ll-icon-button" href="/?view=information" aria-label="Information" title="Information"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></a>
+    <a class="ll-icon-button" href="${informationPath}" aria-label="Information" title="Information"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></a>
     <a class="ll-icon-button" href="/?view=settings" aria-label="Settings" title="Settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.09a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></a>
   </div>
 </div></div></header>`;
@@ -159,6 +160,7 @@ function head(page) {
   <link rel="stylesheet" href="/site.css">
   ${page.path !== '/' ? '<link rel="stylesheet" href="/room-directory.css">' : ''}
   <script src="/referrals.js" defer></script>
+  <script src="/scroll-edge.js" defer></script>
   <script type="application/ld+json">${pageSchema(page)}</script>`;
 }
 
@@ -182,7 +184,7 @@ const home = {
   html: `<p class="site-note">Live machine status and alerts require JavaScript. The campus directory and hall pages work without it.</p>
     <h2>Find your laundry room</h2><p>${link('/residence-halls/', 'Browse the full campus laundry directory')} or pick a campus below.</p>
     ${list(directoryCampuses.map(({ path, name }) => link(path, name)), 'campus-grid')}
-    <h2>How to track laundry at UVM</h2><p>Choose your hall, open the live room tracker, and check which washers or dryers are available. A running machine can show time remaining and offer a cycle alert. Open ${link('/?view=information', 'Information')} for help with statuses and alerts.</p>`,
+    <h2>How to track laundry at UVM</h2><p>Choose your hall, open the live room tracker, and check which washers or dryers are available. A running machine can show time remaining and offer a cycle alert. Open ${link(informationPath, 'Information')} for help with statuses and alerts.</p>`,
 };
 const directory = {
   path: '/residence-halls/', title: 'UVM Campus Laundry Directory | UVM LaundryLink',
@@ -268,7 +270,19 @@ const status = {
   description: 'See when UVM laundry sources were last checked, how to recognize saved machine status, and where to go during an outage.',
   intro: 'Check the latest automated results and see what each machine status means.',
   layout: 'status', trail: siteTrail,
-  html: `<div class="site-panel-grid">
+  html: `<div role="status">
+    <p id="status-offline" class="site-offline-notice" hidden><strong>You’re offline.</strong> Showing the last saved service checks.</p>
+  </div>
+  <script>
+    (() => {
+      const notice = document.getElementById('status-offline');
+      const updateConnection = () => { notice.hidden = navigator.onLine !== false; };
+      window.addEventListener('online', updateConnection);
+      window.addEventListener('offline', updateConnection);
+      updateConnection();
+    })();
+  </script>
+  <div class="site-panel-grid">
     <section class="site-panel site-panel-wide">
       <h2>Last automated checks</h2>
       <p>Checked ${time(health.checkedAt)}.</p>
@@ -298,6 +312,27 @@ const articlePages = articles.map((page) => ({
   ...page, path: `/${page.slug}/`, heading: page.title, title: `${page.title} | UVM LaundryLink`,
   trail: siteTrail, html: page.layout ? page.html : `<div class="site-copy">${page.html}</div>`,
 }));
+const informationParts = (parts) => parts.map((part) => {
+  if (typeof part === 'string') return escape(part);
+  return part.href ? link(part.href, part.label) : `<strong>${escape(part.emphasis)}</strong>`;
+}).join('');
+const information = {
+  path: informationPath, title: 'UVM Laundry Information and FAQ | UVM LaundryLink', heading: 'Information',
+  description: 'Learn how to do laundry at UVM, find residence hall washers and dryers, read Peak Times, get cycle alerts, and request repairs.',
+  intro: 'Find your UVM laundry room, check for open machines, and get help with alerts and repairs.',
+  layout: 'information', trail: siteTrail, backHref: '/',
+  html: `<section class="site-panel site-information-panel">
+    <h2>Frequently Asked Questions</h2>
+    ${informationQuestions.map(([question, answer, afterHomeScreenSteps]) => `<details>
+      <summary>${escape(question)}</summary>
+      <div><p>${informationParts(answer)}</p>
+        ${afterHomeScreenSteps ? `<ol>${homeScreenSteps.map(step => `<li>${informationParts(step)}</li>`).join('')}</ol><p>${escape(afterHomeScreenSteps)}</p>` : ''}
+      </div></details>`).join('')}
+    <h2>More Resources</h2>
+    ${list(informationResources.map(([label, href]) => link(href, label)), 'site-information-resources')}
+    <p>For urgent machine issues, call ${link(urgentMachineTel, urgentMachinePhone)}.</p>
+  </section>`,
+};
 const sitemapPage = {
   path: '/sitemap/', title: 'UVM LaundryLink Site Map', heading: 'Site map',
   description: 'Browse every UVM LaundryLink page, including campus laundry rooms, service information, and site details.',
@@ -307,14 +342,14 @@ const sitemapPage = {
     link('/about/', 'About UVM LaundryLink'),
     link('/residence-halls/', 'Campus laundry directory'),
     link('/compare/', 'Compare trackers'),
-    link('/?view=information', 'Information'),
+    link(informationPath, 'Information'),
     link('/', 'Laundry tracker home'),
     link('/?view=my-laundry', 'Notifications'),
     link('/status/', 'Service status'),
     link('/?view=settings', 'Settings'),
   ], 'site-map-key-links')}</section>${campusDirectory(true)}`,
 };
-const pages = [home, directory, ...campusPages, ...complexPages, ...hallPages, ...articlePages, status, sitemapPage];
+const pages = [home, directory, ...campusPages, ...complexPages, ...hallPages, ...articlePages, status, information, sitemapPage];
 
 const verifications = [
   ['google-site-verification', process.env.GOOGLE_SITE_VERIFICATION],
@@ -343,7 +378,7 @@ await writeFile(new URL('404.html', build), `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex"><title>Page not found | UVM LaundryLink</title>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="stylesheet" href="/site.css">
-<link rel="stylesheet" href="/room-directory.css">${themeScript}</head>
+<link rel="stylesheet" href="/room-directory.css"><script src="/scroll-edge.js" defer></script>${themeScript}</head>
 <body class="public-page">${header()}<main class="site-wrap site-main site-app-view animate-fadeIn">
   <section class="site-panel site-not-found">
     <h1>Page not found</h1>

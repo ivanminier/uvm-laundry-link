@@ -17,7 +17,7 @@ jobs:
   refresh:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 12
     permissions:
       contents: write
     steps:
@@ -43,6 +43,9 @@ jobs:
           git fetch origin main
           git rebase origin/main
           git push origin HEAD:main
+      # The production domain uses the Cloudflare Pages Git integration, which receives bot pushes.
+      - name: Verify snapshots on the public site
+        run: node scripts/verify-nightly-publication.mjs
       - name: Report a failed Peak Times fetch
         if: steps.peak-times.outcome == 'failure'
         run: |

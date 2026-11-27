@@ -4,7 +4,9 @@ import { BackButton } from './BackButton';
 import { getOfficialRoomUrl, getRoomHistoryId, roomLabel } from './laundryData';
 import { hasPushAlert, PushAlertForm } from './PushAlertForm';
 
-export const SERVICE_REQUEST_URL = 'https://automaticlaundry.com/request-service/';
+import { requestService as SERVICE_REQUEST_URL } from './informationContent.mjs';
+
+export { SERVICE_REQUEST_URL };
 
 function MachineDialog({ machine, room, mode, canSetAlert, onClose, onModeChange }) {
   const dialog = useRef(null);

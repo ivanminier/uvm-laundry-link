@@ -1,0 +1,149 @@
+import assert from 'node:assert/strict';
+import { generateKeyPairSync, randomBytes } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { registerHooks } from 'node:module';
+import { DatabaseSync } from 'node:sqlite';
+import test from 'node:test';
+import { runInNewContext } from 'node:vm';
+
+const origin = 'https://uvmlaundry.com';
+const pushModule = new URL('./push.js', import.meta.url).href;
+const mockPush = 'data:text/javascript,' + encodeURIComponent(
+  `export { parseSubscription } from ${JSON.stringify(pushModule)};
+   export const deliverPush = (subscription, message, env) => env.testDeliver(message);`
+);
+const mockWorker = 'data:text/javascript,' + encodeURIComponent(
+  'export class DurableObject { constructor(ctx, env) { this.ctx = ctx; this.env = env; } }'
+);
+const hooks = registerHooks({
+  resolve(specifier, context, next) {
+    if (specifier === 'cloudflare:workers') return next(mockWorker, context);
+    if (specifier === './push') return next(mockPush, context);
+    if (/^\.{1,2}\//.test(specifier) && !/\.[a-z]+$/.test(specifier)) {
+      return next(specifier + '.js', context);
+    }
+    return next(specifier, context);
+  },
+  load(url, context, next) {
+    if (!url.endsWith('.json')) return next(url, context);
+    return { format: 'module', shortCircuit: true, source: 'export default ' + readFileSync(new URL(url), 'utf8') };
+  },
+});
+const { default: worker, RoomAlerts } = await import('./worker.js');
+hooks.deregister();
+
+const floor6 = 'central_campus_6';
+const floor7 = 'central_campus_7';
+const roomId = '12247';
+const washers = JSON.parse(readFileSync(new URL('./room-washers.json', import.meta.url)));
+const catalog = JSON.parse(readFileSync(new URL('./ccrh-machines.json', import.meta.url)));
+const dryers = catalog.filter(machine => machine.type === 'Dryer' && Number(machine.number) >= 56);
+const { x, y } = generateKeyPairSync('ec', { namedCurve: 'prime256v1' }).publicKey.export({ format: 'jwk' });
+const subscription = {
+  endpoint: 'https://fcm.googleapis.com/fcm/send/fixture',
+  keys: {
+    p256dh: Buffer.concat([Buffer.from([4]), Buffer.from(x, 'base64url'), Buffer.from(y, 'base64url')]).toString('base64url'),
+    auth: randomBytes(16).toString('base64url'),
+  },
+};
+
+test('next-room alerts survive failed feeds, reject stale reports, use exact floors and machine types, and deep-link after delivery', async (t) => {
+  assert.ok(dryers.length, 'Floor 7 dryer fixtures');
+  const db = new DatabaseSync(':memory:');
+  t.after(() => db.close());
+  let alarmTime = null;
+  const deliveries = [];
+  const env = {
+    VAPID_PRIVATE_KEY: 'fixture', VAPID_PUBLIC_KEY: 'fixture',
+    ALERT_REQUESTS: { limit: async () => ({ success: true }) },
+    testDeliver: async (message) => { deliveries.push(message); return 'accepted'; },
+  };
+  const alertRoom = new RoomAlerts({
+    waitUntil() {},
+    storage: {
+      getAlarm: async () => alarmTime,
+      setAlarm: async (time) => { alarmTime = time; },
+      sql: { exec: (sql, ...args) => {
+        const statement = db.prepare(sql);
+        if (statement.columns().length) return { toArray: () => statement.all(...args) };
+        statement.run(...args);
+        return { toArray: () => [] };
+      } },
+    },
+  }, env);
+  env.ROOM_ALERTS = { getByName: (name) => { assert.equal(name, roomId); return alertRoom; } };
+
+  const machines = Object.fromEntries(catalog.map(({ id }) => [id, { statusId: 'IN_USE', receivedAt: '2026-11-27T05:00:00Z' }]));
+  let outage = false;
+  t.mock.method(globalThis, 'fetch', async (url) => {
+    if (url.includes('/washAlert/machines/')) {
+      return Response.json(catalog.map(({ id, number, type }) => ({
+        id, machineNumber: number, washAlertIsVisible: true,
+        machineType: { isWasher: type === 'Washer', isDryer: type === 'Dryer' },
+      })));
+    }
+    return outage ? new Response('', { status: 503 }) : Response.json({ room: { id: roomId }, machines });
+  });
+
+  const call = (path, body) => worker.fetch(new Request('https://alerts.uvmlaundry.com' + path, {
+    method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+  }), env);
+  const washerIds = washers[floor6].map(([id]) => id);
+  const dryerIds = dryers.map(({ id }) => id);
+  const register = async (floor, machineId, machineIds) =>
+    call('/alerts', { roomId: floor, machineId, machineIds, subscription });
+  const status = async (floor, id) => (await call('/alerts/status', { roomId: floor, id })).json();
+
+  machines[washerIds[0]].statusId = 'COMPLETE';
+  assert.equal((await register(floor6, 'nextWasher', washerIds)).status, 409);
+  machines[washerIds[0]].statusId = 'IN_USE';
+  assert.equal((await register(floor7, 'nextDryer', [washerIds[0]])).status, 503);
+
+  const washer = await (await register(floor6, 'nextWasher', washerIds)).json();
+  const cancelled = await (await register(floor7, 'nextDryer', dryerIds)).json();
+  assert.equal((await status(floor6, washer.id)).active, true);
+  assert.equal((await status(floor7, washer.id)).active, false);
+  assert.equal((await call('/alerts/cancel', { roomId: floor7, id: cancelled.id })).status, 200);
+  assert.equal((await status(floor7, cancelled.id)).active, false);
+  const dryer = await (await register(floor7, 'nextDryer', dryerIds)).json();
+
+  outage = true;
+  await alertRoom.alarm();
+  assert.equal(deliveries.length, 0);
+  assert.equal((await status(floor7, dryer.id)).active, true);
+  outage = false;
+  machines[washers[floor7][0][0]].statusId = 'AVAILABLE';
+  await alertRoom.alarm();
+  assert.equal(deliveries.length, 0);
+
+  machines[washerIds[0]] = { statusId: 'AVAILABLE', receivedAt: '2026-11-27T04:59:59Z' };
+  machines[dryerIds[0]] = { statusId: 'DOOR_OPEN', receivedAt: '2026-11-27T05:00:00Z' };
+  await alertRoom.alarm();
+  assert.equal(deliveries.length, 0);
+
+  machines[washerIds[0]] = { statusId: 'COMPLETE', receivedAt: '2026-11-27T05:00:01Z' };
+  machines[dryerIds[0]] = { statusId: 'DOOR_OPEN', receivedAt: '2026-11-27T05:00:01Z' };
+  await alertRoom.alarm();
+  assert.deepEqual(new Set(deliveries.map(({ path }) => path)), new Set([
+    `#room/ccrh-floor-6?machine=${washerIds[0]}`, `#room/ccrh-floor-7?machine=${dryerIds[0]}`,
+  ]));
+  assert.equal((await status(floor6, washer.id)).active, false);
+  assert.equal((await status(floor7, dryer.id)).active, false);
+
+  const handlers = new Map();
+  let opened;
+  runInNewContext(readFileSync(new URL('../public/service-worker.js', import.meta.url), 'utf8'), {
+    URL, self: {
+      location: { origin },
+      addEventListener: (event, handler) => handlers.set(event, handler),
+      clients: { matchAll: async () => [], openWindow: (url) => { opened = url; } },
+    },
+  });
+  let clicked;
+  handlers.get('notificationclick')({
+    notification: { close() {}, data: { path: deliveries[0].path } },
+    waitUntil: (promise) => { clicked = promise; },
+  });
+  await clicked;
+  assert.equal(opened, origin + '/' + deliveries[0].path);
+});

@@ -1,5 +1,7 @@
 const CACHE_NAME = 'laundrylink-static-v3';
-const SHELL_URLS = ['/index.html', '/manifest.json', '/favicon.ico', '/logo192.png', '/logo512.png'];
+const SHELL_URLS = ['/index.html', '/manifest.json', '/favicon.ico', '/favicon.svg', '/apple-touch-icon.png',
+  '/logo192.png', '/logo512.png',
+  '/status/', '/site.css', '/room-directory.css', '/scroll-edge.js'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_URLS)).then(() => self.skipWaiting()));

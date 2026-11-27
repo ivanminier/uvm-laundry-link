@@ -29,7 +29,9 @@ test('room alerts can target an unavailable machine type only when its statuses 
     { type: 'Washer', status: 'Cycle Finished' },
     { type: 'Dryer', status: 'Available' },
   ];
-  expect(canWatchNextMachine(machines, 'Washer')).toBe(true);
+  expect(canWatchNextMachine(machines, 'Washer')).toBe(false);
+  expect(canWatchNextMachine([{ type: 'Washer', status: 'In Use' }], 'Washer')).toBe(true);
+  expect(canWatchNextMachine([{ type: 'Dryer', status: 'Door Open' }], 'Dryer')).toBe(false);
   expect(canWatchNextMachine(machines, 'Dryer')).toBe(false);
   expect(canWatchNextMachine([{ type: 'Dryer', status: 'Unknown' }], 'Dryer')).toBe(false);
   expect(canWatchNextMachine([], 'Washer')).toBe(false);
@@ -191,7 +193,7 @@ test('static-page header routes open the app overlays', async () => {
         expect(container.querySelector('a[href="/compare/"]')).not.toBeNull();
         expect(container.querySelector('a[href="/sitemap/"]')).not.toBeNull();
         expect(container.querySelector('a[href="/status/"]')).not.toBeNull();
-        expect(Array.from(container.querySelectorAll('a[href="/about/"], a[href="/compare/"], a[href="/status/"], a[href="/sitemap/"]'), (anchor) => anchor.textContent.trim()))
+        expect(Array.from(container.querySelectorAll('section li a:is([href="/about/"], [href="/compare/"], [href="/status/"], [href="/sitemap/"])'), (anchor) => anchor.textContent.trim()))
           .toEqual(['About UVM LaundryLink', 'Compare trackers', 'Service status', 'Site map']);
       }
     } finally {
@@ -282,7 +284,7 @@ test('switching CCRH floors excludes the legacy combined cache and saves each fl
     machineType: { isWasher: number < 50 || number === 56, isDryer: number === 55 || number === 62 },
   }));
   const payload = { room: { id: 12247 }, machines: Object.fromEntries(
-    metadata.map(({ id }) => [id, { statusId: id === '56' ? 'IN_USE' : 'AVAILABLE' }])
+    metadata.map(({ id }) => [id, { statusId: ({ 45: 'COMPLETE', 55: 'DOOR_OPEN', 56: 'IN_USE', 62: 'AVAILABLE' })[id] }])
   ) };
   global.fetch = jest.fn(async (url) => ({ ok: true, json: async () => url.includes('/machines/') ? metadata : payload }));
   const container = document.createElement('div');
@@ -295,15 +297,29 @@ test('switching CCRH floors excludes the legacy combined cache and saves each fl
     expect(cards()).toEqual(['Washer 45', 'Dryer 55']);
     expect(window.location.hash).toBe('#room/ccrh-floor-6');
     expect(container.textContent).not.toContain('Notify me when a washer opens');
-    expect(container.querySelector('main h2').textContent).toBe('CCRH');
+    expect(container.querySelector('main h2').textContent).toContain('CCRH');
     const header = container.querySelector('.ll-room-header');
-    expect(header.querySelector('#room-switcher')).not.toBeNull();
-    expect([...header.querySelectorAll('button')].map(button => button.textContent.trim())).toEqual(['All Rooms']);
-    expect(header.querySelector('a')).toBeNull();
-    expect(container.querySelector('#statusFilter').style.backgroundImage).toBe('');
-    expect(container.querySelectorAll('#room-switcher')).toHaveLength(1);
-    expect(container.querySelector('#room-switcher').selectedOptions[0].textContent).toBe('CCRH · Floor 6');
-    expect(container.querySelector('#room-switcher option[value="cottage256"]').textContent).toBe('The Cottages · Cottage #256');
+    const switcher = header.querySelector('#room-switcher');
+    expect(switcher.getAttribute('aria-label')).toBe('Switch room: CCRH · Floor 6');
+    expect(header.querySelector('a, select')).toBeNull();
+    expect([...container.querySelectorAll('[aria-label="Machine availability"] dt')].map(item => item.textContent)).toEqual(['Washers', 'Dryers']);
+    expect([...container.querySelectorAll('[aria-label="Machine availability"] dd')].map(item => item.textContent)).toEqual(['1 Free / 1 Total', '1 Free / 1 Total']);
+    expect(container.textContent).not.toContain('Notify me when a dryer opens');
+    await act(async () => { switcher.click(); });
+    const roomOptions = [...header.querySelectorAll('[role="option"]')];
+    expect(roomOptions.slice(0, 3).map(option => option.textContent)).toEqual(['Christie Hall', 'Wright Hall', 'Patterson Hall']);
+    expect(roomOptions.find(option => option.textContent === 'The Cottages · Cottage #256')
+      .closest('[role="group"]').getAttribute('aria-label')).toBe('Trinity and North Campuses · Other Buildings');
+    expect(roomOptions.find(option => option.getAttribute('aria-selected') === 'true').textContent).toBe('CCRH · Floor 6');
+    await act(async () => {
+      document.activeElement.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    });
+    expect(document.activeElement).toBe(switcher);
+
+    const availability = container.querySelector('[aria-label="Machine availability"]');
+    expect(availability.nextElementSibling.querySelector('h3').textContent).toContain('Peak Times');
+    expect(availability.querySelector('time').dateTime).toBeTruthy();
+    expect(container.querySelector('#search, #statusFilter')).toBeNull();
 
     await act(async () => {
       window.history.replaceState(null, '', '#room/central-campus-flr-7?machine=62');
@@ -314,8 +330,8 @@ test('switching CCRH floors excludes the legacy combined cache and saves each fl
     expect(container.textContent).toContain('Notify me when a washer opens');
     expect(document.activeElement.id).toBe('machine-card-62');
     expect(container.querySelectorAll('a[aria-label^="Link to "]')).toHaveLength(0);
-    expect(container.querySelector('main h2').textContent).toBe('CCRH');
-    expect(container.querySelector('#room-switcher').selectedOptions[0].textContent).toBe('CCRH · Floor 7');
+    expect(container.querySelector('main h2').textContent).toContain('CCRH');
+    expect(switcher.getAttribute('aria-label')).toBe('Switch room: CCRH · Floor 7');
     const snapshot = (floor) => JSON.parse(localStorage.getItem(`washAlertRoom-v2-central_campus_${floor}`));
     expect(snapshot(6).machines.map(({ number }) => Number(number)).sort()).toEqual([45, 55]);
     expect(snapshot(7).machines.map(({ number }) => Number(number)).sort()).toEqual([56, 62]);

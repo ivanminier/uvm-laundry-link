@@ -1,3 +1,10 @@
+:root { --site-header: #154734; }
+
+html[data-at-top],
+html[data-at-top] .public-page {
+  background-color: var(--site-header);
+}
+
 .public-page {
   color-scheme: light;
   --paper: #f3f4ef;
@@ -10,7 +17,8 @@
   --gold: #d7a123;
   min-height: 100vh;
   margin: 0;
-  background: var(--paper);
+  background-color: var(--paper);
+  background-image: linear-gradient(var(--paper), var(--paper));
   color: var(--text);
   font: 1rem/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", sans-serif;
 }
@@ -67,7 +75,7 @@ html.dark .public-page {
   top: 0;
   z-index: 50;
   border-bottom: 1px solid rgb(255 255 255 / 12%);
-  background: #154734;
+  background: var(--site-header);
   color: #fff;
 }
 
@@ -114,14 +122,12 @@ html.dark .public-page {
 }
 
 .ll-brand__name {
-  overflow: hidden;
+  overflow-wrap: anywhere;
   transition: color 140ms ease, text-shadow 140ms ease;
   font-size: clamp(1.05rem, 2.1vw, 1.35rem);
   font-weight: 720;
   letter-spacing: -0.035em;
   text-decoration: none;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .ll-brand:hover .ll-brand__name,
@@ -368,6 +374,21 @@ html.dark .public-page {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.site-offline-notice {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #fcd34d;
+  border-radius: 0.5rem;
+  background: #fffbeb;
+  color: #451a03;
+}
+
+.dark .site-offline-notice {
+  border-color: #92400e;
+  background: #451a03;
+  color: #fef3c7;
+}
+
 .site-panel-wide {
   grid-column: 1 / -1;
 }
@@ -609,4 +630,36 @@ html.dark .site-directory .site-room-info {
   line-height: 1.15;
   font-size: clamp(1.875rem, 4vw, 2.5rem);
   letter-spacing: -0.035em;
+}
+
+.site-information {
+  width: min(42rem, calc(100% - 2rem));
+}
+
+.site-information .site-information-panel details {
+  border-top: 1px solid var(--line);
+}
+
+.site-information-panel summary {
+  padding-block: 0.65rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.site-information-panel details > div {
+  padding: 0 0 0.75rem 1rem;
+  color: var(--muted);
+}
+
+.site-information-panel details + h2 {
+  margin-top: 1.5rem;
+}
+
+.site-information-resources {
+  padding-left: 0;
+  list-style: none;
+}
+
+.site-information-resources li + li {
+  margin-top: 0.5rem;
 }

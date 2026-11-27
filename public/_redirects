@@ -1,9 +1,9 @@
-/laundry-guide /?view=information 301
-/laundry-guide/ /?view=information 301
-/laundry-guide/index.html /?view=information 301
-/faq /?view=information 301
-/faq/ /?view=information 301
-/faq/index.html /?view=information 301
+/laundry-guide /information/ 301
+/laundry-guide/ /information/ 301
+/laundry-guide/index.html /information/ 301
+/faq /information/ 301
+/faq/ /information/ 301
+/faq/index.html /information/ 301
 /residence-halls/austin-hall /residence-halls/marsh-and-austin-hall/ 301
 /residence-halls/austin-hall/ /residence-halls/marsh-and-austin-hall/ 301
 /residence-halls/austin-hall/index.html /residence-halls/marsh-and-austin-hall/ 301

@@ -44,10 +44,16 @@ export const NEXT_WASHER_LABEL = 'Next available washer';
 export const NEXT_DRYER = 'nextDryer';
 export const NEXT_DRYER_LABEL = 'Next available dryer';
 
+const FREE_MACHINE_STATUSES = new Set(['Available', 'Cycle Finished', 'Door Open']);
+
+export function isFreeMachine({ status }) {
+  return FREE_MACHINE_STATUSES.has(status);
+}
+
 export function canWatchNextMachine(machines, type) {
   const matchingMachines = machines.filter((machine) => machine.type === type);
   return matchingMachines.length > 0 &&
-    matchingMachines.every(({ status }) => status !== 'Available' && status !== 'Unknown');
+    matchingMachines.every(machine => !isFreeMachine(machine) && machine.status !== 'Unknown');
 }
 
 export function machinePath(room, machineId) {
@@ -90,6 +96,10 @@ export async function fetchRoomMachines(roomId, signal) {
 
 const IN_USE = new Set(['IN_USE', 'ALMOST_DONE', 'LUCKY_CYCLE']);
 const FINISHED = new Set(['COMPLETE', 'END_OF_CYCLE', 'CYCLE_COMPLETE', 'CYCLE_FINISHED', 'CLOTHES_LEFT', 'EOC']);
+export function isProviderStatusFree(status) {
+  return status === 'AVAILABLE' || status === 'DOOR_OPEN' || FINISHED.has(status);
+}
+
 const OUT_OF_ORDER = new Set(['OUT_OF_ORDER', 'OUT_OF_SERVICE', 'ERROR']);
 const OFFLINE = new Set(['OFFLINE', 'NETWORK_ERROR', 'UNAVAILABLE', 'DOWN']);
 const OTHER_STATES = new Map([

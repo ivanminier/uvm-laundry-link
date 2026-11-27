@@ -4,6 +4,10 @@ export const CAMPUS_SECTIONS = [
   ['central', 'Central'],
   ['north', 'Trinity and North'],
 ];
+export function campusHeading(campus, label) {
+  return label + (campus === 'north' ? ' Campuses' : ' Campus');
+}
+
 const CAMPUS_COMPLEXES = {
   redstone: [
     { title: 'CWPSCR', roomIds: ['christie', 'cwp', 'patterson', 'slade', 'coolidge', 'redstone'] },

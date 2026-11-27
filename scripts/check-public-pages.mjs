@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { roomPath } from '../src/roomLinks.mjs';
+import { informationPath, informationQuestions } from '../src/informationContent.mjs';
 import { readFile } from 'node:fs/promises';
 import { runInNewContext } from 'node:vm';
 
@@ -24,7 +25,7 @@ const routes = Array.from((await read('/sitemap.xml')).matchAll(/<loc>(.*?)<\/lo
 const paths = new Set(routes.map(({ pathname }) => pathname));
 assert.equal(routes.length, paths.size, 'Unique sitemap entries');
 assert.ok(!paths.has('/laundry-guide/') && !paths.has('/faq/'), 'Retired pages have no sitemap entry');
-for (const path of ['/', '/residence-halls/', '/residence-halls/wright-hall/', '/residence-halls/marsh-and-austin-hall/', '/residence-halls/living-learning/', '/status/', '/about/', '/compare/', '/sitemap/']) {
+for (const path of ['/', '/residence-halls/', '/residence-halls/wright-hall/', '/residence-halls/marsh-and-austin-hall/', '/residence-halls/living-learning/', '/status/', '/about/', '/compare/', '/sitemap/', informationPath]) {
   assert.ok(paths.has(path), path);
 }
 const titles = new Set();
@@ -75,7 +76,10 @@ assert.match(status, /<time datetime="\d{4}-\d{2}-\d{2}T/);
 const sitemapPage = await read('/sitemap/');
 for (const path of paths) if (path !== '/sitemap/') assert.ok(sitemapPage.includes(`href="${path}"`), `HTML sitemap entry for ${path}`);
 assert.doesNotMatch(sitemapPage, /href="\/sitemap\/"/);
-for (const view of ['my-laundry', 'information', 'settings']) assert.ok(sitemapPage.includes(`href="/?view=${view}"`));
+for (const view of ['my-laundry', 'settings']) assert.ok(sitemapPage.includes(`href="/?view=${view}"`));
+const information = await read(informationPath);
+for (const [question] of informationQuestions) assert.ok(information.includes(`<summary>${question}</summary>`), question);
+assert.match(information, /<strong>Add to Home Screen<\/strong>/);
 const directoryPage = await read('/residence-halls/');
 for (const [path, text] of [
   ['/residence-halls/', directoryPage], ['/sitemap/', sitemapPage], ['/status/', status],
@@ -125,6 +129,18 @@ const robots = await read('/robots.txt');
 assert.match(robots, /User-agent: \*\s+Allow: \/\s+Sitemap: https:\/\/uvmlaundry\.com\/sitemap\.xml/);
 assert.doesNotMatch(robots, /Disallow: \/(?:\s|$)/);
 if (endpoint) {
+  for (const [legacy, target] of [
+    ['/faq', informationPath],
+    ['/laundry-guide', informationPath],
+    ['/residence-halls/austin-hall', '/residence-halls/marsh-and-austin-hall/'],
+  ]) {
+    for (const suffix of ['', '/', '/index.html']) {
+      const response = await fetch(origin + legacy + suffix, { redirect: 'manual', signal: AbortSignal.timeout(10_000) });
+      assert.equal(response.status, 301, legacy + suffix);
+      assert.equal(new URL(response.headers.get('location'), origin).href, origin + target, legacy + suffix);
+      await response.body?.cancel();
+    }
+  }
   const missing = await read('/this-laundrylink-page-does-not-exist/', 404);
   assert.match(missing, /Page not found/);
   for (const userAgent of ['Googlebot', 'bingbot', 'OAI-SearchBot', 'Google-Extended']) {

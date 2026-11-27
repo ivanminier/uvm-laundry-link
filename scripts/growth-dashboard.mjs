@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { chmodSync, existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -25,7 +25,10 @@ mkdirSync(dirname(output), { recursive: true, mode: 0o700 });
 const canonicalRoot = realpathSync(projectRoot);
 const canonicalOutput = resolve(realpathSync(dirname(output)), basename(output));
 if (isWithin(canonicalOutput, canonicalRoot)) throw new Error('Private dashboard output must be outside the repository');
-if (existsSync(output) && lstatSync(output).isSymbolicLink()) throw new Error('Refusing to overwrite a dashboard symlink');
+for (const target of [output, reportOutput]) {
+  const existing = lstatSync(target, { throwIfNoEntry: false });
+  if (existing && !existing.isFile()) throw new Error('Private reports can only replace regular files');
+}
 
 const hallNames = new Map();
 const slugify = (text) => text.toLowerCase().replaceAll('&', 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -321,9 +324,16 @@ const html = `<!doctype html>
 </body>
 </html>`;
 
-writeFileSync(output, html, { mode: 0o600 });
-chmodSync(output, 0o600);
-writeFileSync(reportOutput, report, { mode: 0o600 });
-chmodSync(reportOutput, 0o600);
+const staging = mkdtempSync(join(realpathSync(dirname(output)), '.laundrylink-report-'));
+try {
+  const stagedDashboard = join(staging, 'dashboard.html');
+  const stagedReport = join(staging, 'report.md');
+  writeFileSync(stagedDashboard, html, { mode: 0o600, flag: 'wx' });
+  writeFileSync(stagedReport, report, { mode: 0o600, flag: 'wx' });
+  renameSync(stagedDashboard, canonicalOutput);
+  renameSync(stagedReport, join(dirname(canonicalOutput), basename(reportOutput)));
+} finally {
+  rmSync(staging, { recursive: true, force: true });
+}
 console.log(`Private dashboard: ${output}`);
 console.log(`Private daily report: ${reportOutput}`);

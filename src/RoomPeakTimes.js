@@ -111,29 +111,37 @@ function UsageChart({ grid, totalSamples, capturedAt }) {
           <li key={label} className="flex items-center gap-1.5"><span className={`h-3 w-3 rounded-sm ${color}`} />{label}</li>
         ))}
       </ul>
-      <p className="mt-4 text-xs text-slate-600 dark:text-slate-300">
-        LaundryConnect Live · {totalSamples.toLocaleString()} samples · Fetched {new Date(capturedAt).toLocaleDateString()}
+      <p className="ll-peak-times-source mt-4 flex flex-wrap gap-x-2 gap-y-1 text-xs text-slate-600 dark:text-slate-300">
+        <span>LaundryConnect · {totalSamples.toLocaleString()} samples</span>
+        <span className="whitespace-nowrap">· Fetched <time dateTime={capturedAt}>{new Date(capturedAt).toLocaleDateString()}</time></span>
       </p>
     </>
   );
 }
 
-export function RoomPeakTimes({ room, defaultOpen = false }) {
-  const [open, setOpen] = useState(defaultOpen);
+export function usePeakTimesSnapshot(enabled) {
   const [snapshot, setSnapshot] = useState(null);
   const [failed, setFailed] = useState(false);
-  const historyId = getRoomHistoryId(room);
 
   useEffect(() => {
-    if (!open || !historyId || snapshot) return undefined;
+    if (!enabled || snapshot) return undefined;
     let active = true;
+    setFailed(false);
     import('./peakTimesSnapshot.json').then((module) => {
       if (active) setSnapshot(module.default);
     }).catch(() => {
       if (active) setFailed(true);
     });
     return () => { active = false; };
-  }, [open, historyId, snapshot]);
+  }, [enabled, snapshot]);
+
+  return { snapshot, failed };
+}
+
+export function RoomPeakTimes({ room, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const historyId = getRoomHistoryId(room);
+  const { snapshot, failed } = usePeakTimesSnapshot(open && Boolean(historyId));
 
   const data = snapshot?.rooms[room.historyRoomId ?? room.id];
 
@@ -142,7 +150,7 @@ export function RoomPeakTimes({ room, defaultOpen = false }) {
       <h3>
         <button type="button" aria-expanded={open} aria-controls="room-peak-times"
           className="flex w-full items-center justify-between gap-3 rounded-md text-left text-lg font-semibold text-slate-900 focus-visible:ring-2 focus-visible:ring-uvm-green dark:text-slate-100 dark:focus-visible:ring-uvm-gold"
-          onClick={() => { setOpen(!open); setFailed(false); }}>
+          onClick={() => setOpen(!open)}>
           <span className="flex items-center gap-2"><Clock size={19} className="text-uvm-gold" aria-hidden="true" /> Peak Times</span>
           <span className="text-sm font-medium text-uvm-green dark:text-uvm-gold">{open ? 'Hide' : 'Show'}</span>
         </button>

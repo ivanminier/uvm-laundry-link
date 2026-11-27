@@ -1,16 +1,24 @@
 import { useEffect, useId, useRef } from 'react';
+import { homeScreenSteps } from './informationContent.mjs';
 
 const PROMPT_SEEN_KEY = 'uvmLaundryHomeScreenPromptSeen';
 
 export function HomeScreenSteps() {
   return (
     <ol className="ml-5 list-decimal space-y-1">
-      <li>Open UVMLaundry.com in Safari.</li>
-      <li>Tap <strong>Share</strong>. If needed, open the page menu first.</li>
-      <li>Choose <strong>Add to Home Screen</strong>. Tap <strong>View More</strong> if you don’t see it.</li>
-      <li>Turn on <strong>Open as Web App</strong> if shown, then tap <strong>Add</strong>.</li>
+      {homeScreenSteps.map(step => (
+        <li key={step[0]}>
+          {step.map((part, index) => typeof part === 'string' ? part : <strong key={index}>{part.emphasis}</strong>)}
+        </li>
+      ))}
     </ol>
   );
+}
+
+export function needsHomeScreenForPush() {
+  const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent)
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  return ios && !navigator.standalone && !window.matchMedia('(display-mode: standalone)').matches;
 }
 
 export function HomeScreenPrompt() {
@@ -18,11 +26,7 @@ export function HomeScreenPrompt() {
   const titleId = useId();
 
   useEffect(() => {
-    const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent)
-      || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    const installed = navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
-
-    if (!ios || installed || typeof dialog.current?.showModal !== 'function') return;
+    if (!needsHomeScreenForPush() || typeof dialog.current?.showModal !== 'function') return;
 
     try {
       if (localStorage.getItem(PROMPT_SEEN_KEY) === '1') return;

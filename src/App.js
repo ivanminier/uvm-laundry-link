@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Zap, ChevronDown, CheckCircle, XCircle, AlertTriangle, Clock, RefreshCw, Settings, Star, ArrowRight, ExternalLink, Droplet, Wind, Eye, EyeOff, Info, Search, Sun, Moon, LayoutGrid, Bell, X } from 'lucide-react';
+import { Zap, CheckCircle, XCircle, AlertTriangle, Clock, RefreshCw, Settings, Star, ArrowRight, ExternalLink, Droplet, Wind, Eye, EyeOff, Info, Search, Sun, Moon, LayoutGrid, Bell, X, Pencil, createLucideIcon } from 'lucide-react';
 
-import { findLaundryRoom, getOfficialRoomUrl, laundryRooms, roomDisplayName, roomLabel, roomPath, machinePath, canWatchNextMachine, NEXT_WASHER_LABEL, NEXT_DRYER_LABEL } from './laundryData';
+import { findLaundryRoom, getOfficialRoomUrl, laundryRooms, roomDisplayName, roomLabel, roomPath, machinePath, isFreeMachine, canWatchNextMachine, NEXT_WASHER_LABEL, NEXT_DRYER_LABEL } from './laundryData';
 import { useLaundryStatus } from './useLaundryStatus';
-import { CAMPUS_SECTIONS, groupCampusRooms } from './campusDirectory.mjs';
+import { CAMPUS_SECTIONS, campusHeading, groupCampusRooms } from './campusDirectory.mjs';
 import { RoomSwitcher, RoomTools } from './RoomTools';
 import { MyLaundry } from './MyLaundry';
 import { PushAlertForm } from './PushAlertForm';
@@ -11,10 +11,16 @@ import { LaundryHelp } from './LaundryHelp';
 import { HomeScreenPrompt } from './HomeScreenHelp';
 import { BackButton } from './BackButton';
 import { RoomPeakTimes } from './RoomPeakTimes';
+import { FavoriteSummary } from './FavoriteSummary';
 import { MachineReport, SERVICE_REQUEST_URL } from './MachineReport';
 
 // LaundryLink brand green
 const BRAND_GREEN = '#154734';
+
+const DoorIcon = createLucideIcon('Door', [
+  ['path', { d: 'M3 22h18M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18', key: 'frame' }],
+  ['path', { d: 'M14 12h.01', key: 'knob' }],
+]);
 
 // Helper function to get status color and icon
 const getStatusDetails = (status) => {
@@ -285,7 +291,7 @@ function NextMachineAlert({ room, type, machines, eligible }) {
     <>
       {eligible && (
         <button type="button" onClick={showAlert}
-          className="mt-3 inline-flex min-h-[44px] items-center gap-2 rounded-lg border border-slate-300 px-3 text-sm font-semibold text-uvm-green hover:bg-green-50 dark:border-slate-600 dark:text-uvm-gold dark:hover:bg-slate-700">
+          className="mb-4 inline-flex min-h-[44px] items-center gap-2 rounded-lg border border-slate-300 px-3 text-sm font-semibold text-uvm-green hover:bg-green-50 dark:border-slate-600 dark:text-uvm-gold dark:hover:bg-slate-700">
           <Bell size={16} /> Notify me when a {type.toLowerCase()} opens
         </button>
       )}
@@ -304,10 +310,10 @@ function NextMachineAlert({ room, type, machines, eligible }) {
   );
 }
 
-function FavoriteAvailability({ room }) {
+function FavoriteAvailability({ room, onStatus }) {
   const container = useRef(null);
   const [nearViewport, setNearViewport] = useState(() => !('IntersectionObserver' in window));
-  const { machines, checkedAt, stale, failed } = useLaundryStatus(nearViewport ? room : null, { refreshInterval: 60_000, visibleOnly: true });
+  const { machines, checkedAt, stale, failed } = useLaundryStatus(nearViewport || onStatus ? room : null, { refreshInterval: 60_000, visibleOnly: true });
 
   useEffect(() => {
     if (!('IntersectionObserver' in window)) return;
@@ -328,18 +334,39 @@ function FavoriteAvailability({ room }) {
     };
   }, []);
 
-  if (!room.providerId || (!machines && failed)) return <div ref={container} className={keepHeight}>Live availability unavailable</div>;
-  if (!checkedAt) return <div ref={container} className={keepHeight}>Checking availability…</div>;
-
-  const available = machines.filter(({ status }) => status === 'Available');
-  const washers = available.filter(({ type }) => type === 'Washer').length;
-  const dryers = available.filter(({ type }) => type === 'Dryer').length;
+  const counts = useMemo(() => {
+    const result = { washers: 0, dryers: 0, nextWasher: null, nextDryer: null, hasStatuses: false };
+    for (const machine of machines ?? EMPTY_MACHINES) {
+      if (machine.status === 'Unknown') continue;
+      result.hasStatuses = true;
+      const isWasher = machine.type === 'Washer';
+      if (isFreeMachine(machine)) result[isWasher ? 'washers' : 'dryers'] += 1;
+      if (machine.timeRemaining > 0) {
+        const key = isWasher ? 'nextWasher' : 'nextDryer';
+        result[key] = Math.min(result[key] ?? Infinity, machine.timeRemaining);
+      }
+    }
+    return result;
+  }, [machines]);
+  const { washers, dryers, hasStatuses } = counts;
   const minutes = Math.max(0, Math.floor((Date.now() - checkedAt) / 60_000));
   const age = minutes >= 60 ? `${Math.floor(minutes / 60)} hr ago` : minutes ? `${minutes} min ago` : 'just now';
   const saved = stale || minutes >= 2;
+
+  useEffect(() => {
+    onStatus?.(room.id, {
+      ...counts, checkedAt,
+      current: hasStatuses && !saved,
+      pending: Boolean(room.providerId && !checkedAt && !failed),
+    });
+  }, [room, onStatus, counts, hasStatuses, saved, checkedAt, failed]);
+
+  if (!room.providerId || (!machines && failed)) return <div ref={container} className={keepHeight}>Live availability unavailable</div>;
+  if (!checkedAt) return <div ref={container} className={keepHeight}>Checking availability…</div>;
+
   return (
     <div ref={container} className={keepHeight}>
-      {machines.some(({ status }) => status !== 'Unknown') && (
+      {hasStatuses && (
         <p className="text-sm font-semibold">{washers} {washers === 1 ? 'washer' : 'washers'} free · {dryers} {dryers === 1 ? 'dryer' : 'dryers'} free</p>
       )}
       <p className={`mt-1 text-xs ${saved ? 'text-amber-700 dark:text-amber-300' : ''}`}>{saved ? 'Saved snapshot' : 'Checked'} {age}</p>
@@ -347,7 +374,7 @@ function FavoriteAvailability({ room }) {
   );
 }
 
-const RoomCard = React.memo(({ room, onSelectRoom, isFavorite, onToggleFavorite, headingLevel = 3 }) => {
+const RoomCard = React.memo(({ room, onSelectRoom, isFavorite, onToggleFavorite, onFavoriteStatus, headingLevel = 3 }) => {
   const Heading = headingLevel === 5 ? 'h5' : headingLevel === 4 ? 'h4' : 'h3';
 
   function openRoom(event) {
@@ -378,7 +405,7 @@ const RoomCard = React.memo(({ room, onSelectRoom, isFavorite, onToggleFavorite,
           <Star size={19} aria-hidden="true" className={isFavorite ? 'fill-current' : ''} />
         </button>
       </div>
-      {isFavorite && <div className="ll-room-card__availability"><FavoriteAvailability room={room} /></div>}
+      {isFavorite && <div className="ll-room-card__availability"><FavoriteAvailability room={room} onStatus={onFavoriteStatus} /></div>}
       <span className="ll-room-card__action" aria-hidden="true">
         View room <ArrowRight size={16} />
       </span>
@@ -494,14 +521,15 @@ const App = () => {
   const [currentView, setCurrentView] = useState('home');
   const [previousView, setPreviousView] = useState('home');
   const [selectedRoomId, setSelectedRoomId] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
   const [homeSearchTerm, setHomeSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('All');
+  const [isOffline, setIsOffline] = useState(() => navigator.onLine === false);
   
   const [useSystemTheme, setUseSystemTheme] = usePreference('uvmLaundryUseSystemTheme', true);
   const [manualDarkMode, setManualDarkMode] = usePreference('uvmLaundryManualDarkMode', false);
   const [expandRoomLayout, setExpandRoomLayout] = usePreference('uvmLaundryExpandRoomLayout', true);
   const [expandPeakTimes, setExpandPeakTimes] = usePreference('uvmLaundryExpandPeakTimes', false);
+  const [openFavoritesOnStartup, setOpenFavoritesOnStartup] = usePreference('uvmLaundryOpenFavoritesOnStartup', false);
+  const [showFavoriteSummary, setShowFavoriteSummary] = usePreference('uvmLaundryShowFavoriteSummary', true);
   const [rememberRoom, setRememberRoom] = usePreference(REMEMBER_ROOM_KEY, false);
   const [machineScrollTarget, setMachineScrollTarget] = useState(null);
 
@@ -510,13 +538,30 @@ const App = () => {
 
   const [savedFavorites, setFavorites] = usePreference('uvmLaundryFavorites', []);
   const favorites = useMemo(() => resolveFavoriteIds(savedFavorites), [savedFavorites]);
-  const [showOnlyFavorites, setShowOnlyFavorites] = useState(false);
+  const [showOnlyFavorites, setShowOnlyFavorites] = useState(openFavoritesOnStartup);
+  const [favoriteStatuses, setFavoriteStatuses] = useState({});
+  const favoriteSummaryEnabled = showOnlyFavorites && showFavoriteSummary;
+
+  const updateFavoriteStatus = useCallback((id, status) => {
+    setFavoriteStatuses(previous => ({ ...previous, [id]: status }));
+  }, []);
 
   const currentRoom = findLaundryRoom(selectedRoomId);
   const roomStatus = useLaundryStatus(currentView === 'roomDetail' ? currentRoom : null);
   const machines = roomStatus.machines ?? EMPTY_MACHINES;
 
   // --- Effects ---
+
+  useEffect(() => {
+    const updateConnection = () => setIsOffline(navigator.onLine === false);
+    window.addEventListener('online', updateConnection);
+    window.addEventListener('offline', updateConnection);
+    updateConnection();
+    return () => {
+      window.removeEventListener('online', updateConnection);
+      window.removeEventListener('offline', updateConnection);
+    };
+  }, []);
 
   useEffect(() => {
     if (!selectedRoomId) return;
@@ -549,8 +594,6 @@ const App = () => {
     setMachineScrollTarget(null);
     setSelectedRoomId(room.id);
     setCurrentView('roomDetail');
-    setSearchTerm('');
-    setFilterStatus('All');
     if (updateHash) window.location.hash = roomPath(room);
   }, []);
 
@@ -558,8 +601,6 @@ const App = () => {
     setMachineScrollTarget(null);
     setCurrentView('home');
     setSelectedRoomId('');
-    setSearchTerm('');
-    setFilterStatus('All');
     setHomeSearchTerm('');
     if (updateHash && window.location.pathname !== '/') window.history.pushState(null, '', '/');
     else if (updateHash && window.location.hash) window.location.hash = '';
@@ -645,8 +686,6 @@ const App = () => {
   };
 
   const handleScrollToMachine = (machineCardId) => {
-    setSearchTerm('');
-    setFilterStatus('All');
     setMachineScrollTarget(machineCardId);
   };
 
@@ -684,21 +723,8 @@ const App = () => {
   const hasUsableStatus = machines.length > unknownMachines;
   const allDryers = useMemo(() => machines.filter(machine => machine.type === 'Dryer'), [machines]);
 
-  const filterMachineList = useCallback((list) => list.filter(machine => {
-    const { actualStatus: machineActualStatus } = getStatusDetails(machine.status);
-    const searchLower = searchTerm.toLowerCase();
-    const matchesSearch = !searchLower || (String(machine.machineName || '')).toLowerCase().includes(searchLower) || (String(machine.id || '')).toLowerCase().includes(searchLower) || (String(machine.type || '')).toLowerCase().includes(searchLower) || (machine.size && String(machine.size).toLowerCase().includes(searchLower));
-    const matchesStatus = filterStatus === 'All' || machineActualStatus === filterStatus;
-    return matchesSearch && matchesStatus;
-  }), [searchTerm, filterStatus]);
-
-  const filteredWashers = useMemo(() => filterMachineList(allWashers), [allWashers, filterMachineList]);
-  const filteredDryers = useMemo(() => filterMachineList(allDryers), [allDryers, filterMachineList]);
-  
-  const availableWashersInRoom = useMemo(() => allWashers.filter(m => getStatusDetails(m.status).actualStatus === 'Available').length, [allWashers]);
-  const availableDryersInRoom = useMemo(() => allDryers.filter(m => getStatusDetails(m.status).actualStatus === 'Available').length, [allDryers]);
-
-  const statusOptions = ['All', 'Available', 'Ready to Start', 'In Use', 'Finishing Soon', 'Cycle Finished', 'Door Open', 'Reserved', 'Out of Order', 'Offline', 'Status Unknown'];
+  const availableWashersInRoom = useMemo(() => allWashers.filter(isFreeMachine).length, [allWashers]);
+  const availableDryersInRoom = useMemo(() => allDryers.filter(isFreeMachine).length, [allDryers]);
 
   const inputBaseClasses = "ll-input w-full h-12 p-3 border rounded-lg shadow-sm transition-colors duration-200 focus:outline-none focus:ring-2 placeholder-gray-400 dark:placeholder-slate-400";
   const inputFocusClasses = "focus:ring-uvm-gold focus:border-uvm-gold";
@@ -713,6 +739,7 @@ const App = () => {
           onSelectRoom={handleSelectRoom}
           isFavorite={favorites.includes(room.id)}
           onToggleFavorite={toggleFavorite}
+          onFavoriteStatus={favoriteSummaryEnabled ? updateFavoriteStatus : undefined}
           headingLevel={headingLevel}
         />
       ))}
@@ -739,7 +766,7 @@ const App = () => {
               <p className="ll-home-tagline">Know before you go.</p>
               <p className="ll-home-copy">Check reported washer and dryer status before you head downstairs.</p>
             </div>
-            <div className="flex flex-col md:flex-row justify-between items-stretch md:items-end mb-8 gap-4">
+            <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center mb-8 gap-4">
               <h2 className="ll-room-list-heading text-2xl lg:text-4xl font-bold md:mb-0 mb-3 whitespace-nowrap">
                 {showOnlyFavorites ? "Favorite Laundry Rooms" : "All Laundry Rooms"}
               </h2>
@@ -754,10 +781,13 @@ const App = () => {
                 </button>
               </div>
             </div>
-            {visibleCampusSections.length > 0 && (
+            {favoriteSummaryEnabled && filteredHomeRooms.length > 0 && (
+              <FavoriteSummary rooms={filteredHomeRooms} statuses={favoriteStatuses} offline={isOffline} onSelectRoom={handleSelectRoom} />
+            )}
+            {!showOnlyFavorites && visibleCampusSections.length > 0 && (
               <>
                 <h3 className="ll-campus-jump-heading">Campuses</h3>
-                <div role="group" aria-label="Jump to campus" className="mb-5 flex flex-wrap gap-2">
+                <div role="group" aria-label="Jump to campus" className="ll-campus-jumps mb-5 flex flex-wrap gap-2">
                   {visibleCampusSections.map(({ id, label }) => (
                     <button type="button" key={id} aria-controls={`campus-rooms-${id}`}
                       onClick={() => jumpToCampus(id)}
@@ -783,7 +813,7 @@ const App = () => {
                 const sectionId = `campus-rooms-${campusId}`;
                 return (
                   <section key={campusId} id={sectionId} className="ll-campus-section" aria-labelledby={`${sectionId}-title`} tabIndex={-1}>
-                    <h3 id={`${sectionId}-title`} className="ll-campus-section__title">{label}</h3>
+                    <h3 id={`${sectionId}-title`} className="ll-campus-section__title">{campusHeading(campusId, label)}</h3>
                     {groupCampusRooms(rooms, campusId).map(section => renderComplexSection(section, campusId, 4))}
                   </section>
                 );
@@ -795,7 +825,7 @@ const App = () => {
         return (
           <div key="roomDetail" className="animate-fadeIn">
             <div className="ll-room-header">
-              <BackButton onClick={() => handleGoHome()}>All Rooms</BackButton>
+              <BackButton onClick={() => handleGoHome()} ariaLabel="All Rooms"><span>All Rooms</span></BackButton>
               <RoomSwitcher room={currentRoom} onSelectRoom={handleSelectRoom} />
               <RoomTools key={`tools-${currentRoom.id}`} room={currentRoom} />
             </div>
@@ -809,52 +839,47 @@ const App = () => {
             {roomStatus.busy && !roomStatus.checkedAt && (
               <p role="status" className="mb-6 text-gray-600 dark:text-slate-300">Loading live machine status…</p>
             )}
-            <RoomPeakTimes key={`peak-${currentRoom.id}`} room={currentRoom} defaultOpen={expandPeakTimes} />
             {roomStatus.checkedAt && !hasUsableStatus && (
               <p role="status" className="mb-6 rounded-lg bg-amber-100 p-4 text-amber-900 dark:bg-amber-950 dark:text-amber-200">
                 The provider returned no usable machine statuses. <a className="font-semibold underline" href="/status/">Service status</a>
                 {' '}<a className="font-semibold underline" href={getOfficialRoomUrl(currentRoom)} target="_blank" rel="noopener noreferrer">LaundryConnect page</a>
               </p>
             )}
-            {roomStatus.checkedAt && <>
-            <div className="ll-panel mb-8 p-5 sm:p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-end">
-                <div>
-                  <label htmlFor="search" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Search Machines</label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"> <Search size={18} className="text-gray-500 dark:text-slate-300" /> </div>
-                    <input type="text" id="search" placeholder="e.g., Washer 13 or Dryer" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={`${inputBaseClasses} ${inputBorderClasses} ${inputFocusClasses} pl-10`} />
-                  </div>
-                </div>
-                <div>
-                  <label htmlFor="statusFilter" className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1.5">Filter by Status</label>
-                  <div className="relative">
-                    <select id="statusFilter" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}
-                      className={`${inputBaseClasses} ${inputBorderClasses} ${inputFocusClasses} appearance-none pr-10`}>
-                      {statusOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                    </select>
-                    <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-500 dark:text-slate-300" aria-hidden="true">
-                      <ChevronDown size={17} />
-                    </span>
-                  </div>
-                </div>
-              </div>
-              {hasUsableStatus && <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm text-gray-700 dark:text-slate-300">
-                <p>Washers: <span className="font-semibold text-uvm-green dark:text-uvm-gold">{availableWashersInRoom}</span> Available / <span className="font-semibold">{allWashers.length}</span> Total</p>
-                <p>Dryers: <span className="font-semibold text-uvm-green dark:text-uvm-gold">{availableDryersInRoom}</span> Available / <span className="font-semibold">{allDryers.length}</span> Total</p>
-              </div>}
-              {hasUsableStatus && unknownMachines > 0 && (
-                <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                  Status unavailable for {unknownMachines} {unknownMachines === 1 ? 'machine' : 'machines'}.
+            {roomStatus.checkedAt && (
+              <section aria-label="Machine availability" className="ll-panel mb-8 px-5 py-4 sm:px-6">
+                {hasUsableStatus && (
+                  <dl className="grid grid-cols-2 gap-3">
+                    <div>
+                      <dt className="text-xs font-semibold text-slate-600 dark:text-slate-300">Washers</dt>
+                      <dd className="mt-1 text-sm whitespace-nowrap">
+                        <strong className="text-uvm-green dark:text-uvm-gold">{availableWashersInRoom} Free</strong>
+                        <span className="text-xs text-slate-600 dark:text-slate-300"> / {allWashers.length} Total</span>
+                      </dd>
+                    </div>
+                    <div className="border-l border-slate-200 pl-3 dark:border-slate-600">
+                      <dt className="text-xs font-semibold text-slate-600 dark:text-slate-300">Dryers</dt>
+                      <dd className="mt-1 text-sm whitespace-nowrap">
+                        <strong className="text-uvm-green dark:text-uvm-gold">{availableDryersInRoom} Free</strong>
+                        <span className="text-xs text-slate-600 dark:text-slate-300"> / {allDryers.length} Total</span>
+                      </dd>
+                    </div>
+                  </dl>
+                )}
+                {hasUsableStatus && unknownMachines > 0 && (
+                  <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                    Status unavailable for {unknownMachines} {unknownMachines === 1 ? 'machine' : 'machines'}.
+                  </p>
+                )}
+                <p className={`mt-3 flex flex-wrap gap-x-2 gap-y-0.5 text-xs ${roomStatus.stale || isOffline ? 'text-yellow-700 dark:text-yellow-400' : 'text-gray-500 dark:text-slate-400'}`}>
+                  <span>{(roomStatus.stale || isOffline) ? 'Saved snapshot' : hasUsableStatus ? 'Live · Last updated' : 'Last checked'}</span>
+                  <time className="whitespace-nowrap" dateTime={new Date(roomStatus.checkedAt).toISOString()}>
+                    {new Date(roomStatus.checkedAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}
+                  </time>
                 </p>
-              )}
-              <NextMachineAlert key={`${currentRoom.id}-washers`} room={currentRoom} type="Washer" machines={allWashers}
-                eligible={!roomStatus.stale && canWatchNextMachine(allWashers, 'Washer')} />
-              <NextMachineAlert key={`${currentRoom.id}-dryers`} room={currentRoom} type="Dryer" machines={allDryers}
-                eligible={!roomStatus.stale && canWatchNextMachine(allDryers, 'Dryer')} />
-              <p className={`text-xs mt-4 text-right ${roomStatus.stale ? 'text-yellow-700 dark:text-yellow-400' : 'text-gray-500 dark:text-slate-400'}`}>{roomStatus.stale ? 'Saved snapshot' : hasUsableStatus ? 'Live · Last checked' : 'Last checked'} · <time dateTime={new Date(roomStatus.checkedAt).toISOString()}>{new Date(roomStatus.checkedAt).toLocaleString()}</time></p>
-            </div>
-
+              </section>
+            )}
+            <RoomPeakTimes key={`peak-${currentRoom.id}`} room={currentRoom} defaultOpen={expandPeakTimes} />
+            {roomStatus.checkedAt && <>
             {machines.length > 0 && (
               <RoomLayoutPanel key={currentRoom.id} defaultOpen={expandRoomLayout} machines={machines}
                 effectiveDarkMode={effectiveDarkMode} onMachineClick={handleScrollToMachine} />
@@ -864,25 +889,26 @@ const App = () => {
                  <div className="ll-empty-state text-center py-16 p-8"><Info size={64} className="mx-auto opacity-50 mb-4 text-uvm-green dark:text-uvm-gold" /><p className="mt-4 text-xl font-semibold">No Machines Found</p><p className="text-sm mt-2 opacity-80">The provider has no machines listed for this room.</p></div>
             ) : (
               <>
-                {filteredWashers.length > 0 && (
+                {allWashers.length > 0 && (
                   <div className="mb-10">
                     <h3 className={`text-2xl font-semibold mb-5 pb-3 border-b-2 ${effectiveDarkMode ? 'text-white border-slate-700' : 'text-gray-900 border-gray-300'}`}>Washers</h3>
+                    <NextMachineAlert key={`${currentRoom.id}-washers`} room={currentRoom} type="Washer" machines={allWashers}
+                      eligible={!isOffline && !roomStatus.stale && canWatchNextMachine(allWashers, 'Washer')} />
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
-                      {filteredWashers.map(machine => <MachineCard key={machine.id || machine.machineName} machine={machine} room={currentRoom} stale={roomStatus.stale} />)}
+                      {allWashers.map(machine => <MachineCard key={machine.id || machine.machineName} machine={machine} room={currentRoom} stale={roomStatus.stale || isOffline} />)}
                     </div>
                   </div>
                 )}
-                {filteredDryers.length > 0 && (
+                {allDryers.length > 0 && (
                   <div>
                     <h3 className={`text-2xl font-semibold mb-5 pb-3 border-b-2 ${effectiveDarkMode ? 'text-white border-slate-700' : 'text-gray-900 border-gray-300'}`}>Dryers</h3>
+                    <NextMachineAlert key={`${currentRoom.id}-dryers`} room={currentRoom} type="Dryer" machines={allDryers}
+                      eligible={!isOffline && !roomStatus.stale && canWatchNextMachine(allDryers, 'Dryer')} />
                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
-                       {filteredDryers.map(machine => <MachineCard key={machine.id || machine.machineName} machine={machine} room={currentRoom} stale={roomStatus.stale} />)}
+                       {allDryers.map(machine => <MachineCard key={machine.id || machine.machineName} machine={machine} room={currentRoom} stale={roomStatus.stale || isOffline} />)}
                      </div>
                   </div>
                 )}
-                 {filteredWashers.length === 0 && filteredDryers.length === 0 && machines.length > 0 && (
-                     <div className="ll-empty-state text-center py-10 p-6"><Info size={48} className="mx-auto opacity-50 mb-3" /><p>No machines match your current filters.</p></div>
-                 )}
               </>
             )}
             </div>
@@ -907,7 +933,7 @@ const App = () => {
       case 'settings':
         return (
           <div key="settings" className="ll-panel max-w-2xl mx-auto p-6 sm:p-8 animate-fadeIn">
-            <div className="flex items-center justify-between mb-10">
+            <div className="ll-overlay-heading mb-10">
               <h2 className="text-3xl lg:text-4xl font-bold">Settings</h2>
               <BackButton onClick={handleBackFromOverlay} />
             </div>
@@ -925,27 +951,39 @@ const App = () => {
                   </div>)}
                 </div>
               </section>
-              <section>
-                <h3 className="mb-4 text-xl font-semibold">Room Preferences</h3>
-                <div className="space-y-5">
-                  {[
-                    ['rememberRoomToggle', 'Open my last room on startup', Star, rememberRoom, setRememberRoom],
-                    ['visualLayoutToggle', 'Expand Visual Room Layout by default', LayoutGrid, expandRoomLayout, setExpandRoomLayout],
-                    ['peakTimesToggle', 'Expand Peak Times by default', Clock, expandPeakTimes, setExpandPeakTimes],
-                  ].map(([id, label, Icon, checked, setChecked]) => (
-                    <div key={id} className="flex items-center justify-between gap-3 rounded-lg bg-gray-50 p-4 dark:bg-slate-700/60">
-                      <label htmlFor={id} className="flex cursor-pointer items-center gap-2.5 text-sm text-gray-700 dark:text-slate-200 sm:text-base">
-                        <Icon size={20} aria-hidden="true" className={`shrink-0 ${checked ? 'text-uvm-green dark:text-uvm-gold' : 'text-gray-500 dark:text-slate-300'}`} />
-                        {label}
-                      </label>
-                      <button id={id} type="button" role="switch" aria-checked={checked} onClick={() => setChecked(value => !value)}
-                        className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-uvm-gold focus:ring-offset-2 dark:focus:ring-offset-slate-800 ${checked ? 'bg-green-600 dark:bg-green-600' : 'bg-gray-300 dark:bg-slate-500'}`}>
-                        <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${checked ? 'translate-x-6' : 'translate-x-1'}`} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </section>
+              {[
+                ['Home Preferences', [
+                  ['openFavoritesToggle', 'Open Favorites on startup', Star, openFavoritesOnStartup, () => {
+                    const next = !openFavoritesOnStartup;
+                    setOpenFavoritesOnStartup(next);
+                    setShowOnlyFavorites(next);
+                  }],
+                  ['favoriteSummaryToggle', 'Show Favorites availability summary', Pencil, showFavoriteSummary, () => setShowFavoriteSummary(value => !value)],
+                ]],
+                ['Room Preferences', [
+                  ['rememberRoomToggle', 'Open my last room on startup', DoorIcon, rememberRoom, () => setRememberRoom(value => !value)],
+                  ['visualLayoutToggle', 'Expand Visual Room Layout by default', LayoutGrid, expandRoomLayout, () => setExpandRoomLayout(value => !value)],
+                  ['peakTimesToggle', 'Expand Peak Times by default', Clock, expandPeakTimes, () => setExpandPeakTimes(value => !value)],
+                ]],
+              ].map(([heading, preferences]) => (
+                <section key={heading}>
+                  <h3 className="mb-4 text-xl font-semibold">{heading}</h3>
+                  <div className="space-y-5">
+                    {preferences.map(([id, label, Icon, checked, onToggle]) => (
+                      <div key={id} className="flex items-center justify-between gap-3 rounded-lg bg-gray-50 p-4 dark:bg-slate-700/60">
+                        <label htmlFor={id} className="flex cursor-pointer items-center gap-2.5 text-sm text-gray-700 dark:text-slate-200 sm:text-base">
+                          <Icon size={20} aria-hidden="true" className={`shrink-0 ${checked ? 'text-uvm-green dark:text-uvm-gold' : 'text-gray-500 dark:text-slate-300'}`} />
+                          {label}
+                        </label>
+                        <button id={id} type="button" role="switch" aria-checked={checked} onClick={onToggle}
+                          className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-uvm-gold focus:ring-offset-2 dark:focus:ring-offset-slate-800 ${checked ? 'bg-green-600 dark:bg-green-600' : 'bg-gray-300 dark:bg-slate-500'}`}>
+                          <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${checked ? 'translate-x-6' : 'translate-x-1'}`} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              ))}
               <section>
                 <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-5 border-b pb-3 border-gray-200 dark:border-slate-700">Report Issues</h3>
                  <div className="space-y-3">
@@ -967,7 +1005,7 @@ const App = () => {
   return (
     <div className="ll-app min-h-screen font-sans">
       <HomeScreenPrompt />
-      <header className="ll-site-header">
+      <header className={currentView === 'roomDetail' ? 'll-site-header ll-site-header--room' : 'll-site-header'}>
         <div className="ll-header-inner">
           <div className="ll-header-row">
             <button onClick={() => handleGoHome()} aria-label="UVM LaundryLink home" className="ll-brand">
@@ -989,6 +1027,13 @@ const App = () => {
       </header>
 
       <main className="ll-main">
+        <div role="status">
+          {isOffline && (
+            <p className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
+              <strong>You’re offline.</strong> Showing saved information where available.
+            </p>
+          )}
+        </div>
         {renderContent()}
       </main>
     </div>

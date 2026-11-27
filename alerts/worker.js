@@ -1,5 +1,5 @@
 import { DurableObject } from 'cloudflare:workers';
-import { fetchRoomMachines, fetchRoomStatus, filterRoomMachines, findLaundryRoom, roomLabel, machinePath, normalizeRoomStatus, canWatchNextMachine, NEXT_WASHER, NEXT_WASHER_LABEL, NEXT_DRYER, NEXT_DRYER_LABEL } from '../src/laundryData';
+import { fetchRoomMachines, fetchRoomStatus, filterRoomMachines, findLaundryRoom, roomLabel, machinePath, normalizeRoomStatus, canWatchNextMachine, isFreeMachine, isProviderStatusFree, NEXT_WASHER, NEXT_WASHER_LABEL, NEXT_DRYER, NEXT_DRYER_LABEL } from '../src/laundryData';
 import { deliverPush, parseSubscription } from './push';
 import ccrhMachines from './ccrh-machines.json';
 import roomWashers from './room-washers.json';
@@ -17,6 +17,8 @@ const ROOM_WATCH_ALERTS = new Map([
   [NEXT_WASHER, { type: 'Washer', label: NEXT_WASHER_LABEL, metric: 'next_washer' }],
   [NEXT_DRYER, { type: 'Dryer', label: NEXT_DRYER_LABEL, metric: 'next_dryer' }],
 ]);
+
+const providerReportTime = (machine) => Date.parse(machine?.receivedAt);
 
 const validAlertId = (id) => typeof id === 'string' && /^[0-9a-f-]{36}$/.test(id);
 
@@ -83,7 +85,7 @@ export default {
         const metric = params.get('metric');
         const label = params.get('label');
         const room = label && findLaundryRoom(label);
-        const valid = metric === 'page_view' && /^(tracker|directory|guide|faq|status|about|compare|hall:[a-z0-9-]{1,75})$/.test(label)
+        const valid = metric === 'page_view' && /^(tracker|directory|guide|faq|information|status|about|compare|hall:[a-z0-9-]{1,75})$/.test(label)
           || metric === 'room_view' && room?.id === label;
         if (!valid) return new Response(null, { status: 400, headers });
         ctx.waitUntil(countMetric(env.REFERRALS, metric, label));
@@ -226,11 +228,13 @@ export class RoomAlerts extends DurableObject {
       }
       const statuses = normalizeRoomStatus(payload, room.providerId, catalog);
       if (!canWatchNextMachine(statuses, watchAlert.type)) {
-        return rejected(409, statuses.some(({ status }) => status === 'Available')
+        return rejected(409, statuses.some(isFreeMachine)
           ? `A ${watchAlert.type.toLowerCase()} is free now. Refresh the room to see which one.`
           : `Could not confirm that all ${watchAlert.type.toLowerCase()}s are unavailable. Try again shortly.`);
       }
-      watchMachines = catalog.map(({ id, machineName }) => ({ id, machineName }));
+      watchMachines = catalog.map(({ id, machineName }) => ({
+        id, machineName, initialReportTime: providerReportTime(payload.machines[id]),
+      }));
     } else {
       if (!Object.prototype.hasOwnProperty.call(payload.machines, machineId)) {
         return rejected(404, 'Machine not found in this room.');
@@ -296,8 +300,14 @@ export class RoomAlerts extends DurableObject {
           const watchedMachines = alert.watch_machines
             ? JSON.parse(alert.watch_machines)
             : watchAlert.type === 'Washer' ? verifiedWashers(room) : [];
-          const open = watchedMachines.find(({ id }) => payload.machines[id]?.statusId === 'AVAILABLE');
-          return open ? [{ alert, title: `${open.machineName} just opened`, machineId: open.id }] : [];
+          const open = watchedMachines.find(({ id, initialReportTime }) => {
+            const machine = payload.machines[id];
+            if (!isProviderStatusFree(machine?.statusId)) return false;
+            // Older alerts and feeds without a timestamp can still use the reported status.
+            const reportTime = providerReportTime(machine);
+            return !Number.isFinite(initialReportTime) || !Number.isFinite(reportTime) || reportTime > initialReportTime;
+          });
+          return open ? [{ alert, title: `${open.machineName} is reported free`, machineId: open.id }] : [];
         }
 
         const data = payload.machines[alert.machine_id];

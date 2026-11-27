@@ -3,6 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { NEXT_WASHER, NEXT_WASHER_LABEL, NEXT_DRYER, NEXT_DRYER_LABEL } from './laundryData';
 import { alertsRequest, getSavedAlert, recordKey, removeSavedAlert, saveAlert } from './pushAlerts';
 
+import { HomeScreenSteps, needsHomeScreenForPush } from './HomeScreenHelp';
+
 export { hasPushAlert } from './pushAlerts';
 
 function decodeApplicationKey(base64url) {
@@ -24,7 +26,8 @@ export function PushAlertForm({ machine, room, canSetAlert, watchType, machines 
   const [serviceUnavailable, setServiceUnavailable] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  const needsHomeScreen = needsHomeScreenForPush();
+  const supported = !needsHomeScreen && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 
   useEffect(() => {
     if (!supported) return undefined;
@@ -120,9 +123,17 @@ export function PushAlertForm({ machine, room, canSetAlert, watchType, machines 
     }
   }
 
+  if (needsHomeScreen) return (
+    <div className="mt-4 space-y-3 rounded-lg border border-slate-300 p-3 text-sm dark:border-slate-600">
+      <p><strong>Add LaundryLink to your Home Screen to get push alerts.</strong></p>
+      <HomeScreenSteps />
+      <p>Open LaundryLink from its new icon, then return to your room and set the alert.</p>
+    </div>
+  );
+
   if (!supported) return (
     <p className="mt-4 text-sm text-slate-700 dark:text-slate-200">
-      Push alerts are unavailable in this browser. On iPhone or iPad, add UVM LaundryLink to your Home Screen and reopen it from there.
+      Push alerts are unavailable in this browser.
     </p>
   );
 

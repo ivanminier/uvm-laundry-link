@@ -139,7 +139,7 @@ export function MyLaundry({ onBack, onOpenMachine }) {
 
   return (
     <section className="ll-panel mx-auto max-w-2xl p-5 sm:p-8 animate-fadeIn">
-      <header className="mb-6 flex items-center justify-between gap-4">
+      <header className="ll-overlay-heading mb-6">
         <h2 className="text-3xl lg:text-4xl font-bold">My Laundry</h2>
         <BackButton onClick={onBack} />
       </header>
