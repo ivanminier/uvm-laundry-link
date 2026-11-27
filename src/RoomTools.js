@@ -98,7 +98,7 @@ export function RoomSwitcher({ room, onSelectRoom }) {
 
   return (
     <div className="ll-dropdown" ref={root}>
-      <h2>
+      <h1 aria-label={roomLabel(room)}>
         <button id="room-switcher" ref={trigger} type="button" className="ll-dropdown__trigger"
           aria-label={'Switch room: ' + roomLabel(room)}
           aria-haspopup="listbox" aria-expanded={open} aria-controls={open ? 'room-switcher-options' : undefined}
@@ -115,7 +115,7 @@ export function RoomSwitcher({ room, onSelectRoom }) {
           </span>
           <ChevronDown className="ll-dropdown__arrow" size={17} aria-hidden="true" />
         </button>
-      </h2>
+      </h1>
       {open && (
         <div id="room-switcher-options" ref={list} role="listbox" aria-label="Switch room"
           className="ll-dropdown__list" onKeyDown={handleListKey}>

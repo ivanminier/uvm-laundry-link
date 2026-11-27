@@ -38,16 +38,16 @@ export function LaundryHelp({ onBack }) {
   return (
     <div className="ll-panel mx-auto max-w-2xl p-5 sm:p-7 animate-fadeIn">
       <header className="ll-overlay-heading mb-6">
-        <h2 className="text-3xl lg:text-4xl font-bold">Information</h2>
+        <h1 className="text-3xl lg:text-4xl font-bold">Information</h1>
         <BackButton onClick={onBack} />
       </header>
       <section className="mt-6">
-        <h3 className="mb-3 text-lg font-semibold">Frequently Asked Questions</h3>
+        <h2 className="mb-3 text-lg font-semibold">Frequently Asked Questions</h2>
         {informationQuestions.map(([question, answer, afterHomeScreenSteps]) =>
           <Question key={question} question={question} answer={answer} afterHomeScreenSteps={afterHomeScreenSteps} />)}
       </section>
       <section className="mt-6">
-        <h3 className="mb-3 text-lg font-semibold">More Resources</h3>
+        <h2 className="mb-3 text-lg font-semibold">More Resources</h2>
         <ul className="space-y-3">
           {informationResources.map(([label, url, external]) => (
             <li key={url}>

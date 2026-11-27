@@ -15,19 +15,30 @@ const CAMPUS_COMPLEXES = {
     { title: 'WDW', roomIds: ['wing', 'davis', 'wilks'] },
   ],
   athletic: [
-    { title: 'Living-Learning Complex', roomIds: ['lll_140', 'lll_180', 'lll_b110', 'lll_c131', 'lll_d110', 'lll_d140', 'lll_e110', 'lll_e160'] },
-    { title: 'University Heights North Complex', roomIds: ['uheightsn1', 'uheightsn2'] },
-    { title: 'University Heights South Complex', roomIds: ['uheightss1', 'uheightss2'] },
+    { title: 'Living-Learning Complex', aliases: ['Living and Learning', 'L&L', 'LL', 'L/L'], roomIds: ['lll_140', 'lll_180', 'lll_b110', 'lll_c131', 'lll_d110', 'lll_d140', 'lll_e110', 'lll_e160'] },
+    { title: 'University Heights North Complex', aliases: ['UHeights', 'U Heights', 'UHeights North', 'UHN'], roomIds: ['uheightsn1', 'uheightsn2'] },
+    { title: 'University Heights South Complex', aliases: ['UHeights', 'U Heights', 'UHeights South', 'UHS'], roomIds: ['uheightss1', 'uheightss2'] },
     { title: 'MAT', roomIds: ['austin', 'tupper'] },
     { title: 'Harris-Millis', roomIds: ['harris', 'millis'] },
   ],
   central: [
-    { title: 'CCRH', roomIds: ['central_campus_2', 'central_campus_3', 'central_campus_4', 'central_campus_5', 'central_campus_6', 'central_campus_7'] },
+    { title: 'CCRH', aliases: ['Central Campus Residence Hall'], roomIds: ['central_campus_2', 'central_campus_3', 'central_campus_4', 'central_campus_5', 'central_campus_6', 'central_campus_7'] },
   ],
   north: [
-    { title: 'The Back Five', roomIds: ['hunt', 'mccann', 'ready', 'richardson', 'sichel'] },
+    { title: 'The Back Five', aliases: ['Back 5'], roomIds: ['hunt', 'mccann', 'ready', 'richardson', 'sichel'] },
   ],
 };
+
+export function roomDirectorySearchTerms(room) {
+  const [, label] = CAMPUS_SECTIONS.find(([id]) => id === room.campus) ?? [];
+  if (!label) return [];
+  const complex = CAMPUS_COMPLEXES[room.campus].find(({ roomIds }) => roomIds.includes(room.id));
+  return [
+    label, campusHeading(room.campus, label),
+    ...(room.campus === 'north' ? ['Trinity Campus', 'North Campus', 'Trinity North'] : []),
+    complex?.title ?? 'Other Buildings', ...(complex?.aliases ?? []),
+  ];
+}
 
 export function groupCampusRooms(rooms, campus) {
   const complexes = CAMPUS_COMPLEXES[campus] ?? [];

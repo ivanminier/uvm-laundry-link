@@ -268,7 +268,7 @@ html.dark .ll-back-button {
 }
 
 @media (max-width: 25rem) {
-  .ll-overlay-heading h2 {
+  .ll-overlay-heading h1 {
     font-size: clamp(1.375rem, 7.5vw, 1.875rem);
   }
 }

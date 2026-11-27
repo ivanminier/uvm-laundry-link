@@ -140,10 +140,10 @@ export function MyLaundry({ onBack, onOpenMachine }) {
   return (
     <section className="ll-panel mx-auto max-w-2xl p-5 sm:p-8 animate-fadeIn">
       <header className="ll-overlay-heading mb-6">
-        <h2 className="text-3xl lg:text-4xl font-bold">My Laundry</h2>
+        <h1 className="text-3xl lg:text-4xl font-bold">My Laundry</h1>
         <BackButton onClick={onBack} />
       </header>
-      <h3 className="mb-3 mt-6 text-lg font-semibold">Push alerts on this device</h3>
+      <h2 className="mb-3 mt-6 text-lg font-semibold">Push alerts on this device</h2>
       {statusFailed && <p role="status" className="mb-3 text-sm text-amber-800 dark:text-amber-300">Could not check all alerts. Saved alerts are shown below.</p>}
       {alerts.length ? (
         <ul className="space-y-3" aria-busy={checking}>

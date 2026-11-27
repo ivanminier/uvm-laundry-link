@@ -70,6 +70,9 @@ const about = await read('/about/');
 assert.match(about, /Independent student project by Ivan Minier · \d{4}/);
 assert.match(about, /operates independently of the University of Vermont and Automatic Laundry/);
 assert.match(about, /based on data reported by Automatic Laundry/);
+assert.match(about, /href="mailto:ivan.minier@uvm.edu"/);
+assert.match(about, /Alerts expire after four hours/);
+assert.doesNotMatch(await read('/compare/'), /filter by campus|search for a machine number|filter by status/);
 const status = await read('/status/');
 assert.match(status, /Machine status feed responded with status data for \d+ of \d+ provider rooms\./);
 assert.match(status, /<time datetime="\d{4}-\d{2}-\d{2}T/);
@@ -157,14 +160,14 @@ if (endpoint) {
   console.log(`PerplexityBot header-only probe: HTTP ${perplexity.status}. Cloudflare may evaluate actual crawler identity separately.`);
 }
 const referrals = await read('/referrals.js');
-const capture = ({ referrer = '', search = '', pathname = '/', privacy = false }) => {
+const capture = ({ referrer = '', search = '', pathname = '/', privacy = false, kind = 'referrals' }) => {
   const calls = [];
   runInNewContext(referrals, {
     URL, URLSearchParams, document: { referrer }, navigator: { globalPrivacyControl: privacy },
     location: { hostname: 'uvmlaundry.com', pathname, search },
     fetch: (url, options) => { calls.push([url, options]); return Promise.resolve(); },
   });
-  return calls.filter(([url]) => url.endsWith('/referrals'));
+  return calls.filter(([url]) => url.endsWith('/' + kind));
 };
 const [[collector, visit]] = capture({ search: '?utm_source=chatgpt.com&private=value', pathname: '/residence-halls/wright-hall/' });
 assert.equal(collector, 'https://alerts.uvmlaundry.com/referrals');
@@ -175,4 +178,16 @@ assert.equal(capture({ referrer: 'https://www.perplexity.ai/search/private' })[0
 assert.equal(capture({ referrer: 'https://gemini.google.com/app/private' })[0][1].body.toString(), 'category=gemini&page=tracker');
 assert.equal(capture({ referrer: 'https://uvmlaundry.com/about/', search: '?utm_source=chatgpt.com' }).length, 0);
 assert.equal(capture({ search: '?utm_source=chatgpt.com', privacy: true }).length, 0);
+for (const [pathname, label] of [
+  ['/residence-halls/campuses/redstone/', 'campus'],
+  ['/residence-halls/complexes/redstone-cwpscr/', 'complex'],
+  ['/sitemap/', 'sitemap'],
+]) {
+  const referrer = 'https://www.google.com/search/private';
+  const [[, view]] = capture({ pathname, kind: 'metrics' });
+  const [[, referral]] = capture({ pathname, referrer });
+  assert.equal(view.body.toString(), `metric=page_view&label=${label}`);
+  assert.equal(referral.body.toString(), `category=google&page=${label}`);
+  assert.equal(capture({ pathname, kind: 'metrics', privacy: true }).length, 0);
+}
 console.log(`Verified ${paths.size} sitemap routes, metadata, internal links, and crawler access rules${endpoint ? ' in production' : ''}.`);

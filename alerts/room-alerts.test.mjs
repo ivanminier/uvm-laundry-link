@@ -147,3 +147,32 @@ test('next-room alerts survive failed feeds, reject stale reports, use exact flo
   await clicked;
   assert.equal(opened, origin + '/' + deliveries[0].path);
 });
+
+test('directory analytics accept only aggregate categories and honor privacy signals', async () => {
+  const writes = [];
+  const env = {
+    REFERRALS: { prepare: () => ({ bind: (...values) => ({ run: async () => { writes.push(values); } }) }) },
+    REFERRAL_REQUESTS: { limit: async () => ({ success: true }) },
+  };
+  const pending = [];
+  async function post(path, body, headers) {
+    const response = await worker.fetch(new Request(origin + path, {
+      method: 'POST', body: new URLSearchParams(body), headers: { Origin: origin, ...headers },
+    }), env, { waitUntil: (write) => pending.push(write) });
+    await Promise.all(pending.splice(0));
+    return response.status;
+  }
+
+  for (const label of ['campus', 'complex', 'sitemap']) {
+    assert.equal(await post('/metrics', { metric: 'page_view', label }), 204);
+    assert.equal(await post('/referrals', { category: 'google', page: label }), 204);
+  }
+  assert.deepEqual(writes.map(values => values.slice(1)), [
+    ['page_view', 'campus'], ['google', 'campus'],
+    ['page_view', 'complex'], ['google', 'complex'],
+    ['page_view', 'sitemap'], ['google', 'sitemap'],
+  ]);
+  assert.equal(await post('/metrics', { metric: 'page_view', label: 'campus:redstone' }), 400);
+  assert.equal(await post('/referrals', { category: 'google', page: 'campus' }, { 'Sec-GPC': '1' }), 204);
+  assert.equal(writes.length, 6);
+});

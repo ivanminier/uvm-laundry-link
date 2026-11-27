@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { Clock } from 'lucide-react';
 import { getRoomHistoryId } from './laundryData';
 
@@ -51,6 +51,33 @@ export function quieterWindow(grid) {
 
 function UsageChart({ grid, totalSamples, capturedAt }) {
   const [selection, setSelection] = useState(null);
+  const [activeCell, setActiveCell] = useState({ day: 0, hour: 0 });
+  const chart = useRef(null);
+  const instructions = useId();
+
+  function moveFocus(event, day, hour) {
+    if (event.altKey || event.metaKey || (event.ctrlKey && !['Home', 'End'].includes(event.key))) return;
+    const lastDay = DAYS.length - 1;
+    const lastHour = HOURS.length - 1;
+    switch (event.key) {
+      case 'ArrowLeft': hour = Math.max(0, hour - 1); break;
+      case 'ArrowRight': hour = Math.min(lastHour, hour + 1); break;
+      case 'ArrowUp': day = Math.max(0, day - 1); break;
+      case 'ArrowDown': day = Math.min(lastDay, day + 1); break;
+      case 'Home':
+        hour = 0;
+        if (event.ctrlKey) day = 0;
+        break;
+      case 'End':
+        hour = lastHour;
+        if (event.ctrlKey) day = lastDay;
+        break;
+      default: return;
+    }
+    event.preventDefault();
+    chart.current.querySelector(`[data-usage-cell="${day}-${hour}"]`)?.focus();
+  }
+
   const selectedValue = selection && grid[selection.day][selection.hour];
   const quietHours = quieterWindow(grid);
 
@@ -69,8 +96,10 @@ function UsageChart({ grid, totalSamples, capturedAt }) {
           </div>
         ))}
       </dl>
-      <div className="relative overflow-x-auto pb-2" tabIndex="0" role="region" aria-label="Weekly usage chart">
-        <table className="w-full min-w-[660px] border-separate text-sm" style={{ borderSpacing: '3px' }}>
+      <div className="relative overflow-x-auto pb-2" tabIndex={-1}>
+        <p id={instructions} className="sr-only">Use the arrow keys to move by day or hour. Press Enter or Space to show details.</p>
+        <table ref={chart} role="grid" aria-label="Weekly usage chart" aria-describedby={instructions}
+          className="w-full min-w-[660px] border-separate text-sm" style={{ borderSpacing: '3px' }}>
           <thead>
             <tr>
               <td />
@@ -90,9 +119,16 @@ function UsageChart({ grid, totalSamples, capturedAt }) {
                   const level = levelFor(value);
                   const label = `${DAYS[day]} at ${hourLabel(hour)} · ${value === null ? level.label : `${value}% in use`}`;
                   return (
-                    <td key={hour}>
+                    <td key={hour} role="gridcell">
                       <button type="button" className={`block h-6 w-full min-w-[22px] rounded-sm focus-visible:ring-2 focus-visible:ring-uvm-green dark:focus-visible:ring-uvm-gold ${level.color}`}
-                        title={label} aria-label={label} onClick={() => setSelection({ day, hour })} />
+                        title={label} aria-label={label} data-usage-cell={`${day}-${hour}`}
+                        tabIndex={activeCell.day === day && activeCell.hour === hour ? 0 : -1}
+                        onFocus={() => setActiveCell({ day, hour })}
+                        onKeyDown={(event) => moveFocus(event, day, hour)}
+                        onClick={() => {
+                          setActiveCell({ day, hour });
+                          setSelection({ day, hour });
+                        }} />
                     </td>
                   );
                 })}
@@ -147,14 +183,14 @@ export function RoomPeakTimes({ room, defaultOpen = false }) {
 
   return (
     <section className="ll-panel mb-8 px-5 py-4 sm:px-6">
-      <h3>
+      <h2>
         <button type="button" aria-expanded={open} aria-controls="room-peak-times"
           className="flex w-full items-center justify-between gap-3 rounded-md text-left text-lg font-semibold text-slate-900 focus-visible:ring-2 focus-visible:ring-uvm-green dark:text-slate-100 dark:focus-visible:ring-uvm-gold"
           onClick={() => setOpen(!open)}>
           <span className="flex items-center gap-2"><Clock size={19} className="text-uvm-gold" aria-hidden="true" /> Peak Times</span>
           <span className="text-sm font-medium text-uvm-green dark:text-uvm-gold">{open ? 'Hide' : 'Show'}</span>
         </button>
-      </h3>
+      </h2>
       <div id="room-peak-times" hidden={!open}>
         {open && room.machineRange && (
           <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">

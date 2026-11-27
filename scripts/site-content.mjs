@@ -19,10 +19,12 @@ export const articles = [
         <h2>Where the data comes from</h2>
         <p>LaundryLink operates independently of the University of Vermont and Automatic Laundry. Machine status and usage history are based on data reported by Automatic Laundry.</p>
         <p>The <a href="/status/">service status page</a> shows the latest automated checks. For repairs, use <a href="${service}">Automatic Laundry’s service form</a>. For residential access rules, see <a href="${handbook}">UVM’s Hallways Handbook</a>.</p>
+        <p>For feedback about LaundryLink, <a href="mailto:ivan.minier@uvm.edu">email Ivan Minier</a>.</p>
       </section>
       <section class="site-panel">
         <h2>Privacy</h2>
-        <p>Your room preferences are saved on this device. When you request a push alert, LaundryLink uses the browser’s push subscription to send it. Automatic Laundry receives the details you enter in its text and email form.</p>
+        <p>Your room preferences and saved alert IDs stay in this browser. LaundryLink stores your browser’s push subscription with each alert and removes that record after cancellation, expiration, successful handoff to the push service, or the last failed delivery attempt. Alerts expire after four hours.</p>
+        <p>Cancel a pending alert in My Laundry using the browser where you set it. Manage notification permission separately in your browser settings. Automatic Laundry receives the details you enter in its text and email form.</p>
         <p>LaundryLink counts page views, room views, broad referral sources, and push service outcomes in aggregate. The analytics totals contain no cookies, account IDs, or full referrer URLs.</p>
       </section>
     </div>`,
@@ -39,8 +41,8 @@ export const articles = [
     </div>
     <div class="site-comparison-grid">
       ${[
-        ['Get to your usual room faster', 'Search across UVM halls and complexes, filter by campus, or open your favorites. Favorite cards show reported free machine counts when status is available.', 'Start at the UVM room selector, then open the room you want to check.'],
-        ['Find an open machine', 'CCRH Floors 6 and 7 have separate machine lists. Check counts, search for a machine number, or filter by status.', 'Open the provider’s room view for its machine list and reported status. The provider lists CCRH Floors 6 and 7 together.'],
+        ['Get to your usual room faster', 'Search by room, campus, or complex, jump to a campus section, or open your favorites. Favorite cards show reported free machine counts when status is available.', 'Start at the UVM room selector, then open the room you want to check.'],
+        ['Find an open machine', 'Check reported free washer and dryer counts, then use the room layout or machine list to find a machine. CCRH Floors 6 and 7 have separate machine lists.', 'Open the provider’s room view for its machine list and reported status. The provider lists CCRH Floors 6 and 7 together.'],
         ['Plan a quieter visit', 'Peak Times display historical usage. CCRH Floors 6 and 7 share one history.', 'The room’s Peak Times chart summarizes past machine use where history is available.'],
         ['Get an alert', 'Set browser push for a running cycle or the next washer or dryer when that type is full in your room. The embedded text and email form comes from Automatic Laundry.', 'Use the provider’s text or email options when they are offered for a running machine.'],
         ['Set up the tracker the way you like', 'Choose light or dark mode, set whether Room Layout and Peak Times start expanded, or open your last room on startup.', 'Open a provider room page to see its machine layout and status list.'],

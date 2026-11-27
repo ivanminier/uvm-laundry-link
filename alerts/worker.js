@@ -7,7 +7,7 @@ import roomWashers from './room-washers.json';
 const LISTEN_ORIGIN = 'https://uvmlaundry.com';
 const ORIGINS = new Set([LISTEN_ORIGIN, 'https://www.uvmlaundry.com']);
 const REFERRERS = new Set(['chatgpt', 'perplexity', 'gemini', 'copilot', 'claude', 'google', 'bing', 'duckduckgo', 'other']);
-const REFERRAL_PAGES = new Set(['tracker', 'hall', 'information']);
+const REFERRAL_PAGES = new Set(['tracker', 'hall', 'information', 'campus', 'complex', 'sitemap']);
 const POLL_INTERVAL = 30_000;
 const ALERT_LIFETIME = 4 * 60 * 60 * 1000;
 const MAX_ALERTS_PER_ROOM = 60;
@@ -85,7 +85,7 @@ export default {
         const metric = params.get('metric');
         const label = params.get('label');
         const room = label && findLaundryRoom(label);
-        const valid = metric === 'page_view' && /^(tracker|directory|guide|faq|information|status|about|compare|hall:[a-z0-9-]{1,75})$/.test(label)
+        const valid = metric === 'page_view' && /^(tracker|directory|guide|faq|information|status|about|compare|campus|complex|sitemap|hall:[a-z0-9-]{1,75})$/.test(label)
           || metric === 'room_view' && room?.id === label;
         if (!valid) return new Response(null, { status: 400, headers });
         ctx.waitUntil(countMetric(env.REFERRALS, metric, label));

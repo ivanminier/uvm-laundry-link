@@ -1,11 +1,14 @@
 (() => {
   if (navigator.globalPrivacyControl || navigator.doNotTrack === '1') return;
+  const { pathname } = location;
+  const directory = /^\/residence-halls\/(campuses|complexes)\/[a-z0-9-]+\/$/.exec(pathname)?.[1];
+  const directoryCategory = { campuses: 'campus', complexes: 'complex' }[directory];
   const pageLabel = {
     '/': 'tracker', '/residence-halls/': 'directory',
-    '/information/': 'information', '/status/': 'status', '/about/': 'about', '/compare/': 'compare',
-  }[location.pathname];
-  const hall = location.pathname.match(/^\/residence-halls\/([a-z0-9-]{1,75})\/$/);
-  const label = pageLabel ?? (hall && 'hall:' + hall[1]);
+    '/information/': 'information', '/status/': 'status', '/about/': 'about', '/compare/': 'compare', '/sitemap/': 'sitemap',
+  }[pathname];
+  const hall = pathname.match(/^\/residence-halls\/([a-z0-9-]{1,75})\/$/);
+  const label = pageLabel ?? directoryCategory ?? (hall && 'hall:' + hall[1]);
   if (label) {
     fetch('https://alerts.uvmlaundry.com/metrics', {
       method: 'POST', body: new URLSearchParams({ metric: 'page_view', label }), keepalive: true,
@@ -31,8 +34,8 @@
   else if (host) category = 'other';
   if (!category) return;
 
-  const page = location.pathname === '/' ? 'tracker'
-    : /^\/residence-halls\/[^/]+\//.test(location.pathname) ? 'hall' : 'information';
+  const page = directoryCategory ?? (pathname === '/sitemap/' ? 'sitemap' : pathname === '/' ? 'tracker'
+    : /^\/residence-halls\/[^/]+\//.test(pathname) ? 'hall' : 'information');
   // Only allow-listed categories leave the browser.
   fetch('https://alerts.uvmlaundry.com/referrals', {
     method: 'POST', body: new URLSearchParams({ category, page }), keepalive: true,

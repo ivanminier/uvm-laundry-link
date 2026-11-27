@@ -1,9 +1,13 @@
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
+
 import App from './App';
 import { MachineReport } from './MachineReport';
-import { quieterWindow } from './RoomPeakTimes';
+import { quieterWindow, RoomPeakTimes } from './RoomPeakTimes';
 import { canWatchNextMachine, filterRoomMachines, findLaundryRoom, getRoomHistoryId, laundryRooms, normalizeRoomStatus, roomLabel, roomPath } from './laundryData';
+
+beforeEach(() => jest.spyOn(window, 'scrollTo').mockImplementation(() => {}));
+afterEach(() => jest.restoreAllMocks());
 
 const statusFixture = (entries) => ({
   room: { id: 12285 },
@@ -159,6 +163,89 @@ test('room cards separate favorite and room controls accessibly', async () => {
   }
 });
 
+test('room search matches directory names and announces full room labels on favorites', async () => {
+  global.IS_REACT_ACT_ENVIRONMENT = true;
+  window.matchMedia = jest.fn(() => ({ matches: false, addEventListener: jest.fn(), removeEventListener: jest.fn() }));
+  global.fetch = jest.fn(async () => ({ ok: false }));
+  localStorage.clear();
+  window.history.replaceState(null, '', '/');
+  const container = document.body.appendChild(document.createElement('div'));
+  const root = createRoot(container);
+  try {
+    await act(async () => { root.render(<App />); });
+    const search = container.querySelector('[aria-label="Search rooms"]');
+    const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+    for (const [query, length, example] of [
+      ['Trinity Campus', 9, 'Hunt Hall'], ['CWPSCR', 6, 'Christie Hall'],
+      ['L&L', 8, 'Living-Learning A · Room 140'],
+      ['UHS', 2, 'University Heights South · Towers 2+3'],
+      ['CCRH 7', 1, 'CCRH · Floor 7'], ['Christie Hall', 1, 'Christie Hall'],
+    ]) {
+      await act(async () => {
+        setValue.call(search, query);
+        search.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      expect(container.querySelectorAll('.ll-room-card')).toHaveLength(length);
+      expect(container.querySelector(`button[aria-label="Add ${example} to favorites"]`)).not.toBeNull();
+    }
+  } finally {
+    act(() => root.unmount());
+    container.remove();
+    localStorage.clear();
+    delete global.IS_REACT_ACT_ENVIRONMENT;
+  }
+});
+
+test('overlay navigation resets scroll and Back restores the original position', async () => {
+  global.IS_REACT_ACT_ENVIRONMENT = true;
+  window.matchMedia = jest.fn(() => ({ matches: false, addEventListener: jest.fn(), removeEventListener: jest.fn() }));
+  window.history.replaceState(null, '', '/');
+  const initialScrollY = window.scrollY;
+  window.scrollY = 450;
+  const container = document.body.appendChild(document.createElement('div'));
+  const root = createRoot(container);
+  try {
+    await act(async () => { root.render(<App />); });
+    for (const label of ['Information', 'My Laundry', 'Settings']) {
+      await act(async () => { container.querySelector(`header [aria-label="${label}"]`).click(); });
+      expect(container.querySelector('main h1').textContent).toBe(label);
+      expect(window.scrollTo).toHaveBeenLastCalledWith({ top: 0, behavior: 'instant' });
+    }
+    await act(async () => { container.querySelector('main .ll-overlay-heading .ll-back-button').click(); });
+    expect(window.scrollTo).toHaveBeenLastCalledWith({ top: 450, behavior: 'instant' });
+  } finally {
+    act(() => root.unmount());
+    container.remove();
+    window.scrollY = initialScrollY;
+    delete global.IS_REACT_ACT_ENVIRONMENT;
+  }
+});
+
+test('Peak Times has one tab stop with keyboard navigation and activation', async () => {
+  global.IS_REACT_ACT_ENVIRONMENT = true;
+  const container = document.body.appendChild(document.createElement('div'));
+  const root = createRoot(container);
+  try {
+    await act(async () => { root.render(<RoomPeakTimes room={findLaundryRoom('christie')} defaultOpen />); });
+    const chart = container.querySelector('[role="grid"]');
+    expect(chart.querySelectorAll('button')).toHaveLength(168);
+    const first = chart.querySelector('button[tabindex="0"]');
+    await act(async () => {
+      first.focus();
+      first.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    });
+    const monday = chart.querySelector('[data-usage-cell="1-0"]');
+    expect(document.activeElement).toBe(monday);
+    expect([...chart.querySelectorAll('button[tabindex="0"]')]).toEqual([monday]);
+    await act(async () => { monday.click(); });
+    expect(container.querySelector('[role="status"]').textContent).toContain('Monday at 12 AM');
+  } finally {
+    act(() => root.unmount());
+    container.remove();
+    delete global.IS_REACT_ACT_ENVIRONMENT;
+  }
+});
+
 test('static-page header routes open the app overlays', async () => {
   global.IS_REACT_ACT_ENVIRONMENT = true;
   window.matchMedia = jest.fn(() => ({ matches: false, addEventListener: jest.fn(), removeEventListener: jest.fn() }));
@@ -178,10 +265,10 @@ test('static-page header routes open the app overlays', async () => {
     try {
       await act(async () => { root.render(<App />); });
       expect(container.textContent).toContain(expectedText);
-      expect(container.querySelector('main h2').className).toBe('text-3xl lg:text-4xl font-bold');
+      expect(container.querySelector('main h1').className).toBe('text-3xl lg:text-4xl font-bold');
       expect(window.location.search).toBe('');
       if (route === 'information') {
-        const informationHeader = container.querySelector('main h2').parentElement;
+        const informationHeader = container.querySelector('main h1').parentElement;
         expect(informationHeader.tagName).toBe('HEADER');
         expect(informationHeader.querySelector('.ll-back-button')).not.toBeNull();
         expect(container.textContent).toContain('Frequently Asked Questions');
@@ -238,7 +325,7 @@ test('main views share the same back control', async () => {
     expect(rememberRoomToggle.getAttribute('role')).toBe('switch');
     expect(rememberRoomToggle.labels[0].textContent).toBe('Open my last room on startup');
     const roomPreferences = rememberRoomToggle.closest('section');
-    expect(roomPreferences.querySelector('h3').textContent).toBe('Room Preferences');
+    expect(roomPreferences.querySelector('h2').textContent).toBe('Room Preferences');
     expect(roomPreferences.querySelector('#visualLayoutToggle').getAttribute('aria-checked')).toBe('true');
     expect(roomPreferences.querySelector('#peakTimesToggle').getAttribute('aria-checked')).toBe('false');
     expect(rememberRoomToggle.getAttribute('aria-checked')).toBe('false');
@@ -297,7 +384,7 @@ test('switching CCRH floors excludes the legacy combined cache and saves each fl
     expect(cards()).toEqual(['Washer 45', 'Dryer 55']);
     expect(window.location.hash).toBe('#room/ccrh-floor-6');
     expect(container.textContent).not.toContain('Notify me when a washer opens');
-    expect(container.querySelector('main h2').textContent).toContain('CCRH');
+    expect(container.querySelector('main h1').textContent).toContain('CCRH');
     const header = container.querySelector('.ll-room-header');
     const switcher = header.querySelector('#room-switcher');
     expect(switcher.getAttribute('aria-label')).toBe('Switch room: CCRH · Floor 6');
@@ -323,7 +410,7 @@ test('switching CCRH floors excludes the legacy combined cache and saves each fl
     expect(switcher.getAttribute('aria-expanded')).toBe('false');
 
     const availability = container.querySelector('[aria-label="Machine availability"]');
-    expect(availability.nextElementSibling.querySelector('h3').textContent).toContain('Peak Times');
+    expect(availability.nextElementSibling.querySelector('h2').textContent).toContain('Peak Times');
     expect(availability.querySelector('time').dateTime).toBeTruthy();
     expect(container.querySelector('#search, #statusFilter')).toBeNull();
 
@@ -336,7 +423,7 @@ test('switching CCRH floors excludes the legacy combined cache and saves each fl
     expect(container.textContent).toContain('Notify me when a washer opens');
     expect(document.activeElement.id).toBe('machine-card-62');
     expect(container.querySelectorAll('a[aria-label^="Link to "]')).toHaveLength(0);
-    expect(container.querySelector('main h2').textContent).toContain('CCRH');
+    expect(container.querySelector('main h1').textContent).toContain('CCRH');
     expect(switcher.getAttribute('aria-label')).toBe('Switch room: CCRH · Floor 7');
     const snapshot = (floor) => JSON.parse(localStorage.getItem(`washAlertRoom-v2-central_campus_${floor}`));
     expect(snapshot(6).machines.map(({ number }) => Number(number)).sort()).toEqual([45, 55]);
@@ -393,7 +480,7 @@ test('quiet guidance requires a recurring signal and sufficient history', () => 
 test('favorite counts distinguish CCRH floors that share a provider feed', async () => {
   global.IS_REACT_ACT_ENVIRONMENT = true;
   window.matchMedia = jest.fn(() => ({ matches: false, addEventListener: jest.fn(), removeEventListener: jest.fn() }));
-  localStorage.setItem('uvmLaundryFavorites', JSON.stringify(['central_campus_6', 'central_campus_7']));
+  localStorage.setItem('uvmLaundryFavorites', JSON.stringify(['central_campus_6', 'central_campus_7', 'christie']));
   const metadata = [45, 56, 62].map((id) => ({
     id, machineNumber: id, washAlertIsVisible: true,
     machineType: { isWasher: id !== 62, isDryer: id === 62 },
@@ -401,7 +488,12 @@ test('favorite counts distinguish CCRH floors that share a provider feed', async
   const payload = { room: { id: 12247 }, machines: {
     45: { statusId: 'AVAILABLE' }, 56: { statusId: 'IN_USE' }, 62: { statusId: 'AVAILABLE' },
   } };
-  global.fetch = jest.fn(async (url) => ({ ok: true, json: async () => url.includes('/machines/') ? metadata : payload }));
+  const christie = findLaundryRoom('christie');
+  global.fetch = jest.fn(async (url) => ({
+    ok: true,
+    json: async () => url.includes('/machines/') ? metadata
+      : url.endsWith('/12247') ? payload : { room: { id: christie.providerId }, machines: { 45: { statusId: 'UNKNOWN' } } },
+  }));
   const container = document.createElement('div');
   document.body.appendChild(container);
   const root = createRoot(container);
@@ -411,7 +503,9 @@ test('favorite counts distinguish CCRH floors that share a provider feed', async
       .find((element) => element.textContent.includes(`Floor ${floor}`) && element.textContent.includes('CCRH'));
     expect(card(6).textContent).toContain('1 washer free · 0 dryers free');
     expect(card(7).textContent).toContain('0 washers free · 1 dryer free');
-    expect(global.fetch.mock.calls.every(([url]) => url.endsWith('/12247'))).toBe(true);
+    const christieCard = container.querySelector('[aria-label="Remove Christie Hall from favorites"]').closest('article');
+    expect(christieCard.textContent).toContain('All machine statuses are unknown');
+    expect(christieCard.textContent).not.toContain('0 washers free');
   } finally {
     act(() => root.unmount());
     container.remove();
@@ -443,7 +537,7 @@ test('My Laundry loads legacy alerts, shows their machine links and cancels thro
   try {
     await act(async () => { root.render(<App />); });
     await act(async () => { container.querySelector('[aria-label="My Laundry"]').click(); });
-    const header = container.querySelector('main h2').parentElement;
+    const header = container.querySelector('main h1').parentElement;
     expect(header.tagName).toBe('HEADER');
     expect(header.querySelector('.ll-back-button')).not.toBeNull();
     const machineLink = container.querySelector('main a');

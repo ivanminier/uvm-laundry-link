@@ -58,7 +58,7 @@ export function FavoriteSummary({ rooms, statuses, offline, onSelectRoom }) {
 
   return (
     <section aria-labelledby="favorite-summary-heading" className="ll-panel mb-6 px-4 py-4 sm:px-6">
-      <h3 id="favorite-summary-heading" className="text-base font-semibold">Availability at a glance</h3>
+      <h2 id="favorite-summary-heading" className="text-base font-semibold">Availability at a glance</h2>
       <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
         {offline ? 'Live availability is unavailable while you’re offline.'
           : reports.length ? `Recent reports from ${reports.length} of ${rooms.length} favorite ${rooms.length === 1 ? 'room' : 'rooms'}.`
@@ -86,10 +86,10 @@ export function FavoriteSummary({ rooms, statuses, offline, onSelectRoom }) {
       )}
       {quieterTimes.length > 0 && (
         <div className="mt-4 border-t border-slate-200 pt-3 text-sm text-slate-700 dark:border-slate-600 dark:text-slate-200">
-          <h4 className="flex items-center gap-2 font-semibold">
+          <h3 className="flex items-center gap-2 font-semibold">
             <Clock size={16} aria-hidden="true" className="text-uvm-gold" />
             Usually quieter <span className="font-normal text-xs text-slate-600 dark:text-slate-300">· Peak Times, Burlington time</span>
-          </h4>
+          </h3>
           <ul className="mt-1 space-y-1">
             {quieterTimes.map(([hours, [first, second, ...others]]) => (
               <li key={hours}>{hours} at <RoomLink room={first} onSelectRoom={onSelectRoom} />
