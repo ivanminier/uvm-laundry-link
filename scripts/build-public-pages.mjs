@@ -250,7 +250,8 @@ const hallPages = hallList.map((hall) => {
   const intro = single
     ? `${subject} is ${locationPhrase(hall.rooms[0])}${complexLocation ? ',' + complexLocation : ''} ${campusLocation}.`
     : `${hall.name} has ${hall.rooms.length} laundry rooms${complexLocation} ${campusLocation}: ${formatList.format(
-      [...Map.groupBy(hall.rooms, hallRoomTitle)].map(([title, group]) =>
+      // Cloudflare Pages builds with Node 18, which lacks Map.groupBy.
+      [...hall.rooms.reduce((groups, room) => groups.set(hallRoomTitle(room), [...(groups.get(hallRoomTitle(room)) ?? []), room]), new Map())].map(([title, group]) =>
         `${title} (${group.length === 1 ? 'Room' : 'Rooms'} ${formatList.format(group.flatMap((room) => roomLocation(room).rooms))})`))}.`;
   const description = single
     ? `${hall.name} laundry at UVM is ${locationPhrase(hall.rooms[0])}, with ${machineInventory(hall.rooms[0])} on record. Check live washer and dryer availability.`
