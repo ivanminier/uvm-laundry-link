@@ -1,6 +1,6 @@
 export const handbook = 'https://www.uvm.edu/housingdining/hallways-handbook';
 export const service = 'https://automaticlaundry.com/request-service/';
-const officialExample = 'https://laundryconnectlive.com/live/loc_499892';
+const officialRoomSelector = 'https://laundryconnectlive.com/uvm';
 
 export const articles = [
   {
@@ -54,13 +54,13 @@ export const articles = [
   },
   {
     slug: 'compare',
-    title: 'UVM LaundryLink and the official UVM laundry tracker',
-    description: 'Compare UVM LaundryLink and Automatic Laundry’s LaundryConnect Live for machine status, alerts, usage history, and repairs.',
-    intro: 'Both can help you check residence hall laundry. UVM LaundryLink is an independent student-built interface. LaundryConnect Live is operated by the laundry provider.',
+    title: 'UVM LaundryLink and LaundryConnect',
+    description: 'Compare UVM LaundryLink and Automatic Laundry’s LaundryConnect for machine status, alerts, usage history, and repairs.',
+    intro: 'UVM LaundryLink is an independent student-built tracker for residence hall laundry. Automatic Laundry runs LaundryConnect.',
     layout: 'compare',
     html: `<div class="site-panel-grid site-comparison-overview">
       <section class="site-panel"><h2>UVM LaundryLink</h2><p>Find your room by campus, save favorites, check Peak Times, and manage push alerts.</p><a class="site-page-action" href="/residence-halls/">Find your hall</a></section>
-      <section class="site-panel"><h2>LaundryConnect Live</h2><p>Automatic Laundry’s own room view, with machine status, usage history, and access to service requests.</p><a class="site-page-action" href="${officialExample}">Open Wright Hall on LaundryConnect</a></section>
+      <section class="site-panel"><h2>LaundryConnect</h2><p>Automatic Laundry’s own room view, with machine status, usage history, and access to service requests.</p><a class="site-page-action" href="${officialRoomSelector}">Open UVM rooms on LaundryConnect</a></section>
     </div>
     <div class="site-comparison-grid">
       ${[
@@ -69,9 +69,8 @@ export const articles = [
         ['Get an alert', 'Set browser push for a running cycle or the next washer or dryer when that type is full in your room. The embedded text and email form comes from Automatic Laundry.', 'Use the provider’s text or email options when they are offered for a running machine.'],
         ['Report a broken machine', 'Open the report action on the machine card to see which machine you’re reporting and open the provider’s service form.', 'Automatic Laundry receives service requests and handles repairs. Include the building, room, and machine number.'],
       ].map(([task, laundryLink, laundryConnect]) => `<section class="site-panel site-comparison-row">
-        <h2>${task}</h2><dl><div><dt>UVM LaundryLink</dt><dd>${laundryLink}</dd></div><div><dt>LaundryConnect Live</dt><dd>${laundryConnect}</dd></div></dl>
+        <h2>${task}</h2><dl><div><dt>UVM LaundryLink</dt><dd>${laundryLink}</dd></div><div><dt>LaundryConnect</dt><dd>${laundryConnect}</dd></div></dl>
       </section>`).join('')}
-    </div>
-    <p class="site-comparison-sources">See the <a href="${officialExample}">provider’s room view</a>, <a href="${service}">Automatic Laundry service form</a>, and <a href="/faq/">LaundryLink notification FAQ</a>.</p>`,
+    </div>`,
   },
 ];

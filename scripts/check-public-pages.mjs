@@ -36,6 +36,7 @@ for (let index = 0; index < routes.length; index += 6) {
     assert.match(body, /rel="icon" type="image\/svg\+xml" href="\/favicon\.svg"/, pathname);
     assert.match(body, /id="laundrylink-theme-init"/, pathname);
     assert.doesNotMatch(body, /noindex|You need to enable JavaScript/i, pathname);
+    assert.doesNotMatch(body, /aria-label="Laundry resources"/, pathname);
     assert.equal((body.match(/<h1>/g) ?? []).length, 1, pathname);
     const title = body.match(/<title>(.*?)<\/title>/)?.[1];
     const description = body.match(/<meta name="description" content="([^"]+)"/)?.[1];
@@ -77,9 +78,15 @@ for (const [path, text] of [
   ['/about/', await read('/about/')], ['/compare/', await read('/compare/')],
 ]) assert.match(text, /<main class="[^"]*animate-fadeIn"/, path);
 assert.match(await read('/room-directory.css'), /@keyframes ll-fade-in/);
-for (const hall of [...paths].filter(path => path.startsWith('/residence-halls/') && path !== '/residence-halls/')) {
-  assert.ok(directoryPage.includes(`href="${hall}"`), `Directory entry for ${hall}`);
+const complexPaths = [...paths].filter(path => path.startsWith('/residence-halls/complexes/'));
+assert.ok(complexPaths.length, 'Complex pages are indexed');
+for (const path of complexPaths) {
+  assert.ok(directoryPage.includes(`href="${path}"`), `Directory entry for ${path}`);
+  assert.match(await read(path), /<main class="[^"]*animate-fadeIn"/, path);
 }
+assert.doesNotMatch(directoryPage, /href="\/#room\//, 'Directory opens complex pages');
+assert.doesNotMatch(directoryPage, /aria-label="Breadcrumbs"|UVM Hallways Handbook/, 'Directory uses its header for Home');
+assert.match(directoryPage, /Browse by campus and complex to find your laundry room and open the tracker\./);
 const rooms = JSON.parse(await readFile(new URL('../src/laundryRooms.json', import.meta.url)));
 for (const room of rooms) {
   const route = '/#room/' + room.name.toLowerCase().replace(/\s+/g, '-').replaceAll('&', '&amp;');

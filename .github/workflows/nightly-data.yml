@@ -1,0 +1,50 @@
+name: Refresh nightly laundry data
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+      timezone: America/New_York
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: laundrylink-nightly-data
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Fetch Peak Times
+        id: peak-times
+        continue-on-error: true
+        run: node scripts/refresh-peak-times.mjs
+      - name: Check provider and alert service
+        run: node scripts/check-sources.mjs --write
+      - name: Publish the snapshots to the production branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/peakTimesSnapshot.json src/serviceHealthSnapshot.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Refresh laundry data snapshots"
+          git fetch origin main
+          git rebase origin/main
+          git push origin HEAD:main
+      - name: Report a failed Peak Times fetch
+        if: steps.peak-times.outcome == 'failure'
+        run: |
+          echo "::error::Peak Times refresh failed. The published site retains the last successful history."
+          exit 1

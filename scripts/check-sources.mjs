@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 
 async function probe(url, valid, headers = {}) {
@@ -45,4 +45,9 @@ export async function checkSources() {
   return health;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) await checkSources();
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const health = await checkSources();
+  if (process.argv.includes('--write')) {
+    await writeFile(new URL('../src/serviceHealthSnapshot.json', import.meta.url), JSON.stringify(health, null, 2) + '\n');
+  }
+}
