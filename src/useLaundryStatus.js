@@ -51,7 +51,7 @@ export function useLaundryStatus(room, { refreshInterval = REFRESH_INTERVAL_MS, 
           fetchRoomStatus(providerId, controller.signal),
         ]);
         if (!active) return false;
-        controller.signal.throwIfAborted();
+        if (controller.signal.aborted) throw new Error('The status request timed out');
         const normalized = normalizeRoomStatus(payload, providerId, machines);
         catalog = machines;
         snapshot = { machines: normalized, checkedAt: Date.now() };

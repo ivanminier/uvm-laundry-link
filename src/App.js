@@ -514,7 +514,6 @@ const App = () => {
   const [useSystemTheme, setUseSystemTheme] = usePreference('uvmLaundryUseSystemTheme', true);
   const [manualDarkMode, setManualDarkMode] = usePreference('uvmLaundryManualDarkMode', false);
   const [showVisualLayout, setShowVisualLayout] = usePreference('uvmLaundryShowVisualLayout', window.innerWidth > 800);
-  const [showMachineList, setShowMachineList] = usePreference('uvmLaundryShowMachineList', true);
   const [rememberRoom, setRememberRoom] = usePreference(REMEMBER_ROOM_KEY, false);
   const [machineScrollTarget, setMachineScrollTarget] = useState(null);
 
@@ -599,7 +598,6 @@ const App = () => {
       handleSelectRoom(room.id, false);
       const machineId = new URLSearchParams(query).get('machine');
       if (machineId && /^\d+$/.test(machineId)) {
-        setShowMachineList(true);
         setMachineScrollTarget(`machine-card-${machineId}`);
       }
     };
@@ -622,10 +620,10 @@ const App = () => {
       window.removeEventListener('hashchange', syncRoute);
       navigator.serviceWorker?.removeEventListener('message', onWorkerMessage);
     };
-  }, [handleSelectRoom, handleGoHome, setShowMachineList]);
+  }, [handleSelectRoom, handleGoHome]);
 
   useEffect(() => {
-    if (currentView !== 'roomDetail' || !machineScrollTarget || !showMachineList) return;
+    if (currentView !== 'roomDetail' || !machineScrollTarget) return;
     const element = document.getElementById(machineScrollTarget);
     if (!element) return;
     setMachineScrollTarget(null);
@@ -634,7 +632,7 @@ const App = () => {
     const highlight = ['ring-2', 'ring-uvm-gold', 'ring-offset-2', 'dark:ring-offset-slate-800'];
     element.classList.add(...highlight);
     setTimeout(() => element.classList.remove(...highlight), 1500);
-  }, [currentView, machines, machineScrollTarget, showMachineList]);
+  }, [currentView, machines, machineScrollTarget]);
 
   const openMachine = (event, room, machineId) => {
     if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
@@ -643,7 +641,6 @@ const App = () => {
     if (window.location.hash !== path) window.history.pushState(null, '', path);
     handleSelectRoom(room.id, false);
     if (machineId) {
-      setShowMachineList(true);
       setMachineScrollTarget(`machine-card-${machineId}`);
     }
   };
@@ -651,7 +648,6 @@ const App = () => {
   const handleScrollToMachine = (machineCardId) => {
     setSearchTerm('');
     setFilterStatus('All');
-    setShowMachineList(true);
     setMachineScrollTarget(machineCardId);
   };
 
@@ -852,25 +848,23 @@ const App = () => {
             </div>
 
             {machines.length > 0 && (
-              <div className="mb-4 flex flex-wrap gap-2">
-                <button type="button" aria-expanded={showVisualLayout} aria-controls="room-layout"
-                  className="min-h-[44px] rounded-lg border border-slate-300 px-3 text-sm font-semibold dark:border-slate-600"
-                  onClick={() => setShowVisualLayout(!showVisualLayout)}>{showVisualLayout ? 'Hide Layout' : 'Show Layout'}</button>
-                <button type="button" aria-expanded={showMachineList} aria-controls="machine-list"
-                  className="min-h-[44px] rounded-lg border border-slate-300 px-3 text-sm font-semibold dark:border-slate-600"
-                  onClick={() => setShowMachineList(!showMachineList)}>{showMachineList ? 'Hide Machine List' : 'Show Machine List'}</button>
-              </div>
+              <section className="ll-panel mb-8 px-5 py-4 sm:px-6">
+                <h3>
+                  <button type="button" aria-expanded={showVisualLayout} aria-controls="room-layout"
+                    className="flex w-full items-center justify-between gap-3 rounded-md text-left text-lg font-semibold text-slate-900 focus-visible:ring-2 focus-visible:ring-uvm-green dark:text-slate-100 dark:focus-visible:ring-uvm-gold"
+                    onClick={() => setShowVisualLayout(!showVisualLayout)}>
+                    <span className="flex items-center gap-2"><LayoutGrid size={19} className="text-uvm-gold" aria-hidden="true" /> Room Layout</span>
+                    <span className="text-sm font-medium text-uvm-green dark:text-uvm-gold">{showVisualLayout ? 'Hide' : 'Show'}</span>
+                  </button>
+                </h3>
+                <div id="room-layout" hidden={!showVisualLayout}>
+                  {showVisualLayout && <div className="mt-5">
+                    <RoomLayout machines={machines} effectiveDarkMode={effectiveDarkMode} onMachineClick={handleScrollToMachine} />
+                  </div>}
+                </div>
+              </section>
             )}
-            <div id="room-layout" hidden={!showVisualLayout}>
-            {showVisualLayout && machines.length > 0 && (
-              <div className="ll-panel mb-8 p-5 sm:p-6 animate-fadeIn">
-                <h3 className="text-xl font-semibold mb-6 text-gray-800 dark:text-white">Room Layout</h3>
-                <RoomLayout machines={machines} effectiveDarkMode={effectiveDarkMode} onMachineClick={handleScrollToMachine} />
-              </div>
-            )}
-
-            </div>
-            <div id="machine-list" hidden={!showMachineList && machines.length > 0}>
+            <div id="machine-list">
             {machines.length === 0 ? (
                  <div className="ll-empty-state text-center py-16 p-8"><Info size={64} className="mx-auto opacity-50 mb-4 text-uvm-green dark:text-uvm-gold" /><p className="mt-4 text-xl font-semibold">No Machines Found</p><p className="text-sm mt-2 opacity-80">The provider has no machines listed for this room.</p></div>
             ) : (
