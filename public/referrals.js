@@ -1,7 +1,7 @@
 (() => {
   if (navigator.globalPrivacyControl || navigator.doNotTrack === '1') return;
   const pageLabel = {
-    '/': 'tracker', '/residence-halls/': 'directory', '/laundry-guide/': 'guide',
+    '/': 'tracker', '/residence-halls/': 'directory',
     '/faq/': 'faq', '/status/': 'status', '/about/': 'about', '/compare/': 'compare',
   }[location.pathname];
   const hall = location.pathname.match(/^\/residence-halls\/([a-z0-9-]{1,75})\/$/);

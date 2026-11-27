@@ -4,20 +4,6 @@ const officialRoomSelector = 'https://laundryconnectlive.com/uvm';
 
 export const articles = [
   {
-    slug: 'laundry-guide',
-    title: 'First-year laundry guide for UVM students',
-    description: 'Find the laundry room in your UVM residence hall, check which machines are free, and learn what to do when a machine breaks.',
-    intro: 'Start with your residence hall. Check for a free washer before carrying your laundry downstairs, and use an alert if you want a reminder during your cycle.',
-    html: `<h2>Find your room and check availability</h2>
-      <ol><li>Open the <a href="/residence-halls/">campus laundry directory</a> and choose your residence hall.</li>
-      <li>Pick your floor, tower, or room if your building lists more than one. At Central Campus Residence Hall, Floors 2 through 7 have separate entries.</li>
-      <li>Open the live tracker and check the latest update and the number of available washers or dryers. If the room is full, check Peak Times for a historically quieter window.</li>
-      <li>On a running machine, choose Set Cycle Alert. Use push on a supported browser or open the embedded text and email options.</li></ol>
-      <h2>Bring the basics</h2><p>Bring a laundry bag and detergent suited to the machine. Check the garment and machine labels, empty your pockets, and avoid overloading the washer. Move your load promptly and clear the dryer lint screen as directed on the machine.</p>
-      <h2>Know who to contact</h2><p>UVM’s <a href="${handbook}">Hallways Handbook</a> describes its residential laundry facilities and resident access. For a broken machine, note the hall, room, and washer or dryer number, then use <a href="${service}">Automatic Laundry’s service request form</a>.</p>
-      <p>See the <a href="/faq/">laundry FAQ</a> for saved counts, notifications, and using LaundryLink on your phone.</p>`,
-  },
-  {
     slug: 'faq',
     title: 'UVM laundry tracker FAQ',
     description: 'Answers about tracking UVM laundry on your phone, cycle reminders, Peak Times, saved statuses, and broken machines.',

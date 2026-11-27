@@ -17,7 +17,6 @@ const questions = [
 
 const resources = [
   ['Campus Laundry Directory', '/residence-halls/'],
-  ['First-year laundry guide', '/laundry-guide/'],
   ['Laundry FAQ', '/faq/'],
   ['About UVM LaundryLink', '/about/'],
   ['Compare trackers', '/compare/'],

@@ -2,7 +2,7 @@ export const CAMPUS_SECTIONS = [
   ['redstone', 'Redstone'],
   ['athletic', 'Athletic'],
   ['central', 'Central'],
-  ['north', 'Trinity/North'],
+  ['north', 'Trinity and North'],
 ];
 const CAMPUS_COMPLEXES = {
   redstone: [

@@ -92,7 +92,7 @@ test('opens the room directory without a network request', async () => {
     expect(cottagesCard.querySelector('.ll-room-card__location').textContent).toBe('Cottage #256');
     const campusGroup = container.querySelector('[aria-label="Filter rooms by campus"]');
     const buttons = [...campusGroup.querySelectorAll('button')];
-    expect(buttons.map(button => button.textContent)).toEqual(['All', 'Redstone', 'Athletic', 'Central', 'Trinity/North']);
+    expect(buttons.map(button => button.textContent)).toEqual(['All', 'Redstone', 'Athletic', 'Central', 'Trinity and North']);
     const cases = [
       ['redstone', 'Wing Hall', ['CWPSCR', 'MSH', 'WDW']],
       ['athletic', 'University Heights North', ['Harris-Millis', 'Living-Learning Complex', 'MAT', 'University Heights North Complex', 'University Heights South Complex']],
@@ -101,7 +101,7 @@ test('opens the room directory without a network request', async () => {
     ];
     for (const [index, button] of buttons.slice(1).entries()) {
       const [expectedCampus, expectedExample, expectedGroups] = cases[index];
-      expect(button.textContent).toBe(expectedCampus === 'north' ? 'Trinity/North' : expectedCampus[0].toUpperCase() + expectedCampus.slice(1));
+      expect(button.textContent).toBe(expectedCampus === 'north' ? 'Trinity and North' : expectedCampus[0].toUpperCase() + expectedCampus.slice(1));
       await act(async () => { button.click(); });
       const campusSection = container.querySelector(`#campus-rooms-${expectedCampus}`);
       expect(button.getAttribute('aria-pressed')).toBe('true');
