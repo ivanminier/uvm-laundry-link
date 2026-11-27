@@ -8,6 +8,7 @@ import { RoomSwitcher, RoomTools } from './RoomTools';
 import { MyLaundry } from './MyLaundry';
 import { PushAlertForm } from './PushAlertForm';
 import { LaundryHelp } from './LaundryHelp';
+import { HomeScreenPrompt } from './HomeScreenHelp';
 import { BackButton } from './BackButton';
 import { RoomPeakTimes } from './RoomPeakTimes';
 import { MachineReport, SERVICE_REQUEST_URL } from './MachineReport';
@@ -553,7 +554,8 @@ const App = () => {
     setSearchTerm('');
     setFilterStatus('All');
     setHomeSearchTerm('');
-    if (updateHash && window.location.hash) window.location.hash = '';
+    if (updateHash && window.location.pathname !== '/') window.history.pushState(null, '', '/');
+    else if (updateHash && window.location.hash) window.location.hash = '';
   }, []);
 
   useEffect(() => {
@@ -569,6 +571,10 @@ const App = () => {
           setSelectedRoomId('');
           setPreviousView('home');
           setCurrentView(overlayView);
+        } else if (url.hash || url.pathname !== '/') {
+          setSelectedRoomId('');
+          setMachineScrollTarget(null);
+          setCurrentView('notFound');
         } else {
           handleGoHome(false);
         }
@@ -588,7 +594,7 @@ const App = () => {
       }
     };
     const requestedOverlay = OVERLAY_ROUTE_VIEWS.has(new URLSearchParams(window.location.search).get('view'));
-    const lastRoom = !window.location.hash && !requestedOverlay && readPreference(REMEMBER_ROOM_KEY, false)
+    const lastRoom = window.location.pathname === '/' && !window.location.hash && !requestedOverlay && readPreference(REMEMBER_ROOM_KEY, false)
       ? findLaundryRoom(readPreference(LAST_ROOM_KEY, null))
       : null;
     if (lastRoom) {
@@ -639,7 +645,7 @@ const App = () => {
 
   const handleBackFromOverlay = () => setCurrentView(previousView);
   const handleOpenOverlay = (view) => {
-    if (currentView === 'home' || currentView === 'roomDetail') setPreviousView(currentView);
+    if (['home', 'roomDetail', 'notFound'].includes(currentView)) setPreviousView(currentView);
     setCurrentView(view);
   };
 
@@ -867,6 +873,17 @@ const App = () => {
             </>}
           </div>
         );
+      case 'notFound':
+        return (
+          <section className="ll-panel mx-auto max-w-2xl p-6 sm:p-8 animate-fadeIn">
+            <h1 className="text-3xl font-bold lg:text-4xl">Page not found</h1>
+            <p className="mb-6 mt-3 text-slate-600 dark:text-slate-300">This link doesn’t match a laundry room or page. Choose your room from the directory or return to the tracker.</p>
+            <div className="flex flex-wrap gap-3">
+              <a className="ll-back-button" href="/residence-halls/">Browse the campus directory</a>
+              <a className="ll-back-button" href="/">Return to the tracker</a>
+            </div>
+          </section>
+        );
       case 'myLaundry':
         return <MyLaundry onBack={handleBackFromOverlay} onOpenMachine={openMachine} />;
       case 'help':
@@ -933,6 +950,7 @@ const App = () => {
 
   return (
     <div className="ll-app min-h-screen font-sans">
+      <HomeScreenPrompt />
       <header className="ll-site-header sticky top-0 z-50">
         <div className="ll-header-inner">
           <div className="ll-header-row">

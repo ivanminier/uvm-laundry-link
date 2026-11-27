@@ -34,7 +34,7 @@ self.addEventListener('fetch', (event) => {
     }
 
     const path = new URL(request.url).pathname;
-    if (['/site.css', '/referrals.js', '/robots.txt', '/sitemap.xml'].includes(path)) {
+    if (['/site.css', '/room-directory.css', '/referrals.js', '/robots.txt', '/sitemap.xml'].includes(path)) {
       try {
         const response = await fetch(request);
         if (response.ok) await cache.put(request, response.clone());

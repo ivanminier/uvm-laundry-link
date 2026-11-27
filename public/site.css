@@ -643,3 +643,15 @@ html.dark .site-page-header .site-back-button {
 html.dark .site-directory .site-room-info {
   color: var(--gold);
 }
+
+.site-not-found {
+  max-width: 42rem;
+  margin-inline: auto;
+}
+
+.site-not-found h1 {
+  margin: 0;
+  line-height: 1.15;
+  font-size: clamp(1.875rem, 4vw, 2.5rem);
+  letter-spacing: -0.035em;
+}

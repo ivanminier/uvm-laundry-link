@@ -337,7 +337,21 @@ for (const page of pages.slice(1)) {
 }
 await Promise.all(['laundry-guide', 'faq', 'residence-halls/austin-hall'].map(path =>
   rm(new URL(path + '/index.html', build), { force: true })));
-await writeFile(new URL('404.html', build), `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Page not found | UVM LaundryLink</title><link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="stylesheet" href="/site.css">${themeScript}</head><body class="public-page">${header()}<main class="site-wrap site-main"><h1>Page not found</h1><p>${link('/residence-halls/', 'Find a laundry room')} or ${link('/', 'open the tracker')}.</p></main>${footer()}</body></html>\n`);
+await writeFile(new URL('404.html', build), `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex"><title>Page not found | UVM LaundryLink</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg"><link rel="stylesheet" href="/site.css">
+<link rel="stylesheet" href="/room-directory.css">${themeScript}</head>
+<body class="public-page">${header()}<main class="site-wrap site-main site-app-view animate-fadeIn">
+  <section class="site-panel site-not-found">
+    <h1>Page not found</h1>
+    <p>This link doesn’t match a laundry room or page. Choose your room from the directory or return to the tracker.</p>
+    <div class="site-page-actions">
+      <a class="site-page-action" href="/residence-halls/">Browse the campus directory</a>
+      <a class="site-page-action" href="/">Return to the tracker</a>
+    </div>
+  </section>
+</main>${footer()}</body></html>\n`);
 await writeFile(new URL('sitemap.xml', build), `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${pages.map(({ path }) => `  <url><loc>${escape(origin + path)}</loc></url>`).join('\n')}
 </urlset>\n`);

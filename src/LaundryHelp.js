@@ -2,11 +2,16 @@ import React, { useId, useState } from 'react';
 import { ChevronRight, ExternalLink } from 'lucide-react';
 import { SERVICE_REQUEST_URL } from './MachineReport';
 import { BackButton } from './BackButton';
+import { HomeScreenSteps } from './HomeScreenHelp';
 
 const questions = [
   ['How do I find my room?', <>Open the <a href="/residence-halls/" className="text-uvm-green underline dark:text-uvm-gold">campus laundry directory</a> and choose your residence hall, then select your floor, tower, or room. Central Campus Residence Hall has separate entries for Floors 2 through 7. A machine may show time remaining when the provider reports it.</>],
   ['What should I bring?', 'Bring a laundry bag and detergent suited to the machine. Check garment and machine labels, empty your pockets, avoid overloading the washer, move your load promptly, and clear the dryer lint screen as directed.'],
-  ['Is there a UVM laundry app?', 'UVM LaundryLink is a website for phones and computers. You can add it to your phone’s Home Screen. For push notifications on iPhone or iPad, open LaundryLink from its Home Screen icon and allow notifications when prompted.'],
+  ['Is there a UVM laundry app?', <>
+    <p className="mb-2">LaundryLink works in your browser. On iPhone or iPad, follow these steps to open it from your Home Screen:</p>
+    <HomeScreenSteps />
+    <p className="mt-2">For push notifications, open it from its icon and allow notifications when prompted.</p>
+  </>],
   ['How do I know when a machine is free?', 'Available means the provider reports the machine can be used. A finished cycle may still have laundry inside. Check the room’s last refresh time before relying on the list.'],
   ['Can I get a text, email, or push notification?', 'Open Set Cycle Alert on a running machine. LaundryLink sends browser push alerts; Automatic Laundry provides the text and email setup in its embedded panel. When a room has no available washers or no available dryers, LaundryLink can send a one-time push when a machine of that type opens.'],
   ['What do the status labels mean?', 'Available means the provider reports an open machine. Cycle Finished means a cycle has ended. A saved snapshot shows an earlier observation with its timestamp. If there is no usable status, the tracker marks the data unavailable. See service status if a refresh fails.'],
@@ -38,7 +43,7 @@ function Question({ question, answer }) {
       </button>
       <div id={answerId} className="ll-faq-answer" aria-hidden={!open} inert={open ? undefined : ''}>
         <div>
-          <p className="pb-3 pl-[22px] text-sm text-slate-600 dark:text-slate-300">{answer}</p>
+          <div className="pb-3 pl-[22px] text-sm text-slate-600 dark:text-slate-300">{answer}</div>
         </div>
       </div>
     </div>

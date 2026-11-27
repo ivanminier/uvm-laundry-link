@@ -215,7 +215,7 @@ test('main views share the same back control', async () => {
   const container = document.createElement('div');
   document.body.appendChild(container);
   const root = createRoot(container);
-  const backButton = () => container.querySelector('.ll-back-button');
+  const backButton = () => container.querySelector('main .ll-back-button');
 
   try {
     await act(async () => { root.render(<App />); });
