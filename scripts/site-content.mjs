@@ -59,14 +59,17 @@ export const articles = [
     intro: 'UVM LaundryLink is an independent student-built tracker for residence hall laundry. Automatic Laundry runs LaundryConnect.',
     layout: 'compare',
     html: `<div class="site-panel-grid site-comparison-overview">
-      <section class="site-panel"><h2>UVM LaundryLink</h2><p>Find your room by campus, save favorites, check Peak Times, and manage push alerts.</p><a class="site-page-action" href="/residence-halls/">Find your hall</a></section>
+      <section class="site-panel"><h2>UVM LaundryLink</h2><p>Find your room quickly, save the spots you use, and get a push when the next machine you need opens.</p><a class="site-page-action" href="/residence-halls/">Find your laundry room</a></section>
       <section class="site-panel"><h2>LaundryConnect</h2><p>Automatic Laundry’s own room view, with machine status, usage history, and access to service requests.</p><a class="site-page-action" href="${officialRoomSelector}">Open UVM rooms on LaundryConnect</a></section>
     </div>
     <div class="site-comparison-grid">
       ${[
-        ['Find an open machine', 'Search rooms by name, filter by campus, and save favorites. CCRH Floors 6 and 7 have separate machine lists. Each check displays its timestamp.', 'Open the provider’s room view for its machine list and reported status. The provider lists CCRH Floors 6 and 7 together.'],
+        ['Get to your usual room faster', 'Search across UVM halls and complexes, filter by campus, or open your favorites. Favorite cards show reported free machine counts when status is available.', 'Start at the UVM room selector, then open the room you want to check.'],
+        ['Find an open machine', 'CCRH Floors 6 and 7 have separate machine lists. Check counts, search for a machine number, or filter by status.', 'Open the provider’s room view for its machine list and reported status. The provider lists CCRH Floors 6 and 7 together.'],
         ['Plan a quieter visit', 'Peak Times display historical usage. CCRH Floors 6 and 7 share one history.', 'The room’s Peak Times chart summarizes past machine use where history is available.'],
         ['Get an alert', 'Set browser push for a running cycle or the next washer or dryer when that type is full in your room. The embedded text and email form comes from Automatic Laundry.', 'Use the provider’s text or email options when they are offered for a running machine.'],
+        ['Set up the tracker the way you like', 'Choose light or dark mode, set whether Room Layout and Peak Times start expanded, or open your last room on startup.', 'Open a provider room page to see its machine layout and status list.'],
+        ['Know how fresh a status is', 'Each live check shows its time. During a temporary outage, a saved result is labeled with the earlier timestamp when your device has one.', 'Use the provider’s room page as a second place to check when LaundryLink’s feed is unavailable.'],
         ['Report a broken machine', 'Open the report action on the machine card to see which machine you’re reporting and open the provider’s service form.', 'Automatic Laundry receives service requests and handles repairs. Include the building, room, and machine number.'],
       ].map(([task, laundryLink, laundryConnect]) => `<section class="site-panel site-comparison-row">
         <h2>${task}</h2><dl><div><dt>UVM LaundryLink</dt><dd>${laundryLink}</dd></div><div><dt>LaundryConnect</dt><dd>${laundryConnect}</dd></div></dl>
