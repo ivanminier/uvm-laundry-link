@@ -465,6 +465,43 @@ function resolveFavoriteIds(saved) {
     : [];
 }
 
+function RefreshRoomButton({ busy, refresh }) {
+  const [spinning, setSpinning] = useState(false);
+  const [refreshed, setRefreshed] = useState(false);
+  const showSuccess = refreshed && !spinning;
+  const refreshing = busy || spinning;
+
+  useEffect(() => {
+    if (!showSuccess) return undefined;
+    const timer = setTimeout(() => setRefreshed(false), 3000);
+    return () => clearTimeout(timer);
+  }, [showSuccess]);
+
+  async function handleRefresh() {
+    if (refreshing) return;
+    setRefreshed(false);
+    setSpinning(true);
+    setRefreshed(await refresh());
+  }
+
+  return (
+    <>
+      <button type="button" onClick={handleRefresh} className="ll-icon-button" aria-label="Refresh machine status"
+        title="Refresh machine status" aria-disabled={refreshing} aria-busy={busy}>
+        <RefreshCw size={20} aria-hidden="true" className={spinning ? 'll-refresh-spin' : undefined}
+          onAnimationEnd={() => setSpinning(false)} />
+      </button>
+      <div role="status" className="ll-refresh-announcement">
+        {showSuccess && (
+          <span className="ll-refresh-toast">
+            <CheckCircle size={18} aria-hidden="true" /> Successfully Refreshed
+          </span>
+        )}
+      </div>
+    </>
+  );
+}
+
 // --- Main App Component ---
 const App = () => {
   const [currentView, setCurrentView] = useState('home');
@@ -936,8 +973,9 @@ const App = () => {
               <span className="ll-brand__name">UVM LaundryLink</span>
             </button>
             <div className="ll-header-actions">
-              {currentView === 'roomDetail' && roomStatus.busy && <span title="Refreshing data" className="ll-icon-button" aria-label="Refreshing data"><RefreshCw size={20} className="animate-spin" /></span>}
-              {currentView === 'roomDetail' && currentRoom?.providerId && !roomStatus.busy && <button onClick={roomStatus.refresh} className="ll-icon-button" aria-label="Refresh machine status" title="Refresh machine status"> <RefreshCw size={20} /> </button>}
+              {currentView === 'roomDetail' && currentRoom?.providerId && (
+                <RefreshRoomButton key={currentRoom.id} busy={roomStatus.busy} refresh={roomStatus.refresh} />
+              )}
               <button onClick={() => handleOpenOverlay('myLaundry')} className="ll-icon-button" aria-label="My Laundry" title="My Laundry">
                 <Bell size={20} />
               </button>

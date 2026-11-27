@@ -699,3 +699,46 @@ html.dark .ll-footer-nav a {
     transition-duration: 0.01ms !important;
   }
 }
+
+@keyframes ll-refresh-rotation {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.ll-refresh-spin {
+  transform-origin: center;
+  animation: ll-refresh-rotation 600ms linear;
+}
+
+.ll-refresh-announcement {
+  position: fixed;
+  z-index: 60;
+  right: 1rem;
+  bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  left: 1rem;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.ll-refresh-toast {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--ll-line);
+  border-radius: 0.75rem;
+  background: var(--ll-surface);
+  color: var(--ll-ink);
+  box-shadow: 0 4px 18px rgb(0 0 0 / 16%);
+  font-size: 0.875rem;
+  font-weight: 650;
+}
+
+.ll-refresh-toast svg {
+  color: var(--ll-green);
+}
+
+html.dark .ll-refresh-toast svg {
+  color: var(--ll-gold);
+}

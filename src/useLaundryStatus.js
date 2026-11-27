@@ -38,7 +38,7 @@ export function useLaundryStatus(room, { refreshInterval = REFRESH_INTERVAL_MS, 
     }
 
     async function update(force = false) {
-      if ((!force && (document.hidden || Date.now() < nextRetry)) || request) return;
+      if ((!force && (document.hidden || Date.now() < nextRetry)) || request) return false;
 
       const controller = new AbortController();
       request = controller;
@@ -50,7 +50,8 @@ export function useLaundryStatus(room, { refreshInterval = REFRESH_INTERVAL_MS, 
           catalog ?? fetchRoomMachines(providerId, controller.signal).then((machines) => filterRoomMachines(room, machines)),
           fetchRoomStatus(providerId, controller.signal),
         ]);
-        if (!active || controller.signal.aborted) return;
+        if (!active) return false;
+        controller.signal.throwIfAborted();
         const normalized = normalizeRoomStatus(payload, providerId, machines);
         catalog = machines;
         snapshot = { machines: normalized, checkedAt: Date.now() };
@@ -63,6 +64,7 @@ export function useLaundryStatus(room, { refreshInterval = REFRESH_INTERVAL_MS, 
         failures = 0;
         nextRetry = 0;
         show(false);
+        return normalized.some(({ status }) => status !== 'Unknown');
       } catch {
         if (active) {
           failed = true;
@@ -70,6 +72,7 @@ export function useLaundryStatus(room, { refreshInterval = REFRESH_INTERVAL_MS, 
           nextRetry = Date.now() + Math.min(300_000, refreshInterval * 2 ** Math.min(failures - 1, 4));
           show(false);
         }
+        return false;
       } finally {
         clearTimeout(timeout);
         controller.abort();
