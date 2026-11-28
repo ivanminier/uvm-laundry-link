@@ -147,7 +147,7 @@ export function FavoriteSummary({ rooms, statuses, offline, onSelectRoom }) {
               <QuieterWindow key={hours} hours={hours} rooms={rooms} onSelectRoom={onSelectRoom} />
             ))}
           </ul>
-          <p>Historical usage · Burlington time</p>
+          <p>Historical usage</p>
         </div>
       )}
     </section>

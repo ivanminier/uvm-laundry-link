@@ -876,7 +876,7 @@ test('Peak Times shows bundled guidance immediately and keeps one recommendation
     await act(async () => { root.render(<RoomPeakTimes room={room} />); });
     const toggle = container.querySelector('h2 button');
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
-    expect(container.textContent).toMatch(/Usually quieter daytime window: .+\(Burlington time\)/);
+    expect(container.textContent).toMatch(/Usually quieter daytime window: \d.+ [AP]M\.(?!\s*\()/);
     expect(container.textContent).toContain('one usage history for CCRH Floors 6 and 7');
     expect(container.querySelector('[role="grid"]')).toBeNull();
 

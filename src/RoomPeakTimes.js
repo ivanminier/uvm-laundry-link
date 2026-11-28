@@ -86,7 +86,7 @@ function UsageChart({ grid, totalSamples, capturedAt }) {
     <>
       {recommendation ? (
         <p className="mt-4 rounded-lg bg-teal-50 p-3 text-sm text-teal-950 dark:bg-teal-950/50 dark:text-teal-100">
-          <strong>Usually quieter daytime window: {recommendation.label} (Burlington time).</strong>{' '}
+          <strong>Usually quieter daytime window: {recommendation.label}.</strong>{' '}
           Typically {usageNumber.format(recommendation.windowUsage)}% of machines were in use, compared with{' '}
           {usageNumber.format(recommendation.baselineUsage)}% from 7 AM to midnight on the same days.
           {reduction > 0 && ` That’s approximately ${reduction}% lower than the daytime average.`}
@@ -204,7 +204,7 @@ export function RoomPeakTimes({ room, defaultOpen = false }) {
       </h2>
       {!open && quietHours && (
         <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-          Usually quieter daytime window: {quietHours} (Burlington time).
+          Usually quieter daytime window: {quietHours}.
         </p>
       )}
       {room.machineRange && (open || quietHours) && (
