@@ -41,11 +41,11 @@ const escape = (value) => String(value).replace(/[&<>"']/g, (character) =>
 const link = (url, label) => `<a href="${escape(url)}">${escape(label)}</a>`;
 const slugify = (text) => text.toLowerCase().replaceAll('&', 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const trackerLink = (room) => '/' + roomPath(room);
-const header = () => `<header class="ll-site-header"><div class="ll-header-inner"><div class="ll-header-row">
+const header = (path) => `<header class="ll-site-header"><div class="ll-header-inner"><div class="ll-header-row">
   <a href="/" class="ll-brand"><img src="/brand-mark.svg" alt="" aria-hidden="true" class="ll-brand__mark"><span class="ll-brand__name">UVM LaundryLink</span></a>
   <div class="ll-header-actions">
     <a class="ll-icon-button" href="/?view=my-laundry" aria-label="My Laundry" title="My Laundry"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg></a>
-    <a class="ll-icon-button" href="${informationPath}" aria-label="Information" title="Information"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></a>
+    <a class="ll-icon-button" href="${informationPath}"${path === informationPath ? ' aria-current="page"' : ''} aria-label="Information" title="Information"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg></a>
     <a class="ll-icon-button" href="/?view=settings" aria-label="Settings" title="Settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.09a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.08a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.08a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></a>
   </div>
 </div></div></header>`;
@@ -171,7 +171,7 @@ function content(page) {
     ? `site-wrap site-main site-app-view site-${page.layout} animate-fadeIn`
     : 'site-wrap site-main';
   const heading = `<h1>${escape(page.heading)}</h1>`;
-  return `${header()}<main class="${mainClasses}">
+  return `${header(page.path)}<main class="${mainClasses}">
     ${page.backHref ? `<div class="site-page-header">${heading}<a class="site-back-button" href="${escape(page.backHref)}">${arrow} Back</a></div>` : heading}
     <p class="site-intro">${escape(page.intro)}</p>${page.html}
     </main>`;

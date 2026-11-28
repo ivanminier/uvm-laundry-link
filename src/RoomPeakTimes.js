@@ -81,8 +81,8 @@ function UsageChart({ grid, totalSamples, capturedAt }) {
         <p className="mt-4 rounded-lg bg-teal-50 p-3 text-sm text-teal-950 dark:bg-teal-950/50 dark:text-teal-100">
           <strong>Usually quieter daytime window: {recommendation.label} (Burlington time).</strong>{' '}
           Typically {usageNumber.format(recommendation.windowUsage)}% of machines were in use, compared with{' '}
-          {usageNumber.format(recommendation.baselineUsage)}% from 7 AM to midnight on the same days. That’s{' '}
-          {usageNumber.format(recommendation.improvement)} percentage points lower.
+          {usageNumber.format(recommendation.baselineUsage)}% from 7 AM to midnight on the same days. The gap was{' '}
+          {usageNumber.format(recommendation.improvement)}%.
         </p>
       ) : (
         <p className="mt-4 text-sm text-slate-600 dark:text-slate-300">The available history did not identify a consistently quieter daytime window.</p>

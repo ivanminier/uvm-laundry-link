@@ -36,7 +36,7 @@ export const informationQuestions = [
     'LaundryLink works in your browser. On iPhone or iPad, follow these steps to open it from your Home Screen.',
   ], 'For push notifications, open it from its icon and allow notifications when prompted.'],
   ['How do I know when a machine is free?', [
-    'Free counts include Available, Cycle Finished, and Door Open. A finished cycle may still have laundry inside. Check the room’s last refresh time before relying on the list. When a machine type has no reported free machines, the room summary can show its next estimated cycle finish. Check Peak Times for a historically quieter window.',
+    'Free counts include Available, Cycle Finished, and Door Open. Reported free includes cycles that have finished and machines with open doors. Laundry may still be inside. Check the room’s last refresh time before relying on the list. When a machine type has no reported free machines, the room summary can show its next estimated cycle finish. Check Peak Times for a historically quieter window.',
   ]],
   ['Can I get a cycle reminder or notification?', [
     'Choose Set cycle alert on a running machine. LaundryLink sends browser push alerts. Check or cancel saved alerts in My Laundry. If a current finish estimate is available, you can also download a reminder to import into your calendar. It uses the current estimate and won’t update if the cycle changes. For text or email, select the same machine in the Automatic Laundry panel and open Notify Me. If the panel is unavailable, open LaundryConnect in a new tab from the alert dialog. When a room has no free washers or no free dryers, LaundryLink can send a one-time push when a machine of that type becomes free.',

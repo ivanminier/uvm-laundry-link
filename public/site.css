@@ -119,11 +119,16 @@ html.dark .public-page {
   width: 2.45rem;
   height: 2.45rem;
   flex: 0 0 auto;
+  transition: transform 140ms ease;
+}
+
+.ll-brand:hover .ll-brand__mark {
+  transform: scale(1.1);
 }
 
 .ll-brand__name {
   overflow-wrap: anywhere;
-  transition: color 140ms ease, text-shadow 140ms ease;
+  transition: color 140ms ease;
   font-size: clamp(1.05rem, 2.1vw, 1.35rem);
   font-weight: 720;
   letter-spacing: -0.035em;
@@ -133,7 +138,6 @@ html.dark .public-page {
 .ll-brand:hover .ll-brand__name,
 .ll-brand:focus-visible .ll-brand__name {
   color: var(--gold);
-  text-shadow: 0 0 8px var(--gold);
 }
 
 .ll-header-actions {
@@ -153,14 +157,13 @@ html.dark .public-page {
   border-radius: 0.65rem;
   background: transparent;
   text-decoration: none;
-  transition: background-color 140ms ease, color 140ms ease, filter 140ms ease;
+  transition: color 140ms ease;
 }
 
 .ll-icon-button:hover,
-.ll-icon-button:focus-visible {
-  background: rgb(255 255 255 / 13%);
+.ll-icon-button:focus-visible,
+.ll-icon-button[aria-current="page"] {
   color: var(--gold);
-  filter: drop-shadow(0 0 5px var(--gold));
 }
 
 .crumbs {

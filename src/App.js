@@ -447,7 +447,6 @@ const RoomCard = React.memo(({ room, onSelectRoom, isFavorite, onToggleFavorite,
 });
 
 const EMPTY_MACHINES = [];
-const FREE_MACHINE_NOTE = 'Reported free includes cycles that have finished and machines with open doors. Laundry may still be inside.';
 const OVERLAY_VIEWS = new Set(['help', 'myLaundry', 'settings']);
 const OVERLAY_ROUTE_VIEWS = new Map([
   ['my-laundry', 'myLaundry'],
@@ -963,9 +962,6 @@ const App = () => {
                 </button>
               </div>
             </div>
-            {filteredHomeRooms.some(room => favorites.includes(room.id)) && (
-              <p className="mb-4 text-xs text-slate-600 dark:text-slate-300">{FREE_MACHINE_NOTE}</p>
-            )}
             {favoriteSummaryEnabled && filteredHomeRooms.length > 0 && (
               <FavoriteSummary rooms={filteredHomeRooms} statuses={favoriteStatuses} offline={isOffline} onSelectRoom={handleSelectRoom} />
             )}
@@ -1052,9 +1048,6 @@ const App = () => {
                       {renderAvailability(allDryers, availableDryersInRoom, 'dryer')}
                     </div>
                   </dl>
-                )}
-                {hasUsableStatus && (
-                  <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">{FREE_MACHINE_NOTE}</p>
                 )}
                 {hasUsableStatus && nonreportingMachines > 0 && (
                   <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
@@ -1208,11 +1201,14 @@ const App = () => {
               {currentView === 'roomDetail' && currentRoom?.providerId && (
                 <RefreshRoomButton key={currentRoom.id} busy={roomStatus.busy} refresh={roomStatus.refresh} />
               )}
-              <button onClick={() => handleOpenOverlay('myLaundry')} className="ll-icon-button" aria-label="My Laundry" title="My Laundry">
+              <button onClick={() => handleOpenOverlay('myLaundry')} className="ll-icon-button"
+                aria-current={currentView === 'myLaundry' ? 'page' : undefined} aria-label="My Laundry" title="My Laundry">
                 <Bell size={20} />
               </button>
-              <button onClick={() => handleOpenOverlay('help')} className="ll-icon-button" aria-label="Information" title="Information"><Info size={20} /></button>
-              <button onClick={() => handleOpenOverlay('settings')} className="ll-icon-button" aria-label="Settings" title="Settings"><Settings size={20} /></button>
+              <button onClick={() => handleOpenOverlay('help')} className="ll-icon-button"
+                aria-current={currentView === 'help' ? 'page' : undefined} aria-label="Information" title="Information"><Info size={20} /></button>
+              <button onClick={() => handleOpenOverlay('settings')} className="ll-icon-button"
+                aria-current={currentView === 'settings' ? 'page' : undefined} aria-label="Settings" title="Settings"><Settings size={20} /></button>
             </div>
           </div>
         </div>

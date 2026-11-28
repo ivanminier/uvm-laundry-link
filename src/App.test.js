@@ -862,7 +862,7 @@ test('Peak Times shows bundled guidance immediately and keeps one recommendation
     await act(async () => { toggle.click(); });
     expect(container.textContent.match(/Usually quieter/g)).toHaveLength(1);
     expect(container.textContent).toMatch(/compared with .+% from 7 AM to midnight on the same days/);
-    expect(container.textContent).toContain('percentage points lower');
+    expect(container.textContent).toMatch(/The gap was \d+(?:\.\d+)?%/);
     expect(container.textContent).toContain('official quiet hours');
     expect(container.querySelector('time').dateTime).toBe(snapshot.capturedAt);
     const firstCell = container.querySelector('[data-usage-cell="0-0"]');
