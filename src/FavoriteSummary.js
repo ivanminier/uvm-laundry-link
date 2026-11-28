@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { ArrowRight, Clock, Droplet, LayoutGrid, Wind } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { ArrowRight, ChevronDown, ChevronUp, Clock, Droplet, LayoutGrid, Wind } from 'lucide-react';
 import { getRoomHistoryId, roomLabel, roomPath } from './laundryData';
 import { quieterWindow, usePeakTimesSnapshot } from './RoomPeakTimes';
 
@@ -10,6 +10,31 @@ function RoomLink({ room, onSelectRoom, className, children }) {
       event.preventDefault();
       onSelectRoom(room.id);
     }}>{children ?? roomLabel(room)}</a>
+  );
+}
+
+// Shows the first two rooms for a quieter window; the rest expand in place.
+function QuieterWindow({ hours, rooms, onSelectRoom }) {
+  const [expanded, setExpanded] = useState(false);
+  const shown = expanded ? rooms : rooms.slice(0, 2);
+  const hidden = rooms.length - 2;
+  return (
+    <li><strong>{hours}</strong>{' '}
+      {shown.map((room, index) => (
+        <span key={room.id}>
+          {index > 0 && (expanded && index === shown.length - 1 ? ' and ' : ', ')}
+          <RoomLink className="ll-favorite-room-link" room={room} onSelectRoom={onSelectRoom} />
+        </span>
+      ))}
+      {hidden > 0 && <>
+        {expanded ? ' ' : ' and '}
+        <button type="button" className="ll-favorite-more" aria-expanded={expanded}
+          onClick={() => setExpanded((value) => !value)}>
+          {expanded ? 'Show fewer' : `${hidden} more`}
+          {expanded ? <ChevronUp size={14} aria-hidden="true" /> : <ChevronDown size={14} aria-hidden="true" />}
+        </button>
+      </>}
+    </li>
   );
 }
 
@@ -118,12 +143,8 @@ export function FavoriteSummary({ rooms, statuses, offline, onSelectRoom }) {
         <div className="ll-favorite-summary__history">
           <h3><Clock size={17} aria-hidden="true" /> Usually quieter</h3>
           <ul>
-            {quieterTimes.map(([hours, [first, second, ...others]]) => (
-              <li key={hours}><strong>{hours}</strong>{' '}
-                <RoomLink className="ll-favorite-room-link" room={first} onSelectRoom={onSelectRoom} />
-                {second && <>{', '}<RoomLink className="ll-favorite-room-link" room={second} onSelectRoom={onSelectRoom} /></>}
-                {others.length > 0 && <> and {others.length} more</>}
-              </li>
+            {quieterTimes.map(([hours, rooms]) => (
+              <QuieterWindow key={hours} hours={hours} rooms={rooms} onSelectRoom={onSelectRoom} />
             ))}
           </ul>
           <p>Historical usage · Burlington time</p>
