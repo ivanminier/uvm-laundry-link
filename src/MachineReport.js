@@ -60,6 +60,12 @@ function CalendarReminder({ machine, room, checkedAt }) {
   );
 }
 
+// LaundryConnect labels machines "W14" and "D20" in its room view.
+const providerMachineLabel = ({ type, number, machineName }) => {
+  const digits = number ?? String(machineName ?? '').match(/\d+/)?.[0];
+  return type && digits ? `${type[0]}${digits}` : machineName;
+};
+
 function MachineDialog({ machine, room, mode, canSetAlert, checkedAt, onClose, onModeChange }) {
   const dialog = useRef(null);
   const [copyStatus, setCopyStatus] = useState('');
@@ -93,13 +99,24 @@ function MachineDialog({ machine, room, mode, canSetAlert, checkedAt, onClose, o
         </form>
       </div>
       <p className="mt-3 break-words text-sm">{details}</p>
+      {reporting ? (
+        <div className="ll-report-steps">
+          <p className="ll-report-steps__title">How to report {machine.machineName}</p>
+          <ol>
+            <li>{showOfficialForm
+              ? <>Tap <strong>{providerMachineLabel(machine)}</strong> in the panel below.</>
+              : <>Open the LaundryConnect page and tap <strong>{providerMachineLabel(machine)}</strong>.</>}</li>
+            <li>Choose <strong>Report a problem</strong>, pick the issue, and add your name and email.</li>
+            <li>Tap <strong>Submit Report</strong>. Automatic Laundry handles the repair.</li>
+          </ol>
+        </div>
+      ) : (
       <p className="mt-2 break-words text-sm text-slate-600 dark:text-slate-300">
-        {reporting
-          ? `Select ${machine.machineName} ${showOfficialForm ? 'below' : 'on the LaundryConnect page'}, then choose Report a problem. Automatic Laundry handles repairs.`
-          : contactAlert
+        {contactAlert
             ? `Select ${machine.machineName} below, open Notify Me, then choose Text or Email. Automatic Laundry sends the alert.`
             : 'Push alerts work even after you close UVM LaundryLink.'}
       </p>
+      )}
       {(reporting || contactAlert) && room.machineRange && (
         <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
           The LaundryConnect page lists CCRH Floors 6 and 7 together under Floor 6.

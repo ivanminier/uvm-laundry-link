@@ -61,3 +61,29 @@ test('Settings wording changes keep the same controls and stored preferences', a
     expect(container.textContent).toContain('Report a broken machine');
   });
 });
+
+test('the report dialog shows numbered steps naming the LaundryConnect machine label', async () => {
+  const { MachineReport } = await import('./MachineReport');
+  const { findLaundryRoom } = await import('./laundryData');
+  global.IS_REACT_ACT_ENVIRONMENT = true;
+  HTMLDialogElement.prototype.showModal = jest.fn();
+  const container = document.body.appendChild(document.createElement('div'));
+  const root = createRoot(container);
+  try {
+    await act(async () => {
+      root.render(<MachineReport machine={{ id: '14', number: '14', type: 'Washer', machineName: 'Washer 14' }} room={findLaundryRoom('uheightsn2')} />);
+    });
+    await act(async () => { container.querySelector('[aria-label="Report Washer 14"]').click(); });
+    const steps = container.querySelector('.ll-report-steps');
+    expect(steps.querySelector('.ll-report-steps__title').textContent).toBe('How to report Washer 14');
+    expect([...steps.querySelectorAll('li')].map((item) => item.textContent)).toEqual([
+      'Tap W14 in the panel below.',
+      'Choose Report a problem, pick the issue, and add your name and email.',
+      'Tap Submit Report. Automatic Laundry handles the repair.',
+    ]);
+  } finally {
+    act(() => root.unmount());
+    container.remove();
+    delete global.IS_REACT_ACT_ENVIRONMENT;
+  }
+});
