@@ -3,7 +3,7 @@ import { isFreeMachine, STATUS_MAX_AGE_MS } from './laundryData';
 const isRecent = (timestamp, now) => Number.isFinite(timestamp) &&
   timestamp <= now && now - timestamp <= STATUS_MAX_AGE_MS;
 
-const isRunningMachine = ({ status }) => /^(In Use|Finishing Soon|\d+ min)$/.test(status);
+export const isRunningMachine = ({ status }) => /^(In Use|Finishing Soon|\d+ min)$/.test(status);
 
 export function cycleFinishAt(machine, checkedAt, now = Date.now()) {
   const { observedAt, remainingSeconds } = machine;

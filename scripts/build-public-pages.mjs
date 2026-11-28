@@ -1,6 +1,6 @@
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { CAMPUS_SECTIONS, groupCampusRooms } from '../src/campusDirectory.mjs';
-import { hallName, hallSlug, roomPath } from '../src/roomLinks.mjs';
+import { hallName, hallSlug, roomLabel, roomPath } from '../src/roomLinks.mjs';
 import { independenceDisclosure, trackerTitle, homeScreenSteps, informationDisclosure, informationPath, informationQuestions, informationResources, urgentMachinePhone, urgentMachineTel } from '../src/informationContent.mjs';
 import { checkSources } from './check-sources.mjs';
 import { articles, handbook, legalArticles, service } from './site-content.mjs';
@@ -300,6 +300,29 @@ const hallPages = hallList.map((hall) => {
   };
 });
 
+const machineCoverage = () => {
+  if (!health.machineCoverage) return '<p>Machine-status coverage will appear after the next automated check.</p>';
+
+  const groups = [
+    ['full', 'Fully reporting'],
+    ['partial', 'Partially reporting'],
+    ['none', 'No usable availability'],
+    ['unevaluated', 'Could not evaluate'],
+  ];
+  const details = groups.map(([category, label]) => {
+    const members = rooms.filter(room => (health.machineCoverage[room.id]?.category ?? 'unevaluated') === category);
+    return `<div><dt>${label}</dt><dd>${members.length} ${members.length === 1 ? 'tracker' : 'trackers'}
+      ${category !== 'full' && members.length ? list(members.map(room => {
+        const coverage = health.machineCoverage[room.id];
+        const count = coverage?.expected ? ` · ${coverage.reporting} of ${coverage.expected} machines reporting` : '';
+        return link(trackerLink(room), roomLabel(room)) + count;
+      }), 'site-map-room-links') : ''}</dd></div>`;
+  });
+  return `<p>Checked ${rooms.length} tracker views using their recorded machine lists. CCRH Floors 6 and 7 share one provider feed and are evaluated separately.</p>
+    <dl class="site-status-meanings">${details.join('')}</dl>
+    <p>Offline and Unknown readings do not establish availability. Out of Order counts as a known status. A responding feed alone tells you neither which machines work nor which are free.</p>`;
+};
+
 const status = {
   path: '/status/', title: 'UVM LaundryLink Service Status and Data Sources', heading: 'UVM LaundryLink service status',
   description: 'See when UVM laundry sources were last checked, how to recognize saved machine status, and where to go during an outage.',
@@ -320,13 +343,17 @@ const status = {
   <div class="site-panel-grid">
     <section class="site-panel site-panel-wide">
       <h2>Last automated checks</h2>
-      <p>Checked ${time(health.checkedAt)}.</p>
+      <p>Checked ${time(health.checkedAt)}. These results are a periodic snapshot. Open your room tracker for the latest available reading.</p>
       <dl class="site-status-metrics">
         <div><dt>Room status feeds</dt><dd><strong>${health.checkedFeeds} of ${health.totalFeeds}</strong><span>Machine status feed responded with status data for ${health.checkedFeeds} of ${health.totalFeeds} provider rooms.</span></dd></div>
         <div><dt>Machine directory</dt><dd><strong>${health.directory ? 'Responded' : 'Unavailable'}</strong><span>The sample directory request ${health.directory ? 'returned a usable machine list' : 'did not return a usable machine list'}.</span></dd></div>
         <div><dt>Push configuration</dt><dd><strong>${health.pushConfiguration ? 'Responded' : 'Unverified'}</strong><span>The check covers configuration. Delivery depends on the browser and room feed.</span></dd></div>
       </dl>
       <p>Peak Times history fetched ${time(history.capturedAt)}.</p>
+    </section>
+    <section class="site-panel site-panel-wide">
+      <h2>Machine-status coverage</h2>
+      ${machineCoverage()}
     </section>
     <section class="site-panel">
       <h2>Read your room status</h2>

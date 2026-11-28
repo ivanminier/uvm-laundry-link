@@ -195,6 +195,15 @@ assert.equal('iarc_rating_id' in manifest, false);
 const status = await read('/status/');
 assert.match(status, /Machine status feed responded with status data for \d+ of \d+ provider rooms\./);
 assert.match(status, /<time datetime="\d{4}-\d{2}-\d{2}T/);
+assert.match(status, /<h2>Machine-status coverage<\/h2>/);
+assert.match(status, /a periodic snapshot/);
+const missingCoverage = status.includes('Machine-status coverage will appear after the next automated check.');
+if (!missingCoverage) {
+  const coverageCounts = [...status.matchAll(/<dt>(Fully reporting|Partially reporting|No usable availability|Could not evaluate)<\/dt><dd>(\d+) tracker/g)];
+  assert.equal(coverageCounts.length, 4, 'Coverage displays all four categories');
+  assert.equal(coverageCounts.reduce((total, match) => total + Number(match[2]), 0), laundryRooms.length,
+    'Coverage counts each tracker once, including both floors on the shared feed');
+}
 const offlineScript = status.match(/<script>([\s\S]*?getElementById\('status-offline'\)[\s\S]*?)<\/script>/)?.[1];
 assert.ok(offlineScript, 'Service status offline notice initializer');
 const notice = { hidden: true };
@@ -248,8 +257,7 @@ for (const path of complexPaths) {
 assert.doesNotMatch(directoryPage, /href="\/#room\//, 'Directory opens complex pages');
 assert.doesNotMatch(directoryPage, /aria-label="Breadcrumbs"|UVM Hallways Handbook/, 'Directory uses its header for Home');
 assert.match(directoryPage, /Browse by campus and complex to find your laundry room and open the tracker\./);
-const rooms = JSON.parse(await readFile(new URL('../src/laundryRooms.json', import.meta.url)));
-for (const room of rooms) {
+for (const room of laundryRooms) {
   const route = '/' + roomPath(room);
   assert.ok(sitemapPage.includes(`href="${route}"`), `HTML sitemap room entry for ${room.id}`);
 }

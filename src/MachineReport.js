@@ -4,7 +4,7 @@ import { BackButton } from './BackButton';
 import { getOfficialRoomUrl, getRoomHistoryId, roomLabel, STATUS_MAX_AGE_MS } from './laundryData';
 import { hasPushAlert, PushAlertForm } from './PushAlertForm';
 import { downloadCycleCalendar } from './cycleCalendar';
-import { cycleFinishAt } from './cycleEstimates';
+import { cycleFinishAt, isRunningMachine } from './cycleEstimates';
 
 import { requestService as SERVICE_REQUEST_URL } from './informationContent.mjs';
 
@@ -49,6 +49,11 @@ function CalendarReminder({ machine, room, checkedAt }) {
             Calendar reminders use the current finish estimate and won’t update if the cycle changes.
           </p>
         </>
+      )}
+      {!finish && !message && isRunningMachine(machine) && (
+        <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">
+          Calendar reminders need a reliable finish time. This machine has no current estimate.
+        </p>
       )}
       {message && <p role="status" className="mt-2 text-xs text-slate-600 dark:text-slate-300">{message}</p>}
     </>

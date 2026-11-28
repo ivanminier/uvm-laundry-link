@@ -5,7 +5,7 @@ import App from './App';
 import { informationDisclosure } from './informationContent.mjs';
 import { MachineReport } from './MachineReport';
 import { quieterWindow, RoomPeakTimes } from './RoomPeakTimes';
-import { quieterWindows } from './peakTimesGuidance.mjs';
+import { quieterWindowDetails, quieterWindows } from './peakTimesGuidance.mjs';
 import guidance from './peakTimesGuidance.json';
 import snapshot from './peakTimesSnapshot.json';
 import { canWatchNextMachine, filterRoomMachines, findLaundryRoom, getRoomHistoryId, laundryRooms, normalizeRoomStatus, roomLabel, roomPath } from './laundryData';
@@ -685,6 +685,43 @@ test('text and email setup uses the vendor embed and keeps the selected CCRH flo
 });
 
 
+test.each([
+  ['fresh', {}, true],
+  ['missing observation', { observedAt: undefined }, false],
+  ['missing duration', { remainingSeconds: undefined }, false],
+  ['stale observation', { observedAt: Date.now() - 60_001 }, false],
+  ['expired', { observedAt: Date.now() - 10_000, remainingSeconds: 1 }, false],
+  ['invalid duration', { remainingSeconds: Infinity }, false],
+])('calendar controls explain eligibility for a %s estimate', async (condition, reading, eligible) => {
+  global.IS_REACT_ACT_ENVIRONMENT = true;
+  const originalShowModal = HTMLDialogElement.prototype.showModal;
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', ''); };
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  const root = createRoot(container);
+
+  try {
+    const room = findLaundryRoom('ccrh 7');
+    const checkedAt = Date.now();
+    const machine = { id: '56', machineName: 'Washer 56', status: 'In Use',
+      observedAt: checkedAt, remainingSeconds: 300, ...reading };
+    await act(async () => {
+      root.render(<MachineReport machine={machine} room={room} checkedAt={checkedAt} canSetAlert />);
+    });
+    await act(async () => { container.querySelector('[aria-label="Set cycle alert for Washer 56"]').click(); });
+    const dialog = container.querySelector('dialog');
+    expect([...dialog.querySelectorAll('button')].some(button => button.textContent.includes('Add to calendar')))
+      .toBe(eligible);
+    expect(dialog.textContent.includes('Calendar reminders need a reliable finish time')).toBe(!eligible);
+  } finally {
+    act(() => root.unmount());
+    container.remove();
+    if (originalShowModal) HTMLDialogElement.prototype.showModal = originalShowModal;
+    else delete HTMLDialogElement.prototype.showModal;
+    delete global.IS_REACT_ACT_ENVIRONMENT;
+  }
+});
+
 test('the bundled collapsed guidance matches the full historical snapshot', () => {
   expect(guidance).toEqual(quieterWindows(snapshot.rooms));
 });
@@ -696,6 +733,25 @@ test('quiet guidance requires a recurring signal and sufficient history', () => 
   expect(quieterWindow(grid)).toBe('9 AM–12 PM');
   expect(quieterWindow(grid.map((row) => row.map(() => 10)))).toBeNull();
   expect(quieterWindow(grid.map((row, day) => day < 3 ? row : row.map(() => null)))).toBeNull();
+});
+
+test('quiet-window statistics equally weight the same qualifying weekdays as selection', () => {
+  const grid = Array.from({ length: 7 }, (_, day) =>
+    Array.from({ length: 24 }, (_, hour) => {
+      if (hour < 7) return 100;
+      if (day === 5 && hour === 7) return null;
+      if (day === 6 && hour > 16) return null;
+      if (day === 0 && hour > 18) return null;
+      if (hour < 10) return 5 + day;
+      return 50;
+    })
+  );
+  const expectedBaselines = [465 / 12, ...[1, 2, 3, 4].map(day => (3 * (5 + day) + 14 * 50) / 17)];
+  const result = quieterWindowDetails(grid);
+  expect(result.label).toBe('7 AM–10 AM');
+  expect(result.windowUsage).toBe(7);
+  expect(result.baselineUsage).toBeCloseTo(expectedBaselines.reduce((sum, value) => sum + value, 0) / 5);
+  expect(result.improvement).toBeCloseTo(result.baselineUsage - result.windowUsage);
 });
 
 test('favorite counts distinguish CCRH floors that share a provider feed', async () => {
@@ -805,6 +861,10 @@ test('Peak Times shows bundled guidance immediately and keeps one recommendation
 
     await act(async () => { toggle.click(); });
     expect(container.textContent.match(/Usually quieter/g)).toHaveLength(1);
+    expect(container.textContent).toMatch(/compared with .+% from 7 AM to midnight on the same days/);
+    expect(container.textContent).toContain('percentage points lower');
+    expect(container.textContent).toContain('official quiet hours');
+    expect(container.querySelector('time').dateTime).toBe(snapshot.capturedAt);
     const firstCell = container.querySelector('[data-usage-cell="0-0"]');
     await act(async () => {
       firstCell.focus();

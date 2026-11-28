@@ -1,7 +1,229 @@
 {
-  "checkedAt": "2026-11-27T06:35:39.498Z",
+  "checkedAt": "2026-11-27T23:59:56.903Z",
   "totalFeeds": 43,
   "checkedFeeds": 43,
   "directory": true,
-  "pushConfiguration": true
+  "pushConfiguration": true,
+  "machineCoverage": {
+    "austin": {
+      "category": "partial",
+      "reporting": 7,
+      "expected": 10
+    },
+    "central_campus_2": {
+      "category": "full",
+      "reporting": 11,
+      "expected": 11
+    },
+    "central_campus_3": {
+      "category": "none",
+      "reporting": 0,
+      "expected": 8
+    },
+    "central_campus_4": {
+      "category": "full",
+      "reporting": 11,
+      "expected": 11
+    },
+    "central_campus_5": {
+      "category": "full",
+      "reporting": 11,
+      "expected": 11
+    },
+    "central_campus_6": {
+      "category": "full",
+      "reporting": 11,
+      "expected": 11
+    },
+    "central_campus_7": {
+      "category": "full",
+      "reporting": 7,
+      "expected": 7
+    },
+    "christie": {
+      "category": "full",
+      "reporting": 8,
+      "expected": 8
+    },
+    "converse": {
+      "category": "full",
+      "reporting": 11,
+      "expected": 11
+    },
+    "coolidge": {
+      "category": "full",
+      "reporting": 8,
+      "expected": 8
+    },
+    "cwp": {
+      "category": "full",
+      "reporting": 14,
+      "expected": 14
+    },
+    "davis": {
+      "category": "none",
+      "reporting": 0,
+      "expected": 8
+    },
+    "hamilton": {
+      "category": "full",
+      "reporting": 8,
+      "expected": 8
+    },
+    "harris": {
+      "category": "full",
+      "reporting": 14,
+      "expected": 14
+    },
+    "hunt": {
+      "category": "full",
+      "reporting": 4,
+      "expected": 4
+    },
+    "jeanne_mance": {
+      "category": "full",
+      "reporting": 8,
+      "expected": 8
+    },
+    "lll_140": {
+      "category": "full",
+      "reporting": 4,
+      "expected": 4
+    },
+    "lll_180": {
+      "category": "full",
+      "reporting": 4,
+      "expected": 4
+    },
+    "lll_b110": {
+      "category": "full",
+      "reporting": 7,
+      "expected": 7
+    },
+    "lll_c131": {
+      "category": "full",
+      "reporting": 8,
+      "expected": 8
+    },
+    "lll_d110": {
+      "category": "full",
+      "reporting": 4,
+      "expected": 4
+    },
+    "lll_d140": {
+      "category": "full",
+      "reporting": 4,
+      "expected": 4
+    },
+    "lll_e110": {
+      "category": "full",
+      "reporting": 4,
+      "expected": 4
+    },
+    "lll_e160": {
+      "category": "full",
+      "reporting": 4,
+      "expected": 4
+    },
+    "mason": {
+      "category": "full",
+      "reporting": 8,
+      "expected": 8
+    },
+    "mcauley": {
+      "category": "full",
+      "reporting": 12,
+      "expected": 12
+    },
+    "mccann": {
+      "category": "full",
+      "reporting": 4,
+      "expected": 4
+    },
+    "mercy": {
+      "category": "full",
+      "reporting": 12,
+      "expected": 12
+    },
+    "millis": {
+      "category": "full",
+      "reporting": 14,
+      "expected": 14
+    },
+    "patterson": {
+      "category": "full",
+      "reporting": 6,
+      "expected": 6
+    },
+    "ready": {
+      "category": "full",
+      "reporting": 4,
+      "expected": 4
+    },
+    "redstone": {
+      "category": "full",
+      "reporting": 4,
+      "expected": 4
+    },
+    "richardson": {
+      "category": "full",
+      "reporting": 4,
+      "expected": 4
+    },
+    "sichel": {
+      "category": "full",
+      "reporting": 4,
+      "expected": 4
+    },
+    "simpson": {
+      "category": "full",
+      "reporting": 7,
+      "expected": 7
+    },
+    "slade": {
+      "category": "full",
+      "reporting": 2,
+      "expected": 2
+    },
+    "cottage256": {
+      "category": "full",
+      "reporting": 4,
+      "expected": 4
+    },
+    "tupper": {
+      "category": "full",
+      "reporting": 8,
+      "expected": 8
+    },
+    "uheightsn1": {
+      "category": "full",
+      "reporting": 12,
+      "expected": 12
+    },
+    "uheightsn2": {
+      "category": "full",
+      "reporting": 15,
+      "expected": 15
+    },
+    "uheightss1": {
+      "category": "full",
+      "reporting": 12,
+      "expected": 12
+    },
+    "uheightss2": {
+      "category": "full",
+      "reporting": 15,
+      "expected": 15
+    },
+    "wilks": {
+      "category": "full",
+      "reporting": 8,
+      "expected": 8
+    },
+    "wing": {
+      "category": "full",
+      "reporting": 8,
+      "expected": 8
+    }
+  }
 }

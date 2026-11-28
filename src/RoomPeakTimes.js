@@ -1,7 +1,7 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { Clock } from 'lucide-react';
 import { getRoomHistoryId } from './laundryData';
-import { average, hourLabel, HOURS } from './peakTimesGuidance.mjs';
+import { average, hourLabel, HOURS, quieterWindowDetails } from './peakTimesGuidance.mjs';
 import quietWindows from './peakTimesGuidance.json';
 
 export { quieterWindow } from './peakTimesGuidance.mjs';
@@ -28,7 +28,10 @@ function summarize(grid) {
   ];
 }
 
-function UsageChart({ grid, totalSamples, capturedAt, quietHours }) {
+const usageNumber = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
+const historyDate = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeZone: 'America/New_York' });
+
+function UsageChart({ grid, totalSamples, capturedAt }) {
   const [selection, setSelection] = useState(null);
   const [activeCell, setActiveCell] = useState({ day: 0, hour: 0 });
   const chart = useRef(null);
@@ -70,13 +73,19 @@ function UsageChart({ grid, totalSamples, capturedAt, quietHours }) {
   }
 
   const selectedValue = selection && grid[selection.day][selection.hour];
+  const recommendation = quieterWindowDetails(grid);
 
   return (
     <>
-      {quietHours && (
+      {recommendation ? (
         <p className="mt-4 rounded-lg bg-teal-50 p-3 text-sm text-teal-950 dark:bg-teal-950/50 dark:text-teal-100">
-          <strong>Usually quieter daytime window: {quietHours}.</strong> Windows start at 7 AM or later in Burlington time. The quietest hour can be overnight.
+          <strong>Usually quieter daytime window: {recommendation.label} (Burlington time).</strong>{' '}
+          Typically {usageNumber.format(recommendation.windowUsage)}% of machines were in use, compared with{' '}
+          {usageNumber.format(recommendation.baselineUsage)}% from 7 AM to midnight on the same days. That’s{' '}
+          {usageNumber.format(recommendation.improvement)} percentage points lower.
         </p>
+      ) : (
+        <p className="mt-4 text-sm text-slate-600 dark:text-slate-300">The available history did not identify a consistently quieter daytime window.</p>
       )}
       <dl className="my-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
         {summarize(grid).map(([label, value]) => (
@@ -140,7 +149,10 @@ function UsageChart({ grid, totalSamples, capturedAt, quietHours }) {
       </ul>
       <p className="ll-peak-times-source mt-4 flex flex-wrap gap-x-2 gap-y-1 text-xs text-slate-600 dark:text-slate-300">
         <span>LaundryConnect · {totalSamples.toLocaleString()} samples</span>
-        <span className="whitespace-nowrap">· Fetched <time dateTime={capturedAt}>{new Date(capturedAt).toLocaleDateString()}</time></span>
+        <span className="whitespace-nowrap">· History fetched <time dateTime={capturedAt}>{historyDate.format(new Date(capturedAt))}</time></span>
+      </p>
+      <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
+        This chart shows historical laundry activity. Check the room tracker for live availability and your residence hall for official quiet hours.
       </p>
     </>
   );
@@ -194,7 +206,7 @@ export function RoomPeakTimes({ room, defaultOpen = false }) {
         </p>
       )}
       <div id="room-peak-times" hidden={!open}>
-        {open && data && <UsageChart {...data} capturedAt={snapshot.capturedAt} quietHours={quietHours} />}
+        {open && data && <UsageChart {...data} capturedAt={snapshot.capturedAt} />}
         {open && historyId && !snapshot && !failed && <p role="status" className="mt-3 text-sm">Loading historical usage…</p>}
         {open && !data && (!historyId || snapshot || failed) && (
           <p role="status" className="mt-3 text-sm text-slate-600 dark:text-slate-300">

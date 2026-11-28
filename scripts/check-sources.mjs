@@ -1,17 +1,27 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
+import { machineStatusCoverage } from '../src/machineStatusCoverage.mjs';
+
+const readJson = async (path) => JSON.parse(await readFile(new URL(path, import.meta.url)));
 
 async function probe(url, valid, headers = {}) {
   try {
     const response = await fetch(url, { headers, signal: AbortSignal.timeout(6000) });
-    return response.ok && valid(await response.json(), response);
+    if (!response.ok) return null;
+    const data = await response.json();
+    return valid(data, response) ? data : null;
   } catch {
-    return false;
+    return null;
   }
 }
 
 export async function checkSources() {
-  const rooms = JSON.parse(await readFile(new URL('../src/laundryRooms.json', import.meta.url)));
+  const [rooms, washers, dryers, sharedFloorMachines] = await Promise.all([
+    readJson('../src/laundryRooms.json'),
+    readJson('../alerts/room-washers.json'),
+    readJson('../alerts/room-dryers.json'),
+    readJson('../alerts/ccrh-machines.json'),
+  ]);
   const ids = [...new Set(rooms.map(({ providerId }) => providerId).filter(Boolean))];
   const results = new Map();
 
@@ -34,14 +44,24 @@ export async function checkSources() {
       { Origin: origin }),
   ]);
 
+  const machineCoverage = Object.fromEntries(rooms.map((room) => {
+    const catalog = room.machineRange ? sharedFloorMachines : [
+      ...(washers[room.id] ?? []).map(([id, number]) => ({ id, number, type: 'Washer' })),
+      ...(dryers[room.id] ?? []).map(([id, number]) => ({ id, number, type: 'Dryer' })),
+    ];
+    return [room.id, machineStatusCoverage(room, results.get(room.providerId), catalog)];
+  }));
   const health = {
     checkedAt: new Date().toISOString(),
     totalFeeds: ids.length,
     checkedFeeds: [...results.values()].filter(Boolean).length,
-    directory,
-    pushConfiguration,
+    directory: Boolean(directory),
+    pushConfiguration: Boolean(pushConfiguration),
+    machineCoverage,
   };
-  console.log('Service checks', health);
+  const counts = { full: 0, partial: 0, none: 0, unevaluated: 0 };
+  for (const { category } of Object.values(machineCoverage)) counts[category] += 1;
+  console.log('Service checks', { ...health, machineCoverage: counts });
   return health;
 }
 
