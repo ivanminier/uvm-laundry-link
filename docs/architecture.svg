@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 760" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="13">
+  <style>
+    .box{rx:10;ry:10;stroke-width:1.5}
+    .lbl{fill:#20332b;font-weight:600}
+    .sub{fill:#5b6b63;font-size:11.5px}
+    .edge{stroke:#5b6b63;stroke-width:1.6;fill:none;marker-end:url(#a)}
+    .edgew{stroke:#154734;stroke-width:1.8;fill:none;marker-end:url(#ag)}
+    .note{fill:#5b6b63;font-size:11px}
+    @media (prefers-color-scheme:dark){
+      .lbl{fill:#eef3ef}.sub{fill:#b6c4bc}.note{fill:#b6c4bc}
+      .edge{stroke:#b6c4bc}.bg{fill:#12201a}
+    }
+  </style>
+  <defs>
+    <marker id="a" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#5b6b63"/></marker>
+    <marker id="ag" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#154734"/></marker>
+  </defs>
+  <rect class="bg" x="0" y="0" width="1040" height="760" fill="#f3f4ef"/>
+  <text x="28" y="40" class="lbl" font-size="20">UVM LaundryLink — Worker caching &amp; write-proxy architecture</text>
+  <text x="28" y="62" class="note">Browsers never call provider systems directly; all reads are edge-cached and all writes are authenticated server-side.</text>
+
+  <!-- Browser -->
+  <rect class="box" x="28" y="110" width="250" height="150" fill="#fffefa" stroke="#154734"/>
+  <text x="44" y="138" class="lbl">Student browser (React SPA)</text>
+  <text x="44" y="162" class="sub">• Live status, favorites, Peak Times</text>
+  <text x="44" y="182" class="sub">• Native repair / email / SMS forms</text>
+  <text x="44" y="202" class="sub">• Consent + validation in the form</text>
+  <text x="44" y="222" class="sub">• No tokens; no direct provider calls</text>
+  <text x="44" y="246" class="sub">• Falls back to embedded form on error</text>
+
+  <!-- Worker -->
+  <rect class="box" x="395" y="92" width="300" height="300" fill="#fffefa" stroke="#154734"/>
+  <text x="410" y="120" class="lbl">Cloudflare Worker</text>
+  <text x="410" y="136" class="sub">alerts.uvmlaundry.com · secrets only</text>
+  <rect x="410" y="150" width="270" height="86" rx="8" fill="#eef3ef" stroke="#d9e0db"/>
+  <text x="422" y="170" class="lbl" font-size="12">Read proxy + edge cache</text>
+  <text x="422" y="188" class="sub">status 30s (SWR 60s) · directory 12–24h</text>
+  <text x="422" y="206" class="sub">per-room shared cache · admin purge</text>
+  <text x="422" y="224" class="sub">peak-times: daily, staggered</text>
+  <rect x="410" y="246" width="270" height="130" rx="8" fill="#eef3ef" stroke="#d9e0db"/>
+  <text x="422" y="266" class="lbl" font-size="12">Write proxy</text>
+  <text x="422" y="284" class="sub">Bearer secret · X-Organization-Id 4052</text>
+  <text x="422" y="302" class="sub">Idempotency-Key · dedupe (DO/KV)</text>
+  <text x="422" y="320" class="sub">rate limits · kill switches per channel</text>
+  <text x="422" y="338" class="sub">PII-redacted logs (id/status/latency)</text>
+  <text x="422" y="356" class="sub">maps acknowledgment → UI result</text>
+
+  <!-- Provider -->
+  <rect class="box" x="800" y="92" width="212" height="150" fill="#fffefa" stroke="#154734"/>
+  <text x="815" y="120" class="lbl">Automatic Laundry API</text>
+  <text x="815" y="136" class="sub">/v1 · Bearer auth</text>
+  <text x="815" y="160" class="sub">POST /repairs</text>
+  <text x="815" y="180" class="sub">POST /notifications/subscriptions</text>
+  <text x="815" y="200" class="sub">verify · DELETE (cancel)</text>
+  <text x="815" y="220" class="sub">templates + sending owned here</text>
+
+  <!-- Upstream feeds -->
+  <rect class="box" x="800" y="280" width="212" height="112" fill="#fffefa" stroke="#154734"/>
+  <text x="815" y="306" class="lbl">Upstream status feeds</text>
+  <text x="815" y="328" class="sub">WashAlert directory (Org 4052)</text>
+  <text x="815" y="348" class="sub">room status feed</text>
+  <text x="815" y="368" class="sub">LaundryConnect peak-times</text>
+
+  <!-- GitHub Actions -->
+  <rect class="box" x="395" y="430" width="300" height="86" fill="#fffefa" stroke="#154734"/>
+  <text x="410" y="458" class="lbl">GitHub Actions (nightly)</text>
+  <text x="410" y="480" class="sub">daily peak-times refresh, staggered 250–500ms</text>
+  <text x="410" y="500" class="sub">commits aggregate room %s only (no PII)</text>
+
+  <!-- edges -->
+  <path class="edge" d="M278,165 L393,180"/>
+  <text x="300" y="150" class="note">reads</text>
+  <path class="edgew" d="M278,205 L393,300"/>
+  <text x="292" y="250" class="note" fill="#154734">writes</text>
+  <path class="edge" d="M680,300 L798,320"/>
+  <text x="700" y="300" class="note">cache-miss fetch</text>
+  <path class="edgew" d="M695,300 L798,170"/>
+  <text x="705" y="210" class="note" fill="#154734">authenticated</text>
+  <path class="edge" d="M545,430 L545,392" />
+  <path class="edge" d="M695,470 C760,470 820,440 835,392"/>
+
+  <text x="28" y="560" class="lbl">Enablement gate (per channel, independent)</text>
+  <text x="28" y="584" class="sub">A channel serves native UI only when: flag ENABLE_*_API on · endpoint + Bearer secret configured · verified end-to-end in sandbox.</text>
+  <text x="28" y="604" class="sub">Until all three hold, the embedded Automatic Laundry form is shown and nothing is submitted. Success needs an explicit provider acknowledgment.</text>
+  <text x="28" y="636" class="lbl">Pending from provider before sandbox tests</text>
+  <text x="28" y="660" class="sub">Base URLs · Worker tokens · test room + machine IDs · SMS sender (START/STOP/HELP) · approved email + troubleshooting disclosures ·</text>
+  <text x="28" y="678" class="sub">subscription verify/cancel ownership model · operational-record retention terms. Credentials delivered out-of-band as Worker secrets.</text>
+</svg>
