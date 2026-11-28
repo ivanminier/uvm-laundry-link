@@ -3,7 +3,7 @@ const APP_ENTRYPOINTS = [];
 // Production redirects /index.html to /. Precache the canonical navigation response.
 const SHELL_URLS = ['/', '/manifest.json', '/favicon.ico', '/favicon.svg', '/apple-touch-icon.png',
   '/logo192.png', '/logo512.png', '/brand-mark.svg',
-  '/status/', '/site.css', '/room-directory.css', '/scroll-edge.js'];
+  '/status/', '/site.css', '/room-directory.css', '/scroll-edge.js', '/site-back.js'];
 
 self.addEventListener('install', (event) => {
   const requests = [...SHELL_URLS, ...APP_ENTRYPOINTS].map(url => new Request(url, { cache: 'reload' }));

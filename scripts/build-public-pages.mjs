@@ -160,6 +160,7 @@ function head(page) {
   <link rel="stylesheet" href="/site.css">
   ${page.path !== '/' ? '<link rel="stylesheet" href="/room-directory.css">' : ''}
   <script src="/referrals.js" defer></script>
+  ${page.backHref ? '<script src="/site-back.js" defer></script>' : ''}
   ${page.path !== '/' ? '<script src="/scroll-edge.js" defer></script>' : ''}
   <script type="application/ld+json">${pageSchema(page)}</script>`;
 }

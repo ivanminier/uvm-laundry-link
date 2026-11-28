@@ -809,3 +809,210 @@ html.dark .ll-refresh-toast svg {
     transition: none;
   }
 }
+
+.ll-favorite-summary {
+  padding: clamp(1rem, 2.2vw, 1.6rem);
+}
+
+.ll-favorite-summary__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.ll-favorite-summary__header h2 {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.ll-favorite-summary__coverage {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--ll-muted);
+}
+
+.ll-favorite-summary__coverage span {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--ll-green);
+}
+
+.ll-favorite-summary__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.ll-favorite-recommendation {
+  position: relative;
+  display: grid;
+  align-content: center;
+  gap: 0.45rem;
+  padding: 1rem 2.6rem 1rem 1rem;
+  border: 1px solid var(--ll-line);
+  border-inline-start: 3px solid var(--ll-gold);
+  border-radius: 0.75rem;
+  background: var(--ll-surface-alt);
+  color: var(--ll-ink);
+}
+
+.ll-favorite-recommendation:hover strong {
+  text-decoration: underline;
+  text-underline-offset: 0.16em;
+}
+
+.ll-favorite-recommendation__label,
+.ll-favorite-recommendation__arrow,
+.ll-favorite-guidance svg,
+.ll-favorite-summary__history svg {
+  color: var(--ll-green);
+}
+
+.ll-favorite-recommendation__label {
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.ll-favorite-recommendation strong {
+  font-size: clamp(1.08rem, 1.65vw, 1.35rem);
+  line-height: 1.25;
+}
+
+.ll-favorite-recommendation__arrow {
+  position: absolute;
+  inset-inline-end: 0.9rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.ll-favorite-recommendation__counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.85rem;
+  margin-top: 0.3rem;
+  font-size: 0.8rem;
+  color: var(--ll-muted);
+}
+
+.ll-favorite-recommendation__counts span,
+.ll-favorite-guidance > span,
+.ll-favorite-summary__totals dt,
+.ll-favorite-summary__history h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.ll-favorite-summary svg {
+  flex-shrink: 0;
+}
+
+.ll-favorite-summary__totals {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: center;
+  border: 1px solid var(--ll-line);
+  border-radius: 0.75rem;
+}
+
+.ll-favorite-summary__totals div {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 0.3rem;
+  padding: 0.7rem 0.55rem;
+}
+
+.ll-favorite-summary__totals div + div {
+  border-inline-start: 1px solid var(--ll-line);
+}
+
+.ll-favorite-summary__totals dt {
+  color: var(--ll-muted);
+  font-size: 0.72rem;
+}
+
+.ll-favorite-summary__totals dd {
+  font-size: 1.5rem;
+  font-weight: 720;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.ll-favorite-guidance-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.ll-favorite-guidance {
+  padding: 0.7rem;
+  border: 1px solid var(--ll-line);
+  border-radius: 0.75rem;
+  background: var(--ll-surface-alt);
+  font-size: 0.8rem;
+}
+
+.ll-favorite-guidance > span,
+.ll-favorite-summary__history h3 {
+  font-weight: 650;
+}
+
+.ll-favorite-room-link {
+  color: var(--ll-green);
+  text-decoration: underline;
+  text-underline-offset: 0.16em;
+}
+
+.ll-favorite-summary__history {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 0.95rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--ll-line);
+  font-size: 0.85rem;
+}
+
+.ll-favorite-summary__history strong {
+  margin-inline-end: 0.3rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.ll-favorite-summary__history p,
+.ll-favorite-summary__message {
+  color: var(--ll-muted);
+  font-size: 0.8rem;
+}
+
+@media (min-width: 48rem) {
+  .ll-favorite-summary__grid {
+    grid-template-columns: minmax(0, 3fr) minmax(19rem, 2fr);
+  }
+
+  .ll-favorite-summary__totals div {
+    padding-inline: clamp(0.65rem, 1.3vw, 1.15rem);
+  }
+}
+
+@media (max-width: 25rem) {
+  .ll-favorite-summary__totals {
+    align-items: stretch;
+  }
+
+  .ll-favorite-summary__totals div {
+    flex-direction: column;
+  }
+
+  .ll-favorite-summary__totals dd {
+    order: -1;
+  }
+
+  .ll-favorite-summary__totals dt svg {
+    display: none;
+  }
+}

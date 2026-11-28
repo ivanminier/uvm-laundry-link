@@ -76,6 +76,8 @@ for (let index = 0; index < routes.length; index += 6) {
     assert.match(body, /rel="icon" type="image\/svg\+xml" href="\/favicon\.svg"/, pathname);
     assert.match(body, /id="laundrylink-theme-init"/, pathname);
     assert.equal((body.match(/<script src="\/scroll-edge\.js"/g) ?? []).length, 1, pathname);
+    assert.equal((body.match(/<script src="\/site-back\.js"/g) ?? []).length,
+      body.includes('class="site-back-button"') ? 1 : 0, `Back handling on ${pathname}`);
     assert.doesNotMatch(body, /noindex|You need to enable JavaScript/i, pathname);
     assert.doesNotMatch(body, /aria-label="Laundry resources"|href="\/(?:laundry-guide|faq)\//, pathname);
     assert.equal((body.match(/<h1>/g) ?? []).length, 1, pathname);

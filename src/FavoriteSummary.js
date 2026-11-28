@@ -1,35 +1,37 @@
 import { useMemo } from 'react';
-import { Clock, Droplet, LayoutGrid, Wind } from 'lucide-react';
+import { ArrowRight, Clock, Droplet, LayoutGrid, Wind } from 'lucide-react';
 import { getRoomHistoryId, roomLabel, roomPath } from './laundryData';
 import { quieterWindow, usePeakTimesSnapshot } from './RoomPeakTimes';
 
-function RoomLink({ room, onSelectRoom }) {
+function RoomLink({ room, onSelectRoom, className, children }) {
   return (
-    <a href={roomPath(room)} className="font-semibold text-uvm-green underline dark:text-uvm-gold" onClick={event => {
+    <a href={roomPath(room)} className={className} onClick={event => {
       if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
       event.preventDefault();
       onSelectRoom(room.id);
-    }}>{roomLabel(room)}</a>
+    }}>{children ?? roomLabel(room)}</a>
   );
 }
 
 function MachineGuidance({ reports, type, onSelectRoom }) {
   const isWasher = type === 'washer';
   const count = isWasher ? 'washers' : 'dryers';
+  const known = reports.filter(report => report[isWasher ? 'washerStatuses' : 'dryerStatuses']);
   const next = isWasher ? 'nextWasher' : 'nextDryer';
-  const mostFree = reports.reduce((best, report) => report[count] > (best?.[count] ?? 0) ? report : best, null);
+  const best = known.reduce((room, report) => report[count] > (room?.[count] ?? 0) ? report : room, null);
+  const soonest = known.reduce((room, report) =>
+    report[next] !== null && report[next] < (room?.[next] ?? Infinity) ? report : room, null);
+  const recommendation = best ?? soonest;
+  const Icon = isWasher ? Droplet : Wind;
+  const label = best ? `${best[count]} ${best[count] === 1 ? type : count} free`
+    : soonest ? `Next ${type} finish · ~${soonest[next]} min`
+      : known.length ? `No free ${count} reported` : `${isWasher ? 'Washer' : 'Dryer'} availability unavailable`;
 
-  if (mostFree) return (
-    <li><strong>Most free {count}</strong> are at <RoomLink room={mostFree.room} onSelectRoom={onSelectRoom} /> ({mostFree[count]}).</li>
-  );
-
-  const soonest = reports.reduce((best, report) =>
-    report[next] !== null && report[next] < (best?.[next] ?? Infinity) ? report : best, null);
   return (
-    <li>
-      <strong>No free {count} reported.</strong>{' '}
-      {soonest && <>Next reported finish in about {soonest[next]} min at <RoomLink room={soonest.room} onSelectRoom={onSelectRoom} />.</>}
-    </li>
+    <div className="ll-favorite-guidance">
+      <span><Icon size={17} aria-hidden="true" /> {label}</span>
+      {recommendation && <RoomLink className="ll-favorite-room-link" room={recommendation.room} onSelectRoom={onSelectRoom} />}
+    </div>
   );
 }
 
@@ -50,54 +52,81 @@ export function FavoriteSummary({ rooms, statuses, offline, onSelectRoom }) {
     return status?.current && Date.now() - status.checkedAt < 120_000 ? [{ room, ...status }] : [];
   });
   const pending = !offline && rooms.some(({ id }) => !statuses[id] || statuses[id].pending);
+  const roomsWithBoth = reports.filter(({ washers, dryers }) => washers > 0 && dryers > 0);
+  // Count complete washer-and-dryer pairs first, then total free machines.
+  const best = roomsWithBoth.reduce((best, report) => {
+    if (!best) return report;
+    const pairs = Math.min(report.washers, report.dryers);
+    const bestPairs = Math.min(best.washers, best.dryers);
+    return pairs > bestPairs || (pairs === bestPairs && report.washers + report.dryers > best.washers + best.dryers)
+      ? report : best;
+  }, null);
+  const total = (type, reported) => reports.some(report => report[reported])
+    ? reports.reduce((sum, report) => sum + report[type], 0) : '—';
   const indicators = [
-    ['Washers free', Droplet, reports.reduce((sum, status) => sum + status.washers, 0)],
-    ['Dryers free', Wind, reports.reduce((sum, status) => sum + status.dryers, 0)],
-    ['Rooms with both', LayoutGrid, reports.filter(status => status.washers > 0 && status.dryers > 0).length],
+    ['Washers free', Droplet, total('washers', 'washerStatuses')],
+    ['Dryers free', Wind, total('dryers', 'dryerStatuses')],
+    ['Rooms with both', LayoutGrid, roomsWithBoth.length],
   ];
 
   return (
-    <section aria-labelledby="favorite-summary-heading" className="ll-panel mb-6 px-4 py-4 sm:px-6">
-      <h2 id="favorite-summary-heading" className="text-base font-semibold">Availability at a glance</h2>
-      <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-        {offline ? 'Live availability is unavailable while you’re offline.'
-          : reports.length ? `Recent reports from ${reports.length} of ${rooms.length} favorite ${rooms.length === 1 ? 'room' : 'rooms'}.`
-            : pending ? 'Checking availability in your favorite rooms…'
-              : 'Recent machine counts are unavailable for your favorite rooms.'}
-      </p>
-      {reports.length > 0 && (
-        <>
-          <dl className="mt-3 grid grid-cols-3 gap-2">
+    <section aria-labelledby="favorite-summary-heading" className="ll-panel ll-favorite-summary mb-6">
+      <header className="ll-favorite-summary__header">
+        <h2 id="favorite-summary-heading">Availability at a glance</h2>
+        {reports.length > 0 && (
+          <p className="ll-favorite-summary__coverage">
+            <span aria-hidden="true" />
+            {reports.length} of {rooms.length} favorite rooms reporting
+          </p>
+        )}
+      </header>
+      {reports.length > 0 ? (
+        <div className="ll-favorite-summary__grid">
+          {best ? (
+            <RoomLink room={best.room} onSelectRoom={onSelectRoom} className="ll-favorite-recommendation">
+              <span className="ll-favorite-recommendation__label">Wash and dry in one room</span>
+              <strong>{roomLabel(best.room)}</strong>
+              <span className="ll-favorite-recommendation__counts">
+                <span><Droplet size={16} aria-hidden="true" /> {best.washers} {best.washers === 1 ? 'washer' : 'washers'} free</span>
+                <span><Wind size={16} aria-hidden="true" /> {best.dryers} {best.dryers === 1 ? 'dryer' : 'dryers'} free</span>
+              </span>
+              <ArrowRight className="ll-favorite-recommendation__arrow" size={20} aria-hidden="true" />
+            </RoomLink>
+          ) : (
+            <div className="ll-favorite-guidance-list">
+              <MachineGuidance reports={reports} type="washer" onSelectRoom={onSelectRoom} />
+              <MachineGuidance reports={reports} type="dryer" onSelectRoom={onSelectRoom} />
+            </div>
+          )}
+          <dl className="ll-favorite-summary__totals" aria-label="Totals from recent reports">
             {indicators.map(([label, Icon, value]) => (
-              <div key={label} className="ll-subpanel flex min-w-0 flex-col rounded-lg p-2 sm:p-3">
-                <dt className="flex items-center gap-1 text-xs font-medium text-slate-600 dark:text-slate-300">
-                  <Icon size={15} aria-hidden="true" className="hidden shrink-0 text-uvm-green dark:text-uvm-gold sm:block" />
-                  {label}
-                </dt>
-                <dd className="mt-auto pt-1 text-xl font-bold leading-none">{value}</dd>
+              <div key={label}>
+                <dt><Icon size={17} aria-hidden="true" />{label}</dt>
+                <dd>{value === '—' ? <><span aria-hidden="true">—</span><span className="sr-only">Unavailable</span></> : value}</dd>
               </div>
             ))}
           </dl>
-          <ul className="mt-3 space-y-1 text-sm text-slate-700 dark:text-slate-200">
-            <MachineGuidance reports={reports} type="washer" onSelectRoom={onSelectRoom} />
-            <MachineGuidance reports={reports} type="dryer" onSelectRoom={onSelectRoom} />
-          </ul>
-        </>
+        </div>
+      ) : (
+        <p className="ll-favorite-summary__message" role="status">
+          {offline ? 'Live availability is unavailable while you’re offline.'
+            : pending ? 'Checking availability in your favorite rooms…'
+              : 'Recent machine counts are unavailable for your favorite rooms.'}
+        </p>
       )}
       {quieterTimes.length > 0 && (
-        <div className="mt-4 border-t border-slate-200 pt-3 text-sm text-slate-700 dark:border-slate-600 dark:text-slate-200">
-          <h3 className="flex items-center gap-2 font-semibold">
-            <Clock size={16} aria-hidden="true" className="text-uvm-gold" />
-            Usually quieter <span className="font-normal text-xs text-slate-600 dark:text-slate-300">· Peak Times, Burlington time</span>
-          </h3>
-          <ul className="mt-1 space-y-1">
+        <div className="ll-favorite-summary__history">
+          <h3><Clock size={17} aria-hidden="true" /> Usually quieter</h3>
+          <ul>
             {quieterTimes.map(([hours, [first, second, ...others]]) => (
-              <li key={hours}>{hours} at <RoomLink room={first} onSelectRoom={onSelectRoom} />
-                {second && <>{others.length ? ', ' : ' and '}<RoomLink room={second} onSelectRoom={onSelectRoom} /></>}
-                {others.length > 0 && ` and ${others.length} more`}
+              <li key={hours}><strong>{hours}</strong>{' '}
+                <RoomLink className="ll-favorite-room-link" room={first} onSelectRoom={onSelectRoom} />
+                {second && <>{', '}<RoomLink className="ll-favorite-room-link" room={second} onSelectRoom={onSelectRoom} /></>}
+                {others.length > 0 && <> and {others.length} more</>}
               </li>
             ))}
           </ul>
+          <p>Historical usage · Burlington time</p>
         </div>
       )}
     </section>

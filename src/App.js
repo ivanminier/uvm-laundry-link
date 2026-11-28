@@ -459,8 +459,15 @@ const PERSISTENT_OVERLAY_URLS = new Map([
   ['settings', '/?view=settings'],
 ]);
 const OVERLAY_HISTORY_KEY = 'laundryLinkOverlay';
-const hasViewParam = () => new URLSearchParams(window.location.search).has('view');
+const previousSiteUrl = () => window.history.length > 1 && document.referrer.startsWith(window.location.origin + '/')
+  ? document.referrer.slice(window.location.origin.length) : null;
 const currentAppUrl = () => window.location.pathname + window.location.search + window.location.hash;
+
+function pushAppView(url, state) {
+  const backUrl = currentAppUrl();
+  window.history.replaceState({ ...window.history.state, scroll: window.scrollY }, '', backUrl);
+  window.history.pushState({ ...state, backUrl }, '', url);
+}
 const REMEMBER_ROOM_KEY = 'uvmLaundryRememberRoom';
 const LAST_ROOM_KEY = 'uvmLaundryLastRoom';
 
@@ -570,13 +577,8 @@ const normalizeRoomSearch = (value) => value?.toLowerCase().replace(/&/g, ' and 
 
 const App = () => {
   const [currentView, setCurrentView] = useState('home');
-  const [previousView, setPreviousView] = useState('home');
-  const overlayReturnScroll = useRef(0);
-  const restoreOverlayScroll = useRef(false);
-  const overlayPushedHere = useRef(false);
+  const pendingScroll = useRef(null);
   const syncRouteRef = useRef(null);
-  const currentViewRef = useRef(currentView);
-  currentViewRef.current = currentView;
   const [selectedRoomId, setSelectedRoomId] = useState('');
   const [homeSearchTerm, setHomeSearchTerm] = useState('');
   const [isOffline, setIsOffline] = useState(() => navigator.onLine === false);
@@ -659,7 +661,8 @@ const App = () => {
     setMachineScrollTarget(null);
     setSelectedRoomId(room.id);
     setCurrentView('roomDetail');
-    if (updateHash) window.location.hash = roomPath(room);
+    const path = '/' + roomPath(room);
+    if (updateHash && currentAppUrl() !== path) pushAppView(path);
   }, []);
 
   const handleGoHome = useCallback((updateHash = true) => {
@@ -667,8 +670,9 @@ const App = () => {
     setCurrentView('home');
     setSelectedRoomId('');
     setHomeSearchTerm('');
-    if (updateHash && (window.location.pathname !== '/' || hasViewParam())) window.history.pushState(null, '', '/');
-    else if (updateHash && window.location.hash) window.location.hash = '';
+    if (updateHash && (currentAppUrl() !== '/' || window.history.state?.[OVERLAY_HISTORY_KEY])) {
+      window.history.pushState(null, '', '/');
+    }
   }, []);
 
   useEffect(() => {
@@ -677,7 +681,7 @@ const App = () => {
       const overlayView = OVERLAY_ROUTE_VIEWS.get(url.searchParams.get('view'));
       const [hash, query = ''] = url.hash.replace(/^#\/?(?:room\/)?/, '').split(/\?(.*)/s, 2);
       const room = findLaundryRoom(hash);
-      const historyOverlay = fromHistory && !overlayView ? window.history.state?.[OVERLAY_HISTORY_KEY] : null;
+      const historyOverlay = window.history.state?.[OVERLAY_HISTORY_KEY];
       if (historyOverlay === 'help') {
         setCurrentView('help');
         return;
@@ -689,17 +693,16 @@ const App = () => {
             if (currentAppUrl() !== persistentUrl) window.history.replaceState(window.history.state, '', persistentUrl);
           } else {
             url.searchParams.delete('view');
-            window.history.replaceState(null, '', url);
+            window.history.replaceState({ ...window.history.state, [OVERLAY_HISTORY_KEY]: overlayView }, '', url);
             setSelectedRoomId('');
           }
-          if (!fromHistory) setPreviousView('home');
           setCurrentView(overlayView);
         } else if (url.hash || url.pathname !== '/') {
           setSelectedRoomId('');
           setMachineScrollTarget(null);
           setCurrentView('notFound');
-        } else if (fromHistory && OVERLAY_VIEWS.has(currentViewRef.current)) {
-          // Returning from a utility view keeps the home search and filters as they were.
+        } else if (fromHistory) {
+          // Browser history keeps the home search and filters for this visit.
           setMachineScrollTarget(null);
           setSelectedRoomId('');
           setCurrentView('home');
@@ -713,7 +716,7 @@ const App = () => {
         if (overlayView) url.searchParams.delete('view');
         url.pathname = '/';
         url.hash = canonicalHash;
-        window.history.replaceState(null, '', url);
+        window.history.replaceState(window.history.state, '', url);
       }
       handleSelectRoom(room.id, false);
       const machineId = new URLSearchParams(query).get('machine');
@@ -721,7 +724,11 @@ const App = () => {
         setMachineScrollTarget(`machine-card-${machineId}`);
       }
     };
-    const requestedOverlay = OVERLAY_ROUTE_VIEWS.has(new URLSearchParams(window.location.search).get('view'));
+    const entryUrl = new URL(window.location.href);
+    const isTrackerEntry = Boolean(entryUrl.hash) || OVERLAY_ROUTE_VIEWS.has(entryUrl.searchParams.get('view'));
+    const backUrl = isTrackerEntry && !window.history.state ? previousSiteUrl() : null;
+    if (backUrl) window.history.replaceState({ backUrl }, '', entryUrl);
+    const requestedOverlay = window.history.state?.[OVERLAY_HISTORY_KEY] || OVERLAY_ROUTE_VIEWS.has(new URLSearchParams(window.location.search).get('view'));
     const lastRoom = window.location.pathname === '/' && !window.location.hash && !requestedOverlay && readPreference(REMEMBER_ROOM_KEY, false)
       ? findLaundryRoom(readPreference(LAST_ROOM_KEY, null))
       : null;
@@ -735,9 +742,9 @@ const App = () => {
     const onWorkerMessage = (event) => {
       if (event.data?.type === 'OPEN_MACHINE' && event.data.path === window.location.hash) syncRoute();
     };
-    const onHashChange = () => syncRoute();
+    const onHashChange = () => syncRoute(true);
     const onPopState = () => {
-      if (OVERLAY_VIEWS.has(currentViewRef.current)) restoreOverlayScroll.current = true;
+      pendingScroll.current = window.history.state?.scroll ?? null;
       syncRoute(true);
     };
     window.addEventListener('hashchange', onHashChange);
@@ -766,8 +773,7 @@ const App = () => {
     if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
     const path = machineId ? machinePath(room, machineId) : roomPath(room);
-    if (hasViewParam()) window.history.pushState(null, '', '/' + path);
-    else if (window.location.hash !== path) window.history.pushState(null, '', path);
+    if (currentAppUrl() !== '/' + path || OVERLAY_VIEWS.has(currentView)) pushAppView('/' + path);
     handleSelectRoom(room.id, false);
     if (machineId) {
       setMachineScrollTarget(`machine-card-${machineId}`);
@@ -784,43 +790,37 @@ const App = () => {
   }, [currentView, isOverlay]);
 
   useLayoutEffect(() => {
-    if (isOverlay || !restoreOverlayScroll.current || (roomStatus.busy && !roomStatus.checkedAt)) return;
-    restoreOverlayScroll.current = false;
-    window.scrollTo({ top: overlayReturnScroll.current, behavior: 'instant' });
-  }, [isOverlay, roomStatus.busy, roomStatus.checkedAt]);
+    if (pendingScroll.current === null || (roomStatus.busy && !roomStatus.checkedAt)) return;
+    window.scrollTo({ top: pendingScroll.current, behavior: 'instant' });
+    pendingScroll.current = null;
+  });
 
   const handleBackFromOverlay = () => {
-    restoreOverlayScroll.current = true;
-    const overlayState = window.history.state;
-    if (overlayState?.[OVERLAY_HISTORY_KEY] && overlayPushedHere.current) {
-      // The overlay entry was added in this page session, so Back returns to the earlier view.
+    const state = window.history.state;
+    if (state?.backUrl) {
       window.history.back();
-    } else if (overlayState?.[OVERLAY_HISTORY_KEY] || hasViewParam()) {
-      // Opened directly or after a refresh: return to the saved view without leaving LaundryLink.
-      window.history.replaceState(null, '', overlayState?.returnUrl ?? '/');
-      syncRouteRef.current?.();
     } else {
-      setCurrentView(previousView);
+      // Direct entry and legacy history entries still have a LaundryLink fallback.
+      window.history.replaceState(null, '', state?.returnUrl ?? '/');
+      syncRouteRef.current?.(true);
     }
   };
+
   const handleOpenOverlay = (view) => {
-    if (!isOverlay) {
-      setPreviousView(currentView);
-      overlayReturnScroll.current = window.scrollY;
-    }
     if (currentView === view) {
       window.scrollTo({ top: 0, behavior: 'instant' });
-    } else if (!isOverlay) {
-      const returnUrl = currentAppUrl();
-      window.history.pushState({ [OVERLAY_HISTORY_KEY]: view, returnUrl }, '', PERSISTENT_OVERLAY_URLS.get(view) ?? returnUrl);
-      overlayPushedHere.current = true;
-    } else {
-      const state = window.history.state?.[OVERLAY_HISTORY_KEY] ? window.history.state : null;
-      const returnUrl = state?.returnUrl ?? '/';
-      window.history.replaceState(state && { ...state, [OVERLAY_HISTORY_KEY]: view }, '', PERSISTENT_OVERLAY_URLS.get(view) ?? returnUrl);
+      return;
     }
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete('view');
+    pushAppView(PERSISTENT_OVERLAY_URLS.get(view) ?? url, { [OVERLAY_HISTORY_KEY]: view });
     setCurrentView(view);
   };
+
+  const roomBackUrl = currentView === 'roomDetail' ? window.history.state?.backUrl : null;
+  const roomBackLabel = roomBackUrl && roomBackUrl !== '/' ? 'Back' : 'All rooms';
+  const handleBackFromRoom = () => roomBackUrl ? window.history.back() : handleGoHome();
 
   const toggleFavorite = (roomId) => setFavorites((previous) => {
     const ids = resolveFavoriteIds(previous);
@@ -945,7 +945,7 @@ const App = () => {
           <div key="home" className="animate-fadeIn">
             <div className="ll-home-hero">
               <p className="ll-home-tagline">Know before you go.</p>
-              <p className="ll-home-copy">Check reported washer and dryer status before you head downstairs.</p>
+              <p className="ll-home-copy">Check reported washer and dryer status before you head to your laundry room.</p>
             </div>
             <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center mb-8 gap-4">
               <h1 className="ll-room-list-heading text-2xl lg:text-4xl font-bold md:mb-0 mb-3 whitespace-nowrap">
@@ -1006,7 +1006,7 @@ const App = () => {
         return (
           <div key="roomDetail" className="animate-fadeIn">
             <div className="ll-room-header">
-              <BackButton onClick={() => handleGoHome()} ariaLabel="All rooms"><span>All rooms</span></BackButton>
+              <BackButton onClick={handleBackFromRoom} ariaLabel={roomBackLabel}><span>{roomBackLabel}</span></BackButton>
               <RoomSwitcher room={currentRoom} onSelectRoom={handleSelectRoom} />
               <RoomTools key={`tools-${currentRoom.id}`} room={currentRoom} />
             </div>

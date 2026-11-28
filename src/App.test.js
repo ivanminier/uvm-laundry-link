@@ -391,7 +391,14 @@ test('overlay navigation resets scroll and Back restores the original position',
       expect(document.title).toBe(`${label} | UVM LaundryLink`);
       expect(window.scrollTo).toHaveBeenLastCalledWith({ top: 0, behavior: 'instant' });
     }
-    await act(async () => { const traversal = historyTraversal(); container.querySelector('main .ll-overlay-heading .ll-back-button').click(); await traversal; });
+    for (const label of ['My Laundry', 'Information', 'All Laundry Rooms']) {
+      await act(async () => {
+        const traversal = historyTraversal();
+        container.querySelector('main .ll-overlay-heading .ll-back-button').click();
+        await traversal;
+      });
+      expect(container.querySelector('main h1').textContent).toBe(label);
+    }
     expect(window.scrollTo).toHaveBeenLastCalledWith({ top: 450, behavior: 'instant' });
     expect(window.location.pathname + window.location.search + window.location.hash).toBe('/');
     expect(document.title).toBe('UVM Laundry Tracker | UVM LaundryLink');
@@ -1026,7 +1033,7 @@ test('utility views opened from Home keep their URL through Back and Forward', a
     await traverse('forward');
     expect(heading()).toBe('Settings');
     expect(address()).toBe('/?view=settings');
-    // Switching utility views replaces the entry, so one Back returns home.
+    // Each utility view returns to the screen it was opened from.
     await click(container.querySelector('header [aria-label="My Laundry"]'));
     expect(address()).toBe('/?view=my-laundry');
     await click(container.querySelector('header [aria-label="Information"]'));
@@ -1034,9 +1041,12 @@ test('utility views opened from Home keep their URL through Back and Forward', a
     expect(address()).toBe('/');
     await click(container.querySelector('header [aria-label="My Laundry"]'));
     await click(back(), true);
-    expect(heading()).toBe('All Laundry Rooms');
+    expect(heading()).toBe('Information');
     expect(address()).toBe('/');
-    await click(container.querySelector('header [aria-label="My Laundry"]'));
+    await click(back(), true);
+    expect(heading()).toBe('My Laundry');
+    expect(address()).toBe('/?view=my-laundry');
+    await click(container.querySelector('header [aria-label="Information"]'));
     await click(container.querySelector('header [aria-label="UVM LaundryLink home"]'));
     expect(heading()).toBe('All Laundry Rooms');
     expect(address()).toBe('/');
@@ -1061,7 +1071,7 @@ test('utility views opened from a room return to that room, including after a re
     await reload();
     expect(heading()).toBe('Settings');
     expect(address()).toBe('/?view=settings');
-    await click(back());
+    await click(back(), true);
     expect(heading()).toContain('Davis Hall');
     expect(address()).toBe('/#room/davis-hall');
   });
@@ -1092,7 +1102,7 @@ test('utility URLs take precedence over the last-room startup preference', async
 test('My Laundry links leave the utility URL and saved alerts remain after a refresh', async () => {
   const alertKey = 'uvmLaundryPushAlert-davis-5';
   const id = '00000000-0000-0000-0000-000000000005';
-  await withApp('/?view=my-laundry', async ({ container, heading, address, reload, click, traverse }) => {
+  await withApp('/?view=my-laundry', async ({ container, heading, address, reload, click }) => {
     expect(container.textContent).toContain('Dryer 5');
     await reload();
     const machineLink = [...container.querySelectorAll('main a')].find(link => link.textContent === 'Dryer 5');
@@ -1101,7 +1111,7 @@ test('My Laundry links leave the utility URL and saved alerts remain after a ref
     expect(heading()).toContain('Davis Hall');
     expect(address()).toBe('/#room/davis-hall?machine=5');
     expect(document.activeElement.id).toBe('machine-card-5');
-    await traverse('back');
+    await click(container.querySelector('.ll-room-header .ll-back-button'), true);
     expect(heading()).toBe('My Laundry');
     expect(address()).toBe('/?view=my-laundry');
     expect(JSON.parse(localStorage.getItem(alertKey)).id).toBe(id);
