@@ -3,6 +3,8 @@ import { Bell, CalendarPlus, ExternalLink, Smartphone, Wrench, XCircle } from 'l
 import { BackButton } from './BackButton';
 import { getOfficialRoomUrl, getRoomHistoryId, roomLabel, STATUS_MAX_AGE_MS } from './laundryData';
 import { hasPushAlert, PushAlertForm } from './PushAlertForm';
+import { isChannelLive } from './providerIntegration';
+import { NativeNotificationForm, NativeRepairForm } from './NativeProviderForms';
 import { downloadCycleCalendar } from './cycleCalendar';
 import { cycleFinishAt, isRunningMachine } from './cycleEstimates';
 
@@ -74,7 +76,15 @@ function MachineDialog({ machine, room, mode, canSetAlert, checkedAt, onClose, o
   const reporting = mode === 'report';
   const contactAlert = mode === 'contactAlert';
   const hasOfficialRoom = Boolean(getRoomHistoryId(room));
-  const canShowContactAlert = canSetAlert && hasOfficialRoom;
+  // Native repair/notification submissions only appear once their channel is
+  // live (flag on and an authorized endpoint configured). Until then every
+  // student sees the embedded official form below, exactly as before.
+  const nativeRepair = reporting && isChannelLive('repair');
+  const nativeEmail = isChannelLive('email');
+  const nativeSms = isChannelLive('sms');
+  const nativeContact = contactAlert && (nativeEmail || nativeSms);
+  const native = nativeRepair || nativeContact;
+  const canShowContactAlert = canSetAlert && (hasOfficialRoom || nativeEmail || nativeSms);
   const showOfficialForm = hasOfficialRoom && (reporting || contactAlert);
   const title = reporting ? `Report ${machine.machineName}` : `Alerts for ${machine.machineName}`;
 
@@ -91,7 +101,7 @@ function MachineDialog({ machine, room, mode, canSetAlert, checkedAt, onClose, o
 
   return (
     <dialog ref={dialog} onClose={onClose} aria-label={title}
-      className={`ll-dialog w-[calc(100%-2rem)] rounded-xl p-5 shadow-xl backdrop:bg-black/60 sm:p-6 ${showOfficialForm ? 'max-w-3xl' : 'max-w-md'}`}>
+      className={`ll-dialog w-[calc(100%-2rem)] rounded-xl p-5 shadow-xl backdrop:bg-black/60 sm:p-6 ${showOfficialForm && !native ? 'max-w-3xl' : 'max-w-md'}`}>
       <div className="flex items-start justify-between gap-4">
         <h3 className="min-w-0 break-words text-xl font-bold">{title}</h3>
         <form method="dialog">
@@ -100,6 +110,9 @@ function MachineDialog({ machine, room, mode, canSetAlert, checkedAt, onClose, o
       </div>
       <p className="mt-3 break-words text-sm">{details}</p>
       {reporting ? (
+        nativeRepair ? (
+          <NativeRepairForm room={room} machine={machine} />
+        ) : (
         <div className="ll-report-steps">
           <p className="ll-report-steps__title">How to report {machine.machineName}</p>
           <ol>
@@ -110,10 +123,13 @@ function MachineDialog({ machine, room, mode, canSetAlert, checkedAt, onClose, o
             <li>Tap <strong>Submit Report</strong>. Automatic Laundry handles the repair.</li>
           </ol>
         </div>
+        )
       ) : (
       <p className="mt-2 break-words text-sm text-slate-600 dark:text-slate-300">
         {contactAlert
-            ? `Select ${machine.machineName} below, open Notify Me, then choose Text or Email. Automatic Laundry sends the alert.`
+            ? nativeContact
+              ? `Get a text or email when ${machine.machineName}’s cycle finishes.`
+              : `Select ${machine.machineName} below, open Notify Me, then choose Text or Email. Automatic Laundry sends the alert.`
             : 'Push alerts work even after you close UVM LaundryLink.'}
       </p>
       )}
@@ -137,19 +153,34 @@ function MachineDialog({ machine, room, mode, canSetAlert, checkedAt, onClose, o
       {contactAlert && (
         <>
           <BackButton onClick={() => onModeChange('alerts')} className="my-2">Back to push alerts</BackButton>
-          <a href={roomUrl} target="_blank" rel="noopener noreferrer"
-            className="mb-2 flex min-h-[44px] w-fit items-center gap-2 rounded px-2 text-sm font-semibold text-uvm-green underline focus-visible:ring-2 focus-visible:ring-uvm-green dark:text-uvm-gold dark:focus-visible:ring-uvm-gold">
-            Open LaundryConnect in a new tab <ExternalLink size={16} aria-hidden="true" />
-          </a>
+          {nativeContact ? (
+            <div className="space-y-5">
+              {nativeEmail && <NativeNotificationForm room={room} machine={machine} channel="email" />}
+              {nativeSms && <NativeNotificationForm room={room} machine={machine} channel="sms" />}
+            </div>
+          ) : (
+            <a href={roomUrl} target="_blank" rel="noopener noreferrer"
+              className="mb-2 flex min-h-[44px] w-fit items-center gap-2 rounded px-2 text-sm font-semibold text-uvm-green underline focus-visible:ring-2 focus-visible:ring-uvm-green dark:text-uvm-gold dark:focus-visible:ring-uvm-gold">
+              Open LaundryConnect in a new tab <ExternalLink size={16} aria-hidden="true" />
+            </a>
+          )}
         </>
       )}
-      {showOfficialForm && (
+      {showOfficialForm && native ? (
+        <details className="mt-4 text-sm">
+          <summary className="cursor-pointer font-semibold text-uvm-green dark:text-uvm-gold">Prefer Automatic Laundry’s own form?</summary>
+          <iframe src={`${roomUrl}?embed=1`}
+            title={reporting ? 'Automatic Laundry repair reporting' : 'Automatic Laundry text or email alert setup'}
+            sandbox="allow-scripts allow-forms allow-same-origin"
+            className="mt-3 block h-[min(55dvh,32rem)] min-h-[18rem] w-full rounded-lg border border-slate-300 bg-white dark:border-slate-600" />
+        </details>
+      ) : showOfficialForm && (
         <iframe src={`${roomUrl}?embed=1`}
           title={reporting ? 'Automatic Laundry repair reporting' : 'Automatic Laundry text or email alert setup'}
           sandbox="allow-scripts allow-forms allow-same-origin"
           className="mt-3 block h-[min(55dvh,32rem)] min-h-[18rem] w-full rounded-lg border border-slate-300 bg-white dark:border-slate-600" />
       )}
-      {reporting && (
+      {reporting && !nativeRepair && (
         <>
           <a href={roomUrl} target="_blank" rel="noopener noreferrer" onClick={copy}
             className={showOfficialForm

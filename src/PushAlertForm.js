@@ -19,7 +19,7 @@ const TIMING_OPTIONS = [
 ];
 
 // Uses the room switcher's listbox styling instead of the platform's native select.
-function TimingSelect({ value, onChange }) {
+export function TimingSelect({ value, onChange, id = 'alert-timing', label = 'Send a push notification' }) {
   const [open, setOpen] = useState(false);
   const [activeValue, setActiveValue] = useState(value);
   const root = useRef(null);
@@ -79,10 +79,10 @@ function TimingSelect({ value, onChange }) {
 
   return (
     <div className="ll-select" ref={root}>
-      <span id="alert-timing-label" className="block text-sm font-medium">Send a push notification</span>
-      <button id="alert-timing" ref={trigger} type="button" className="ll-select__trigger"
-        aria-haspopup="listbox" aria-expanded={open} aria-controls={open ? 'alert-timing-options' : undefined}
-        aria-labelledby="alert-timing-label alert-timing"
+      <span id={`${id}-label`} className="block text-sm font-medium">{label}</span>
+      <button id={id} ref={trigger} type="button" className="ll-select__trigger"
+        aria-haspopup="listbox" aria-expanded={open} aria-controls={open ? `${id}-options` : undefined}
+        aria-labelledby={`${id}-label ${id}`}
         onClick={() => open ? closeList() : openList()}
         onKeyDown={(event) => {
           if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
@@ -94,7 +94,7 @@ function TimingSelect({ value, onChange }) {
         <ChevronDown className="ll-dropdown__arrow" size={17} aria-hidden="true" />
       </button>
       {open && (
-        <div id="alert-timing-options" ref={list} role="listbox" aria-labelledby="alert-timing-label"
+        <div id={`${id}-options`} ref={list} role="listbox" aria-labelledby={`${id}-label`}
           className="ll-dropdown__list ll-select__list" onKeyDown={handleListKey}>
           {TIMING_OPTIONS.map((option) => (
             <button key={option.value} type="button" role="option" tabIndex={-1}
