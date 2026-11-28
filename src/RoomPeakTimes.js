@@ -31,6 +31,12 @@ function summarize(grid) {
 const usageNumber = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
 const historyDate = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeZone: 'America/New_York' });
 
+export function relativeUsageReduction(windowUsage, baselineUsage) {
+  if (!Number.isFinite(baselineUsage) || baselineUsage <= 0 ||
+      !Number.isFinite(windowUsage) || windowUsage < 0 || windowUsage > baselineUsage) return null;
+  return Math.round(((baselineUsage - windowUsage) / baselineUsage) * 100);
+}
+
 function UsageChart({ grid, totalSamples, capturedAt }) {
   const [selection, setSelection] = useState(null);
   const [activeCell, setActiveCell] = useState({ day: 0, hour: 0 });
@@ -74,6 +80,7 @@ function UsageChart({ grid, totalSamples, capturedAt }) {
 
   const selectedValue = selection && grid[selection.day][selection.hour];
   const recommendation = quieterWindowDetails(grid);
+  const reduction = recommendation && relativeUsageReduction(recommendation.windowUsage, recommendation.baselineUsage);
 
   return (
     <>
@@ -81,8 +88,8 @@ function UsageChart({ grid, totalSamples, capturedAt }) {
         <p className="mt-4 rounded-lg bg-teal-50 p-3 text-sm text-teal-950 dark:bg-teal-950/50 dark:text-teal-100">
           <strong>Usually quieter daytime window: {recommendation.label} (Burlington time).</strong>{' '}
           Typically {usageNumber.format(recommendation.windowUsage)}% of machines were in use, compared with{' '}
-          {usageNumber.format(recommendation.baselineUsage)}% from 7 AM to midnight on the same days. The gap was{' '}
-          {usageNumber.format(recommendation.improvement)}%.
+          {usageNumber.format(recommendation.baselineUsage)}% from 7 AM to midnight on the same days.
+          {reduction > 0 && ` That’s approximately ${reduction}% lower than the daytime average.`}
         </p>
       ) : (
         <p className="mt-4 text-sm text-slate-600 dark:text-slate-300">The available history did not identify a consistently quieter daytime window.</p>

@@ -4,7 +4,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import { informationDisclosure } from './informationContent.mjs';
 import { MachineReport } from './MachineReport';
-import { quieterWindow, RoomPeakTimes } from './RoomPeakTimes';
+import { quieterWindow, relativeUsageReduction, RoomPeakTimes } from './RoomPeakTimes';
 import { quieterWindowDetails, quieterWindows } from './peakTimesGuidance.mjs';
 import guidance from './peakTimesGuidance.json';
 import snapshot from './peakTimesSnapshot.json';
@@ -842,6 +842,20 @@ test('My Laundry loads legacy alerts, shows their machine links and cancels thro
   }
 });
 
+test.each([
+  [3.2, 12.9, 75],
+  [3.286, 12.901, 75], // Rounding displayed usage first would give 74%.
+  [5, 8, 38],
+  [0, 20, 100],
+  [10, 0, null],
+  [10, -5, null],
+  [10, NaN, null],
+  [10, Infinity, null],
+  [10, undefined, null],
+])('relative reduction for %s%% window usage and %s%% baseline is %s', (windowUsage, baselineUsage, result) => {
+  expect(relativeUsageReduction(windowUsage, baselineUsage)).toBe(result);
+});
+
 test('Peak Times shows bundled guidance immediately and keeps one recommendation when expanded', async () => {
   global.IS_REACT_ACT_ENVIRONMENT = true;
   const container = document.createElement('div');
@@ -862,7 +876,9 @@ test('Peak Times shows bundled guidance immediately and keeps one recommendation
     await act(async () => { toggle.click(); });
     expect(container.textContent.match(/Usually quieter/g)).toHaveLength(1);
     expect(container.textContent).toMatch(/compared with .+% from 7 AM to midnight on the same days/);
-    expect(container.textContent).toMatch(/The gap was \d+(?:\.\d+)?%/);
+    const { baselineUsage, windowUsage } = quieterWindowDetails(snapshot.rooms[room.historyRoomId].grid);
+    const expectedReduction = Math.round(100 * (baselineUsage - windowUsage) / baselineUsage);
+    expect(container.textContent).toContain(`That’s approximately ${expectedReduction}% lower than the daytime average.`);
     expect(container.textContent).toContain('official quiet hours');
     expect(container.querySelector('time').dateTime).toBe(snapshot.capturedAt);
     const firstCell = container.querySelector('[data-usage-cell="0-0"]');
