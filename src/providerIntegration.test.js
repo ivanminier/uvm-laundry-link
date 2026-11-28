@@ -1,5 +1,5 @@
 import {
-  CHANNELS, isChannelEnabled, isChannelLive, validateContact, validateRepair,
+  CHANNELS, isChannelEnabled, isChannelLive, supportedTiming, validateContact, validateRepair,
   normalizePhone, isRecentDuplicate, rememberSubmission,
   submitRepairRequest, registerEmailNotification, registerSmsNotification,
 } from './providerIntegration';
@@ -73,4 +73,14 @@ test('the duplicate guard is keyed and time-bounded', () => {
   expect(isRecentDuplicate('k', 10_000)).toBe(true);
   expect(isRecentDuplicate('k', 61_000)).toBe(false);
   expect(isRecentDuplicate('other', 10_000)).toBe(false);
+});
+
+test('a channel is live only with flag, endpoint, AND verification — none ship set', () => {
+  for (const channel of CHANNELS) expect(isChannelLive(channel)).toBe(false);
+});
+
+test('notification timing defaults to completion-only until the provider confirms more', () => {
+  expect(supportedTiming('email')).toEqual([0]);
+  expect(supportedTiming('sms')).toEqual([0]);
+  expect(supportedTiming('repair')).toEqual([]);
 });

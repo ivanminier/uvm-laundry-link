@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { AlertTriangle, Bell, CheckCircle, Wrench } from 'lucide-react';
 
-import { TimingSelect } from './PushAlertForm';
+import { TimingSelect, TIMING_OPTIONS } from './PushAlertForm';
 import {
-  LIMITS, validateContact, validateRepair,
+  LIMITS, validateContact, validateRepair, supportedTiming,
   submitRepairRequest, registerEmailNotification, registerSmsNotification,
 } from './providerIntegration';
 
@@ -143,8 +143,9 @@ const CONSENT = {
 export function NativeNotificationForm({ room, machine, channel, submit }) {
   const isSms = channel === 'sms';
   const saved = useMemo(getSavedContact, []);
+  const timingOptions = useMemo(() => TIMING_OPTIONS.filter((option) => supportedTiming(channel).includes(option.value)), [channel]);
   const [value, setValue] = useState(isSms ? saved.phone : saved.email);
-  const [leadMinutes, setLeadMinutes] = useState(0);
+  const [leadMinutes, setLeadMinutes] = useState(timingOptions[0]?.value ?? 0);
   const [consent, setConsent] = useState(false);
   const [status, setStatus] = useState('idle'); // idle | submitting | pending | error | duplicate
   const [fieldError, setFieldError] = useState('');
@@ -182,7 +183,9 @@ export function NativeNotificationForm({ room, machine, channel, submit }) {
       <Field id={`notify-${channel}`} label={isSms ? 'Mobile number' : 'Email address'} type={isSms ? 'tel' : 'email'}
         inputMode={isSms ? 'tel' : 'email'} value={value} onChange={setValue}
         maxLength={isSms ? LIMITS.phone : LIMITS.email} error={fieldError} />
-      <TimingSelect id={`notify-${channel}-timing`} label="When should we tell you?" value={leadMinutes} onChange={setLeadMinutes} />
+      {timingOptions.length > 1 && (
+        <TimingSelect id={`notify-${channel}-timing`} label="When should we tell you?" value={leadMinutes} onChange={setLeadMinutes} options={timingOptions} />
+      )}
       <div>
         <label className="flex items-start gap-2.5 text-sm">
           <input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)}

@@ -17,12 +17,29 @@ const CHANNEL_ENABLED = { repair: false, email: false, sms: false };
 // supported endpoint for that channel. No guessed or reverse-engineered URLs.
 const CHANNEL_ENDPOINT = { repair: null, email: null, sms: null };
 
+// Set true only after the channel's server-side integration has been built and
+// verified end to end against the real provider endpoint. A flag plus an
+// endpoint string is deliberately NOT enough to go live.
+const CHANNEL_VERIFIED = { repair: false, email: false, sms: false };
+
+// Notification timing options a channel actually supports, as leadMinutes before
+// the cycle ends. Defaults to completion-only; other options are added per
+// channel only once the provider confirms support. Repair has no timing.
+const CHANNEL_TIMING = { repair: [], email: [0], sms: [0] };
+
 export function isChannelEnabled(channel) {
   return CHANNEL_ENABLED[channel] === true;
 }
 
+// Live requires all three: the flag on, a configured endpoint, AND a verified
+// server-side integration. This is the client gate; the Worker proxy enforces
+// the server side at request time.
 export function isChannelLive(channel) {
-  return isChannelEnabled(channel) && typeof CHANNEL_ENDPOINT[channel] === 'string';
+  return isChannelEnabled(channel) && typeof CHANNEL_ENDPOINT[channel] === 'string' && CHANNEL_VERIFIED[channel] === true;
+}
+
+export function supportedTiming(channel) {
+  return CHANNEL_TIMING[channel] ?? [];
 }
 
 export const LIMITS = { name: 80, email: 254, phone: 20, details: 500 };
@@ -112,11 +129,15 @@ async function submit(channel, { validate, payload, dedupeKey }, deps = {}) {
       body: JSON.stringify(payload),
     });
     if (!response.ok) return { ok: false, reason: 'failed', status: response.status };
-    if (dedupeKey) rememberSubmission(dedupeKey, now);
     const body = await response.json().catch(() => ({}));
+    // Success is only ever claimed when the provider explicitly acknowledges the
+    // request. A bare 200 (e.g. from a stub or misconfigured endpoint) is treated
+    // as a failure, so a confirmation is never shown without a real registration.
+    if (body.accepted !== true) return { ok: false, reason: 'failed' };
+    if (dedupeKey) rememberSubmission(dedupeKey, now);
     return { ok: true, reference: body.reference ?? null };
   } catch {
-    // Uncertain outcome: report it, do not retry automatically.
+    // Uncertain outcome: report it, never retry automatically.
     return { ok: false, reason: 'failed' };
   }
 }

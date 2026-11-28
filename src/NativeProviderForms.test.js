@@ -121,3 +121,15 @@ test('with all channels disabled, the dialog shows the embedded flow and no nati
     expect(view.container.querySelector('#repair-email')).toBeNull();
   } finally { view.cleanup(); }
 });
+
+test('notification forms hide timing by default and never pre-check consent from saved contact', async () => {
+  localStorage.setItem('uvmLaundryContactEmail', '"pat@uvm.edu"');
+  const view = mount(<NativeNotificationForm room={room} machine={machine} channel="email" submit={jest.fn(async () => ({ ok: true }))} />);
+  try {
+    await view.render();
+    // Prefilled address, but consent is unchecked and no completion-timing dropdown is shown.
+    expect(view.container.querySelector('#notify-email').value).toBe('pat@uvm.edu');
+    expect(view.container.querySelector('input[type="checkbox"]').checked).toBe(false);
+    expect(view.container.querySelector('#notify-email-timing')).toBeNull();
+  } finally { view.cleanup(); }
+});

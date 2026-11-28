@@ -13,19 +13,19 @@ function decodeApplicationKey(base64url) {
   return Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
 }
 
-const TIMING_OPTIONS = [
+export const TIMING_OPTIONS = [
   { value: 0, label: 'When the cycle ends' },
   { value: 5, label: 'About 5 minutes early' },
 ];
 
 // Uses the room switcher's listbox styling instead of the platform's native select.
-export function TimingSelect({ value, onChange, id = 'alert-timing', label = 'Send a push notification' }) {
+export function TimingSelect({ value, onChange, id = 'alert-timing', label = 'Send a push notification', options = TIMING_OPTIONS }) {
   const [open, setOpen] = useState(false);
   const [activeValue, setActiveValue] = useState(value);
   const root = useRef(null);
   const trigger = useRef(null);
   const list = useRef(null);
-  const selected = TIMING_OPTIONS.find((option) => option.value === value);
+  const selected = options.find((option) => option.value === value) ?? options[0];
 
   useEffect(() => {
     if (!open) return undefined;
@@ -60,8 +60,8 @@ export function TimingSelect({ value, onChange, id = 'alert-timing', label = 'Se
   }
 
   function handleListKey(event) {
-    const index = TIMING_OPTIONS.findIndex((option) => option.value === activeValue);
-    const last = TIMING_OPTIONS.length - 1;
+    const index = options.findIndex((option) => option.value === activeValue);
+    const last = options.length - 1;
     if (event.key === 'Escape') {
       // Close only the list, not the surrounding dialog.
       event.preventDefault();
@@ -73,7 +73,7 @@ export function TimingSelect({ value, onChange, id = 'alert-timing', label = 'Se
     } else if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) {
       event.preventDefault();
       const next = { ArrowDown: index + 1, ArrowUp: index - 1, Home: 0, End: last }[event.key];
-      setActiveValue(TIMING_OPTIONS[Math.max(0, Math.min(next, last))].value);
+      setActiveValue(options[Math.max(0, Math.min(next, last))].value);
     }
   }
 
@@ -96,7 +96,7 @@ export function TimingSelect({ value, onChange, id = 'alert-timing', label = 'Se
       {open && (
         <div id={`${id}-options`} ref={list} role="listbox" aria-labelledby={`${id}-label`}
           className="ll-dropdown__list ll-select__list" onKeyDown={handleListKey}>
-          {TIMING_OPTIONS.map((option) => (
+          {options.map((option) => (
             <button key={option.value} type="button" role="option" tabIndex={-1}
               aria-selected={option.value === value} data-active={option.value === activeValue ? '' : undefined}
               className="ll-dropdown__option" onClick={() => choose(option.value)}>
