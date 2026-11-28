@@ -916,14 +916,16 @@ html.dark .ll-refresh-toast svg {
 .ll-favorite-summary__totals {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  align-items: center;
+  align-items: stretch;
   border: 1px solid var(--ll-line);
   border-radius: 0.75rem;
 }
 
+/* Numbers share one top line; labels start just below, even when one wraps. */
 .ll-favorite-summary__totals div {
   display: flex;
-  flex-direction: column-reverse;
+  flex-direction: column;
+  justify-content: flex-start;
   gap: 0.3rem;
   padding: 0.7rem 0.55rem;
 }
@@ -933,11 +935,15 @@ html.dark .ll-refresh-toast svg {
 }
 
 .ll-favorite-summary__totals dt {
+  align-items: flex-start;
   color: var(--ll-muted);
   font-size: 0.72rem;
+  line-height: 1.3;
 }
 
+
 .ll-favorite-summary__totals dd {
+  order: -1;
   font-size: 1.5rem;
   font-weight: 720;
   font-variant-numeric: tabular-nums;
@@ -1000,18 +1006,6 @@ html.dark .ll-refresh-toast svg {
 }
 
 @media (max-width: 25rem) {
-  .ll-favorite-summary__totals {
-    align-items: stretch;
-  }
-
-  .ll-favorite-summary__totals div {
-    flex-direction: column;
-  }
-
-  .ll-favorite-summary__totals dd {
-    order: -1;
-  }
-
   .ll-favorite-summary__totals dt svg {
     display: none;
   }
