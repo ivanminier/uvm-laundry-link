@@ -12,11 +12,12 @@ test('machine subtitles drop the repeated machine type and keep the configuratio
   expect(machineDescription({})).toBe('Machine');
 });
 
-async function render(url, run) {
+async function render(url, run, setup) {
   global.IS_REACT_ACT_ENVIRONMENT = true;
   window.matchMedia = jest.fn(() => ({ matches: false, addEventListener: jest.fn(), removeEventListener: jest.fn() }));
   window.scrollTo = jest.fn();
   localStorage.clear();
+  setup?.();
   navigator.share = jest.fn(async () => {});
   window.history.replaceState(null, '', url);
   global.fetch = jest.fn(async (request) => ({
@@ -88,34 +89,29 @@ test('the report dialog shows numbered steps naming the LaundryConnect machine l
   }
 });
 
-test('Settings Personal Information saves contact fields locally and clears them', async () => {
+const personalSection = (container) =>
+  [...container.querySelectorAll('section')].find((element) => element.querySelector('h2')?.textContent === 'Personal Information');
+
+test('with no native channel live, Personal Information is hidden unless details were already saved', async () => {
+  // Nothing saved: the editable section does not appear in production.
   await render('/?view=settings', async (container) => {
-    const section = [...container.querySelectorAll('section')].find((element) => element.querySelector('h2')?.textContent === 'Personal Information');
+    expect(personalSection(container)).toBeUndefined();
+    expect(container.querySelector('#contactName')).toBeNull();
+  });
+
+  // Details saved during development remain and can still be cleared.
+  await render('/?view=settings', async (container) => {
+    const section = personalSection(container);
     expect(section).toBeTruthy();
-    const nameInput = section.querySelector('#contactName');
-    const emailInput = section.querySelector('#contactEmail');
-    const phoneInput = section.querySelector('#contactPhone');
-
-    const type = async (input, value) => {
-      await act(async () => {
-        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, value);
-        input.dispatchEvent(new Event('input', { bubbles: true }));
-      });
-    };
-    await type(nameInput, 'Pat Cat');
-    await type(emailInput, 'pat@uvm.edu');
-    await type(phoneInput, '8025550100');
-    expect(localStorage.getItem('uvmLaundryContactName')).toBe('"Pat Cat"');
-    expect(localStorage.getItem('uvmLaundryContactEmail')).toBe('"pat@uvm.edu"');
-    expect(localStorage.getItem('uvmLaundryContactPhone')).toBe('"8025550100"');
-
-    await type(emailInput, 'not-an-email');
-    expect(emailInput.getAttribute('aria-invalid')).toBe('true');
-    expect(section.querySelector('#contactEmail-hint').textContent).toBe('Enter a valid email address.');
-
+    expect(section.querySelector('input')).toBeNull(); // no editable fields while hidden
+    expect(section.textContent).toContain('Nothing uses or sends them right now');
     await act(async () => { section.querySelector('button').click(); });
-    expect(nameInput.value).toBe('');
     expect(localStorage.getItem('uvmLaundryContactName')).toBe('""');
+    expect(localStorage.getItem('uvmLaundryContactEmail')).toBe('""');
     expect(localStorage.getItem('uvmLaundryContactPhone')).toBe('""');
+  }, () => {
+    localStorage.setItem('uvmLaundryContactName', '"Pat Cat"');
+    localStorage.setItem('uvmLaundryContactEmail', '"pat@uvm.edu"');
+    localStorage.setItem('uvmLaundryContactPhone', '"8025550100"');
   });
 });

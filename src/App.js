@@ -6,7 +6,7 @@ import { useLaundryStatus } from './useLaundryStatus';
 import { nextReportedFinish } from './cycleEstimates';
 import { CAMPUS_SECTIONS, campusHeading, groupCampusRooms, roomDirectorySearchTerms } from './campusDirectory.mjs';
 import { locationLine } from './roomLocations.mjs';
-import { LIMITS, validateContact } from './providerIntegration';
+import { LIMITS, isChannelLive, validateContact } from './providerIntegration';
 import { hallGuidePath, hallName } from './roomLinks.mjs';
 import { RoomSwitcher, RoomTools } from './RoomTools';
 import { MyLaundry } from './MyLaundry';
@@ -494,7 +494,30 @@ function usePreference(key, fallback) {
   return [value, setValue];
 }
 
+// Shown in full only once a native repair/notification channel is live and uses
+// these fields. Until then the editable form stays hidden; any details saved
+// during development remain on the device and can still be cleared.
 function PersonalInformationSettings({ name, email, phone, onName, onEmail, onPhone }) {
+  const live = isChannelLive('repair') || isChannelLive('email') || isChannelLive('sms');
+  const hasSaved = [name, email, phone].some((value) => String(value ?? '').trim().length > 0);
+  const clearAll = () => { onName(''); onEmail(''); onPhone(''); };
+
+  if (!live) {
+    if (!hasSaved) return null;
+    return (
+      <section>
+        <h2 className="mb-5 border-b border-gray-200 pb-3 text-xl font-semibold text-gray-800 dark:border-slate-700 dark:text-white">Personal Information</h2>
+        <p className="mb-4 text-sm text-gray-700 dark:text-slate-300">
+          You have contact details saved on this device. Nothing uses or sends them right now. You can remove them below.
+        </p>
+        <button type="button" onClick={clearAll}
+          className="min-h-[44px] rounded-lg border border-slate-300 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700">
+          Clear personal information
+        </button>
+      </section>
+    );
+  }
+
   const problems = validateContact({ name, email, phone });
   const field = (id, label, value, onChange, props = {}, hint) => (
     <div>
