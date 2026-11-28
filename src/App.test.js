@@ -928,6 +928,9 @@ test.each([true, false])('combined reporting keeps native navigation with clipbo
     });
     await act(async () => { container.querySelector('[aria-label="Report Washer 56"]').click(); });
     expect(writeText).not.toHaveBeenCalled();
+    const report = container.querySelector('iframe[title="Automatic Laundry repair reporting"]');
+    expect(report.getAttribute('src')).toBe('https://laundryconnectlive.com/live/loc_44963c?embed=1');
+    expect(report.getAttribute('sandbox')).toBe('allow-scripts allow-forms allow-same-origin');
     const [combined, direct, service] = [...container.querySelectorAll('dialog a')];
     expect(combined.textContent).toContain('Copy details & open reporting');
     expect(combined.href).toBe('https://laundryconnectlive.com/live/loc_44963c');

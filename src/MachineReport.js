@@ -67,7 +67,9 @@ function MachineDialog({ machine, room, mode, canSetAlert, checkedAt, onClose, o
   const roomUrl = getOfficialRoomUrl(room);
   const reporting = mode === 'report';
   const contactAlert = mode === 'contactAlert';
-  const canShowContactAlert = canSetAlert && !!getRoomHistoryId(room);
+  const hasOfficialRoom = Boolean(getRoomHistoryId(room));
+  const canShowContactAlert = canSetAlert && hasOfficialRoom;
+  const showOfficialForm = hasOfficialRoom && (reporting || contactAlert);
   const title = reporting ? `Report ${machine.machineName}` : `Alerts for ${machine.machineName}`;
 
   useEffect(() => { dialog.current.showModal(); }, []);
@@ -83,7 +85,7 @@ function MachineDialog({ machine, room, mode, canSetAlert, checkedAt, onClose, o
 
   return (
     <dialog ref={dialog} onClose={onClose} aria-label={title}
-      className={`ll-dialog w-[calc(100%-2rem)] rounded-xl p-5 shadow-xl backdrop:bg-black/60 sm:p-6 ${contactAlert ? 'max-w-3xl' : 'max-w-md'}`}>
+      className={`ll-dialog w-[calc(100%-2rem)] rounded-xl p-5 shadow-xl backdrop:bg-black/60 sm:p-6 ${showOfficialForm ? 'max-w-3xl' : 'max-w-md'}`}>
       <div className="flex items-start justify-between gap-4">
         <h3 className="min-w-0 break-words text-xl font-bold">{title}</h3>
         <form method="dialog">
@@ -93,7 +95,7 @@ function MachineDialog({ machine, room, mode, canSetAlert, checkedAt, onClose, o
       <p className="mt-3 break-words text-sm">{details}</p>
       <p className="mt-2 break-words text-sm text-slate-600 dark:text-slate-300">
         {reporting
-          ? `Select ${machine.machineName} on the LaundryConnect page, then choose Report a problem. Automatic Laundry handles repairs.`
+          ? `Select ${machine.machineName} ${showOfficialForm ? 'below' : 'on the LaundryConnect page'}, then choose Report a problem. Automatic Laundry handles repairs.`
           : contactAlert
             ? `Select ${machine.machineName} below, open Notify Me, then choose Text or Email. Automatic Laundry sends the alert.`
             : 'Push alerts work even after you close UVM LaundryLink.'}
@@ -122,15 +124,20 @@ function MachineDialog({ machine, room, mode, canSetAlert, checkedAt, onClose, o
             className="mb-2 flex min-h-[44px] w-fit items-center gap-2 rounded px-2 text-sm font-semibold text-uvm-green underline focus-visible:ring-2 focus-visible:ring-uvm-green dark:text-uvm-gold dark:focus-visible:ring-uvm-gold">
             Open LaundryConnect in a new tab <ExternalLink size={16} aria-hidden="true" />
           </a>
-          <iframe src={`${roomUrl}?embed=1`} title="Automatic Laundry text or email alert setup"
-            sandbox="allow-scripts allow-forms allow-same-origin"
-            className="block h-[min(55dvh,32rem)] min-h-[18rem] w-full rounded-lg border border-slate-300 bg-white dark:border-slate-600" />
         </>
+      )}
+      {showOfficialForm && (
+        <iframe src={`${roomUrl}?embed=1`}
+          title={reporting ? 'Automatic Laundry repair reporting' : 'Automatic Laundry text or email alert setup'}
+          sandbox="allow-scripts allow-forms allow-same-origin"
+          className="mt-3 block h-[min(55dvh,32rem)] min-h-[18rem] w-full rounded-lg border border-slate-300 bg-white dark:border-slate-600" />
       )}
       {reporting && (
         <>
           <a href={roomUrl} target="_blank" rel="noopener noreferrer" onClick={copy}
-            className="mt-5 flex items-center justify-center gap-2 rounded-lg bg-uvm-green px-3 py-3 text-center text-sm font-semibold text-white hover:bg-green-900">
+            className={showOfficialForm
+              ? 'mt-3 inline-flex min-h-[44px] items-center gap-2 text-sm font-semibold text-uvm-green underline dark:text-uvm-gold'
+              : 'mt-5 flex items-center justify-center gap-2 rounded-lg bg-uvm-green px-3 py-3 text-center text-sm font-semibold text-white hover:bg-green-900'}>
             Copy details &amp; open reporting <ExternalLink size={16} aria-hidden="true" />
           </a>
           <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm font-semibold text-uvm-green dark:text-uvm-gold">
