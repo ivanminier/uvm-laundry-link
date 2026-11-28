@@ -128,6 +128,12 @@ assert.match(privacy, /no automatic expiration set for these counts/);
 assert.match(privacy, /It still counts aggregate push outcomes/);
 assert.match(privacy, /If this Privacy Policy changes, the effective date on this page will be updated/);
 assert.match(privacy, /<h2>Contact and privacy requests<\/h2>/);
+assert.match(privacy, /Effective November 28, 2026\./);
+assert.match(privacy, /<h2>Saved contact details<\/h2>/);
+assert.match(privacy, /stores it only in your browser.*submit a repair report or notification request/s);
+assert.match(privacy, /native repair and notification submissions are still being built and are turned off/);
+// The Terms effective date stays independent of the Privacy Policy revision.
+assert.match(terms, /Effective November 27, 2026\./);
 assert.equal((privacy.match(/<h2>Contact\b/g) ?? []).length, 1, 'One Privacy Policy contact section');
 for (const sentence of [
   'You may contact me to request access to or deletion of identifiable information held by LaundryLink.',

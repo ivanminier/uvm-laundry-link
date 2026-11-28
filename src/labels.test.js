@@ -87,3 +87,35 @@ test('the report dialog shows numbered steps naming the LaundryConnect machine l
     delete global.IS_REACT_ACT_ENVIRONMENT;
   }
 });
+
+test('Settings Personal Information saves contact fields locally and clears them', async () => {
+  await render('/?view=settings', async (container) => {
+    const section = [...container.querySelectorAll('section')].find((element) => element.querySelector('h2')?.textContent === 'Personal Information');
+    expect(section).toBeTruthy();
+    const nameInput = section.querySelector('#contactName');
+    const emailInput = section.querySelector('#contactEmail');
+    const phoneInput = section.querySelector('#contactPhone');
+
+    const type = async (input, value) => {
+      await act(async () => {
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, value);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+    };
+    await type(nameInput, 'Pat Cat');
+    await type(emailInput, 'pat@uvm.edu');
+    await type(phoneInput, '8025550100');
+    expect(localStorage.getItem('uvmLaundryContactName')).toBe('"Pat Cat"');
+    expect(localStorage.getItem('uvmLaundryContactEmail')).toBe('"pat@uvm.edu"');
+    expect(localStorage.getItem('uvmLaundryContactPhone')).toBe('"8025550100"');
+
+    await type(emailInput, 'not-an-email');
+    expect(emailInput.getAttribute('aria-invalid')).toBe('true');
+    expect(section.querySelector('#contactEmail-hint').textContent).toBe('Enter a valid email address.');
+
+    await act(async () => { section.querySelector('button').click(); });
+    expect(nameInput.value).toBe('');
+    expect(localStorage.getItem('uvmLaundryContactName')).toBe('""');
+    expect(localStorage.getItem('uvmLaundryContactPhone')).toBe('""');
+  });
+});

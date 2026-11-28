@@ -6,6 +6,7 @@ import { useLaundryStatus } from './useLaundryStatus';
 import { nextReportedFinish } from './cycleEstimates';
 import { CAMPUS_SECTIONS, campusHeading, groupCampusRooms, roomDirectorySearchTerms } from './campusDirectory.mjs';
 import { locationLine } from './roomLocations.mjs';
+import { LIMITS, validateContact } from './providerIntegration';
 import { hallGuidePath, hallName } from './roomLinks.mjs';
 import { RoomSwitcher, RoomTools } from './RoomTools';
 import { MyLaundry } from './MyLaundry';
@@ -493,6 +494,39 @@ function usePreference(key, fallback) {
   return [value, setValue];
 }
 
+function PersonalInformationSettings({ name, email, phone, onName, onEmail, onPhone }) {
+  const problems = validateContact({ name, email, phone });
+  const field = (id, label, value, onChange, props = {}, hint) => (
+    <div>
+      <label htmlFor={id} className="block text-sm font-medium text-gray-700 dark:text-slate-200">{label}</label>
+      <input id={id} value={value} onChange={(event) => onChange(event.target.value)}
+        className="ll-input mt-1.5 h-12 w-full rounded-lg border px-3 text-sm" autoComplete="off" {...props}
+        aria-invalid={hint ? true : undefined} aria-describedby={hint ? `${id}-hint` : undefined} />
+      {hint && <p id={`${id}-hint`} className="mt-1 text-xs text-red-700 dark:text-red-300">{hint}</p>}
+    </div>
+  );
+  const anySaved = [name, email, phone].some((value) => String(value ?? '').trim().length > 0);
+  return (
+    <section>
+      <h2 className="mb-5 border-b border-gray-200 pb-3 text-xl font-semibold text-gray-800 dark:border-slate-700 dark:text-white">Personal Information</h2>
+      <p className="mb-4 text-sm text-gray-700 dark:text-slate-300">
+        Optional. Saved only on this device to fill in a repair or notification request faster. LaundryLink doesn’t send it anywhere
+        until you submit a request you choose to send. See the {' '}
+        <a href="/privacy/" className="font-medium text-uvm-green underline dark:text-uvm-gold">Privacy Policy</a>.
+      </p>
+      <div className="space-y-4">
+        {field('contactName', 'Name', name, onName, { maxLength: LIMITS.name }, problems.name && name ? problems.name : undefined)}
+        {field('contactEmail', 'Email address', email, onEmail, { type: 'email', inputMode: 'email', maxLength: LIMITS.email }, problems.email && email ? problems.email : undefined)}
+        {field('contactPhone', 'Mobile number', phone, onPhone, { type: 'tel', inputMode: 'tel', maxLength: LIMITS.phone }, problems.phone && phone ? problems.phone : undefined)}
+        <button type="button" onClick={() => { onName(''); onEmail(''); onPhone(''); }} disabled={!anySaved}
+          className="min-h-[44px] rounded-lg border border-slate-300 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700">
+          Clear personal information
+        </button>
+      </div>
+    </section>
+  );
+}
+
 function resolveFavoriteIds(saved) {
   return Array.isArray(saved)
     ? [...new Set(saved.map(id => findLaundryRoom(id)?.id ?? id))]
@@ -589,6 +623,9 @@ const App = () => {
   const [expandPeakTimes, setExpandPeakTimes] = usePreference('uvmLaundryExpandPeakTimes', false);
   const [openFavoritesOnStartup, setOpenFavoritesOnStartup] = usePreference('uvmLaundryOpenFavoritesOnStartup', false);
   const [showFavoriteSummary, setShowFavoriteSummary] = usePreference('uvmLaundryShowFavoriteSummary', true);
+  const [contactName, setContactName] = usePreference('uvmLaundryContactName', '');
+  const [contactEmail, setContactEmail] = usePreference('uvmLaundryContactEmail', '');
+  const [contactPhone, setContactPhone] = usePreference('uvmLaundryContactPhone', '');
   const [rememberRoom, setRememberRoom] = usePreference(REMEMBER_ROOM_KEY, false);
   const [machineScrollTarget, setMachineScrollTarget] = useState(null);
 
@@ -1169,6 +1206,9 @@ const App = () => {
                   </div>
                 </section>
               ))}
+              <PersonalInformationSettings
+                name={contactName} email={contactEmail} phone={contactPhone}
+                onName={setContactName} onEmail={setContactEmail} onPhone={setContactPhone} />
               <section>
                 <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-5 border-b pb-3 border-gray-200 dark:border-slate-700">Report Issues</h2>
                  <div className="space-y-3">

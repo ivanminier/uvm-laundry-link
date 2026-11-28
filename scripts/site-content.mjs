@@ -54,7 +54,7 @@ export const articles = [
 ];
 
 // Each legal document carries its own effective date so either can be revised independently.
-const privacyEffectiveDate = 'Effective November 27, 2026.';
+const privacyEffectiveDate = 'Effective November 28, 2026.';
 const termsEffectiveDate = 'Effective November 27, 2026.';
 
 export const legalArticles = [
@@ -67,6 +67,8 @@ export const legalArticles = [
       <p>UVM LaundryLink is an independent student project created and maintained by Ivan Minier. It is not affiliated with the University of Vermont or Automatic Laundry. You can use the tracker without an account, name, email address, or phone number.</p>
       <h2>What stays in your browser</h2>
       <p>Your browser stores favorites, room and appearance preferences, saved alert IDs and expiration times, and the last saved machine statuses. The service worker caches site files so the tracker can open offline after it has been downloaded. To remove this information, clear the site data for uvmlaundry.com in your browser. Clearing site data removes the saved alert ID from your browser. A pending alert can still be active on the alerts service. Cancel pending alerts in My Laundry before clearing site data. You can change notification permission separately in your browser settings.</p>
+      <h2>Saved contact details</h2>
+      <p>Settings has an optional Personal Information section for your name, email address, and mobile number. If you fill it in, LaundryLink stores it only in your browser, to save you re-typing it when you submit a repair report or notification request. It is not sent anywhere on its own. Remove it any time with Clear personal information in Settings, or by clearing the site data for uvmlaundry.com. LaundryLink’s native repair and notification submissions are still being built and are turned off, so this information is not transmitted yet. Before any of those features send your details to Automatic Laundry, this policy will be updated to say exactly what is sent, and you will choose to send it for each request.</p>
       <h2>Browser push alerts</h2>
       <p>When you set a push alert, the alerts service stores your browser’s push subscription endpoint and keys, the room and relevant machine IDs, the requested timing or availability condition, and an alert ID and expiration time. Cancel pending alerts from the browser where you set them. Alerts expire after four hours. The service deletes the alert record after successful cancellation, when it checks for expired alerts, after handoff to the push service, or when delivery attempts end. The browser’s push service handles delivery. A successful handoff does not guarantee that your device shows the alert.</p>
       <h2>Analytics and hosting</h2>
